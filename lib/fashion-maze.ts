@@ -12,7 +12,10 @@ export interface MazeRoute {
   teaser: string;
   accent: string;
   narrative: NarrativeBeat;
-  promptDelta: string;
+  promptDelta: {
+    transition: string;
+    settled: string;
+  };
 }
 
 export interface PromptMotionLayer {
@@ -25,6 +28,20 @@ export interface FashionMazePromptLayers {
   movement: PromptMotionLayer;
 }
 
+export type EnsembleSettledState = "wander" | "pose";
+export type EnsemblePromptMode =
+  | EnsembleSettledState
+  | "assemble"
+  | "release";
+
+export interface FashionMazeEnsemble {
+  count: number;
+  wander: string;
+  assemble: string;
+  pose: string;
+  release: string;
+}
+
 export interface FashionMaze {
   id: string;
   edition: string;
@@ -32,275 +49,162 @@ export interface FashionMaze {
   subtitle: string;
   location: string;
   seedImage: string;
+  characterImage?: string;
+  characterName?: string;
   seed: number;
   accent: string;
   entrance: NarrativeBeat;
   basePrompt: string;
   promptLayers: FashionMazePromptLayers;
+  ensemble: FashionMazeEnsemble;
   routes: MazeRoute[];
 }
 
 /**
- * Prototype content only. Replace these records with the team's image dataset
- * and authored narrative later; the UI and Reactor controller consume this
- * shape without any model-specific knowledge.
+ * First production content packet from 2026TheFashionMaze-Hack.
+ *
+ * The authored spec recommends first-person for its installation photographs,
+ * but this packet's actual start frame is explicitly third-person and already
+ * contains the player character. Image continuity wins: these prompts keep the
+ * same blogger, suit, camera distance, and hedge geometry instead of asking the
+ * world model to erase her on the first generated frame.
  */
 export const fashionMazes: FashionMaze[] = [
   {
-    id: "afterglow-archive",
-    edition: "MAZE 01",
-    title: "Afterglow Archive",
-    subtitle: "Every garment remembers a body.",
-    location: "Memory / Night / Synthetic silk",
-    seedImage: "/maze/afterglow-archive.svg",
-    seed: 31415,
-    accent: "#ff4fc8",
+    id: "hedge-threshold",
+    edition: "CHAPTER 01",
+    title: "The Hedge Threshold",
+    subtitle: "The invitation was never meant to be easy to find.",
+    location: "Shanghai / Golden hour / Living couture",
+    seedImage: "/dataset/hedge-threshold.png",
+    characterImage: "/dataset/fashion-blogger-character-sheet.png",
+    characterName: "THE BLOGGER / LOOK 01",
+    seed: 260718,
+    accent: "#78f0cf",
     entrance: {
-      eyebrow: "THE THRESHOLD",
-      title: "The archive is awake.",
-      body: "A corridor of unworn memories waits for a witness. Which part of a garment should survive: its silhouette, its material, or the person who changed it?",
+      eyebrow: "THE INVITATION",
+      title: "You are late for the finale.",
+      body:
+        "A fashion PR handed you an envelope. The address led not to a venue, but to a living maze. Somewhere beyond the hedges, the season's final runway has already begun.",
     },
     basePrompt:
-      "A cinematic first-person fashion labyrinth inside a vast black archive. Monumental translucent magenta fabric arches form a navigable corridor. Tall faceless couture mannequins stand in fixed illuminated alcoves on both sides. Their garments combine liquid satin, sculptural pleats, and fiber-optic seams. The polished obsidian floor reflects the installations. High-fashion editorial lighting, deep blacks, vivid fuchsia and violet accents, physically coherent perspective, rich textile detail. The same corridor, arches, and mannequin positions remain spatially stable. No typography, no logos, no cuts, no montage.",
+      "A continuous third-person interactive fashion film in an open-air couture hedge maze. The same six physical people persist: EXACTLY ONE fashion blogger stays centred in the foreground with her back to camera, an athletic woman with deep brown skin and short natural locs in the same fitted silver geometric bodysuit with teal inlays, structured shoulders, forearm guards, and silver boots; EXACTLY FIVE distinct supporting fashion models in jewel-toned couture occupy five assigned midground side zones. Preserve all six identities, bodies, outfits, proportions, and the reference architecture. No arrivals, departures, duplicates, merging, role swaps, text, logos, cuts, or montage.",
     promptLayers: {
       camera: {
         still:
-          "The first-person camera is still at human eye level, centered in a composed wide editorial frame with a clear view down the corridor.",
+          "The third-person camera stays at a fixed position two metres behind the blogger at shoulder height. Live look input may pan or tilt gently without translating the camera, changing the horizon, or altering character scale.",
         moving:
-          "The first-person camera becomes a smooth stabilized tracking shot at human eye level, preserving the corridor's orientation and continuous spatial identity.",
+          "The third-person camera follows smoothly two metres behind the same blogger at shoulder height in one stabilized game-camera shot, matching her heading without orbiting, cutting, or changing her scale abruptly.",
       },
       movement: {
         still:
-          "The mannequins and architecture hold their positions; only restrained fabric shimmer and atmospheric light move gently.",
+          "The blogger holds a calm ready stance; her breathing and the smallest leaves move subtly while her feet, the hedges, terraces, and path remain anchored.",
         moving:
-          "As the viewer travels, nearby fabric edges respond with subtle parallax and airflow while every installation remains anchored in place.",
+          "The blogger moves naturally in the exact direction of player input at a steady walking pace. Her steps remain grounded on the path, nearby hedges pass with coherent parallax, and the architecture never slides or follows her.",
       },
+    },
+    ensemble: {
+      count: 5,
+      wander:
+        "The five supporting models remain in their five assigned midground side zones. Only one or two at a time take bounded, non-crossing micro-walks or weight shifts; all stay clear of the blogger and central lane.",
+      assemble:
+        "For this chunk only, the same five models take one short, direct, non-crossing approach from their five side zones to five fixed formation marks, form one sculptural V facing camera, then stop.",
+      pose:
+        "The same five models occupy the five fixed formation marks in one sculptural V facing camera, feet planted and poses fixed. Only breathing and fabric micro-motion continue; nobody walks or changes pose.",
+      release:
+        "For this chunk only, the same five models take one short, direct, non-crossing return from the formation marks to their original five side zones, then stop.",
     },
     routes: [
       {
-        id: "silhouette",
-        direction: "LEFT",
-        navigation: "left",
-        title: "Follow the silhouette",
-        teaser: "Shape becomes memory.",
-        accent: "#ff4fc8",
-        narrative: {
-          eyebrow: "PATH OF FORM",
-          title: "A body can leave without disappearing.",
-          body: "The archive keeps only outlines. Sleeves, shoulders, and hems become an alphabet written by people who are no longer here.",
-        },
-        promptDelta:
-          "The left passage is a settled gallery of enormous suspended silhouettes. Black and fuchsia couture outlines float like architectural shadows, each one sharply distinct. The mannequins and archive remain fixed while the path opens clearly to the left.",
-      },
-      {
-        id: "fiber",
-        direction: "FORWARD",
+        id: "neon-canopy",
+        direction: "NEON",
         navigation: "forward",
-        title: "Trace the fiber",
-        teaser: "Material tells the truth.",
-        accent: "#b38cff",
+        title: "Awaken the neon canopy",
+        teaser: "The garden remembers midnight.",
+        accent: "#ee62ff",
         narrative: {
-          eyebrow: "PATH OF MATTER",
-          title: "Touch is a kind of evidence.",
-          body: "Labels vanish. Brands dissolve. What remains is the intimacy of fiber: stretched, repaired, stained, and made luminous by use.",
+          eyebrow: "NEON MIRROR ATRIUM",
+          title: "Every reflection arrives before you do.",
+          body:
+            "Violet light threads through the living walls. Mirrored passages multiply the collection, but the woman walking through them remains unmistakably herself.",
         },
-        promptDelta:
-          "The forward corridor is a stable material observatory. Vast woven membranes, magnified threads, hand repairs, and luminous seams form layered textile walls. Violet light reveals every fiber while the central walking line remains open and spatially coherent.",
+        promptDelta: {
+          transition:
+            "During this one forward approach, the garden ahead transitions once into a neon mirror conservatory. Violet and magenta light resolves between the existing terraces, flush mirror panels come into view within both hedge walls, and one warm yellow light ring becomes visible over the open path. The greenery, white concrete, protagonist, and path geometry remain continuous.",
+          settled:
+            "The world ahead is a settled neon mirror conservatory derived from the same hedge maze. Fixed violet and magenta light columns stand between the existing terraces, thin mirror panels sit flush within both hedge walls, and exactly one warm yellow light ring hangs over the open path. The original greenery, white concrete, protagonist, and path geometry remain fixed.",
+        },
       },
       {
-        id: "ghost",
-        direction: "RIGHT",
-        navigation: "right",
-        title: "Meet the ghost",
-        teaser: "Identity refuses the display case.",
-        accent: "#ff8a6b",
-        narrative: {
-          eyebrow: "PATH OF PRESENCE",
-          title: "The wearer steps back into the frame.",
-          body: "The collection stops pretending it was made by objects alone. Invisible lives return as gestures, warmth, and traces of movement.",
-        },
-        promptDelta:
-          "The right passage is a settled hall of human presence. Soft amber volumetric figures appear beside the fixed mannequins as elegant traces of past wearers, diverse in height and posture. They are calm luminous impressions, not horror ghosts. The path turns clearly right.",
-      },
-    ],
-  },
-  {
-    id: "living-atelier",
-    edition: "MAZE 02",
-    title: "Living Atelier",
-    subtitle: "The collection is still growing.",
-    location: "Symbiosis / Dawn / Bio-material",
-    seedImage: "/maze/living-atelier.svg",
-    seed: 27182,
-    accent: "#b6ff70",
-    entrance: {
-      eyebrow: "THE GREEN ROOM",
-      title: "Nothing here is finished.",
-      body: "The atelier treats clothes as temporary agreements between bodies and ecosystems. Choose what the collection learns to become.",
-    },
-    basePrompt:
-      "A dreamlike first-person fashion maze inside a luminous botanical atelier at dawn. Cream stone pathways curve between tall translucent greenhouse ribs. Sculptural couture mannequins wear garments grown from mycelium lace, algae silk, seed pods, and delicate leaf structures. Pale mist, dew, warm sunlight, celadon and acid-green accents. Luxurious editorial fashion photography, tactile organic materials, coherent walkable depth. The greenhouse ribs, pathways, and mannequin installations remain spatially stable. No typography, no logos, no cuts, no montage.",
-    promptLayers: {
-      camera: {
-        still:
-          "The first-person camera rests at human eye level in a calm symmetrical editorial composition, looking along the open greenhouse path.",
-        moving:
-          "The first-person camera glides at walking pace in one stabilized continuous shot, keeping the greenhouse geometry and path direction coherent.",
-      },
-      movement: {
-        still:
-          "The couture displays remain rooted and composed while dew, mist, and the smallest leaves move almost imperceptibly.",
-        moving:
-          "Movement creates gentle plant and textile parallax with a light response to passing air; the path and displays never drift or relocate.",
-      },
-    },
-    routes: [
-      {
-        id: "symbiosis",
-        direction: "LEFT",
-        navigation: "left",
-        title: "Dress with the habitat",
-        teaser: "Garment and garden negotiate.",
-        accent: "#b6ff70",
-        narrative: {
-          eyebrow: "PATH OF SYMBIOSIS",
-          title: "The garment begins to listen.",
-          body: "Color responds to humidity. Openings follow sunlight. Fashion becomes less an object than a relationship with a place.",
-        },
-        promptDelta:
-          "The left path is a stable symbiotic couture garden. Garments integrate living moss panels, responsive leaf vents, and translucent algae-silk layers. The installations remain elegant and wearable, rooted beside the fixed path without overgrowing it.",
-      },
-      {
-        id: "bloom",
-        direction: "FORWARD",
+        id: "living-runway",
+        direction: "GARDEN",
         navigation: "forward",
-        title: "Enter the bloom",
-        teaser: "Abundance replaces permanence.",
-        accent: "#ffe66d",
+        title: "Reveal the living runway",
+        teaser: "The hedge becomes couture.",
+        accent: "#78f0cf",
         narrative: {
-          eyebrow: "PATH OF ABUNDANCE",
-          title: "A collection can have a season.",
-          body: "These pieces are designed to flower, release their color, and return. Their value lives in timing rather than permanence.",
+          eyebrow: "CLASSIC HEDGE GARDEN",
+          title: "The maze has been tailoring itself.",
+          body:
+            "Leaves follow seam lines. Sunlight catches every silver panel. The path ahead is both garden and runway, waiting for its first look.",
         },
-        promptDelta:
-          "The forward path is a settled seasonal runway of oversized pale-yellow blooms and refined petal garments. Floral structures frame the corridor without blocking it. Warm sunlight catches pollen-like gold particles suspended gently in the air.",
+        promptDelta: {
+          transition:
+            "During this one forward approach, the existing garden ahead reveals its living couture runway. Geometric seam patterns resolve across both clipped hedge walls and a shallow mirror-water circle comes into view between the fixed terraces. Golden sunlight, rose vines, and fine mist remain continuous around the same blogger and path.",
+          settled:
+            "The path ahead is a settled living couture runway within the same garden. Two clipped hedge walls remain fixed left and right with precise geometric leaf-seam patterns, and exactly one shallow mirror-water circle rests between the existing terraces. Golden sunlight, rose vines, and fine mist reveal the silver and teal suit.",
+        },
       },
       {
-        id: "compost",
-        direction: "RIGHT",
-        navigation: "right",
-        title: "Design the ending",
-        teaser: "Decay becomes authorship.",
-        accent: "#72d6a0",
-        narrative: {
-          eyebrow: "PATH OF RETURN",
-          title: "The last look is not the last state.",
-          body: "Fastening, dye, and seam are reconsidered from the end backward. The exit is designed with as much care as the entrance.",
-        },
-        promptDelta:
-          "The right passage is a calm material-return chamber. Deconstructed couture layers rest in precise circular beds of fiber, mineral pigment, and mycelium, showing an elegant cycle of disassembly and renewal. The path stays clear and turns right.",
-      },
-    ],
-  },
-  {
-    id: "mirror-protocol",
-    edition: "MAZE 03",
-    title: "Mirror Protocol",
-    subtitle: "How many selves can one look hold?",
-    location: "Identity / Blue hour / Digital chrome",
-    seedImage: "/maze/mirror-protocol.svg",
-    seed: 16180,
-    accent: "#77d9ff",
-    entrance: {
-      eyebrow: "THE FITTING ROOM",
-      title: "Your reflection has options.",
-      body: "The mirror no longer asks whether a look is real. It asks which version of you gets to continue through the maze.",
-    },
-    basePrompt:
-      "A surreal first-person fashion maze made from mirrored chrome corridors at blue hour. Elegant faceless avatars in futuristic couture occupy fixed display platforms. Their garments combine reflective metal mesh, translucent blue organza, and precise geometric tailoring. Infinite reflections feel architectural rather than chaotic. Cool cyan light, deep cobalt shadows, high-fashion campaign photography, crisp material detail, coherent navigable perspective. The mirror walls, platforms, and avatars remain spatially stable. No typography, no logos, no cuts, no montage.",
-    promptLayers: {
-      camera: {
-        still:
-          "The first-person camera is still at human eye level in a precise centered fashion-campaign frame, with ordered reflections and a legible route ahead.",
-        moving:
-          "The first-person camera moves as a stabilized continuous tracking shot, maintaining a consistent horizon and intelligible mirrored architecture.",
-      },
-      movement: {
-        still:
-          "Avatars and platforms hold perfectly still while controlled blue light travels softly across chrome and organza surfaces.",
-        moving:
-          "As the viewer moves, reflections and translucent layers shift through natural parallax while the real avatars, platforms, and walls stay fixed.",
-      },
-    },
-    routes: [
-      {
-        id: "duplicate",
-        direction: "LEFT",
-        navigation: "left",
-        title: "Multiply the look",
-        teaser: "One identity becomes a chorus.",
-        accent: "#77d9ff",
-        narrative: {
-          eyebrow: "PATH OF COPIES",
-          title: "Repetition reveals the difference.",
-          body: "Each copy keeps the same silhouette but changes one decision. Identity emerges not from consistency, but from variation.",
-        },
-        promptDelta:
-          "The left corridor is a stable procession of repeated couture avatars. Each shares one precise silhouette while material, color, and gesture vary subtly from platform to platform. Cyan reflections remain ordered and the path opens left.",
-      },
-      {
-        id: "distort",
-        direction: "FORWARD",
+        id: "golden-circuit",
+        direction: "CIRCUIT",
         navigation: "forward",
-        title: "Distort the mirror",
-        teaser: "The error becomes the signature.",
-        accent: "#9b8cff",
+        title: "Approach the golden circuit",
+        teaser: "Technology grows a garden.",
+        accent: "#ffc65c",
         narrative: {
-          eyebrow: "PATH OF GLITCH",
-          title: "Perfection was only one protocol.",
-          body: "The mirror bends proportion and symmetry without turning the body into a joke. Distortion becomes a deliberate new grammar.",
+          eyebrow: "GOLDEN CIRCUIT STAIRWAY",
+          title: "The route answers in amber light.",
+          body:
+            "A staircase wakes inside the vines. Its circuitry does not replace the garden; it reveals the current that was already running beneath it.",
         },
-        promptDelta:
-          "The forward corridor is a controlled optical salon. Curved mirror panels elongate and compress reflections while the real avatars and tailored garments remain elegant, intact, and fixed. Violet-blue light makes each distortion deliberate and graphic.",
-      },
-      {
-        id: "dissolve",
-        direction: "RIGHT",
-        navigation: "right",
-        title: "Leave the image",
-        teaser: "Presence without a profile.",
-        accent: "#f3f7ff",
-        narrative: {
-          eyebrow: "PATH OF ABSENCE",
-          title: "You do not owe the mirror a face.",
-          body: "Recognition fades. Texture, motion, and space take over. The look becomes an atmosphere that cannot be reduced to a profile.",
+        promptDelta: {
+          transition:
+            "During this one forward approach, the garden ahead transitions once into its golden circuit state. Amber-lit stone steps and two restrained teal-and-gold circuit inlays resolve within the existing hedges and fixed white terraces. Warm light strengthens across the pale path without replacing the greenery, protagonist, or architecture.",
+          settled:
+            "The world ahead is a settled golden circuit garden within the same architecture. Exactly one wide low staircase of amber-lit stone rests between the existing hedges, and two teal-and-gold circuit inlays remain fixed in the white terrace walls. Warm light reflects across the pale path without replacing the greenery.",
         },
-        promptDelta:
-          "The right path is a serene identity-free chamber. Couture remains as floating layers of translucent organza, chrome mesh, and moving light without visible faces or bodies. The architectural mirror maze stays coherent and the exit turns right.",
       },
     ],
   },
 ];
 
-const movementContract =
-  "A first-person camera may move smoothly forward, backward, or sideways through the open walkway and may look around gently. Camera motion never moves the fixed installations. Maintain continuous spatial identity and a single unbroken shot.";
+const thirdPersonMovementContract =
+  "Live controls move only the blogger and following camera; fixed architecture stays anchored. Preserve one protagonist, stable landmarks, coherent gravity, and one unbroken world.";
 
 export function composeWorldPrompt(
   maze: FashionMaze,
   route?: MazeRoute,
-  options: { isMoving?: boolean } = {},
+  options: {
+    isMoving?: boolean;
+    isRouteTransition?: boolean;
+    ensembleMode?: EnsemblePromptMode;
+  } = {},
 ): string {
   const isMoving = options.isMoving ?? false;
+  const isRouteTransition = options.isRouteTransition ?? false;
+  const ensembleMode = options.ensembleMode ?? "wander";
   const destination = route
-    ? route.promptDelta
-    : "At the threshold, three clearly readable passages lead left, forward, and right. The camera is still, centered, and ready to choose a direction.";
+    ? route.promptDelta[isRouteTransition ? "transition" : "settled"]
+    : "At the threshold, one open path continues through the fixed hedge architecture. No world transformation has been applied yet.";
 
   return [
     maze.basePrompt,
     maze.promptLayers.camera[isMoving ? "moving" : "still"],
     maze.promptLayers.movement[isMoving ? "moving" : "still"],
     destination,
-    movementContract,
+    maze.ensemble[ensembleMode],
+    thirdPersonMovementContract,
   ].join(" ");
 }
 

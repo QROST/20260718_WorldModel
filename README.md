@@ -1,16 +1,17 @@
 # Fashion Maze × Reactor
 
-一个面向 SIGGRAPH hackathon 的 HTML/React 实时世界体验：用户从内置图片与 narrative 中选择入口，再进入由 Reactor LingBot World 2 生成的连续视频世界，并通过方向选择、WASD 与视角控制探索不同的 fashion maze。
+一个面向 SIGGRAPH hackathon 的 HTML/React 实时世界体验：用户以 fashion blogger 的身份从真实团队入口图进入由 Reactor LingBot World 2 生成的连续视频世界，并通过世界变体选择、WASD 与视角控制探索会实时变化的 fashion maze。
 
 ## 当前体验
 
-- 三个可离线浏览的 prototype maze；
-- 每个 maze 包含一张入口图、一段开场 narrative 和三条 prompt 分支；
+- 一个来自团队 dataset 的 16:9 `Hedge Threshold` hero entrance；
+- 一张可从 HTML 打开的三视图 character reference，以及一段 invitation narrative；
+- 三种保持同一角色、服装、跟随镜头和基础空间的 world transformation：Neon Canopy、Living Runway、Golden Circuit；
 - 静态预览中即可点击三条 route 阅读 narrative，不会连接 Reactor；
 - prompt 以 `base / camera / movement / route` 四层组织，WASD 在 still 与 moving 版本之间自动切换；
 - 用户点击 `ENTER LIVE MAZE` 后才连接 Reactor；
 - 参考图上传后，由 `conditions_ready` 事件触发 generation；
-- 分支选择同时发送 hot-swapped prompt 与一段单-chunk 左转、前进或右转指令；确认生效后自动回到 idle 与 settled prompt；
+- 变体选择同时发送 hot-swapped prompt 与一段单-chunk 前进指令；确认生效后自动回到 idle 与 settled prompt；入口 seed 没有虚构的三岔口；
 - WASD 控制前后与横移，方向键控制视角；`MOUSE LOOK` 使用原生 `setCameraPose()` 与 video chunk 时钟；
 - `OPERATOR` 抽屉显示 session、chunk、action、track、camera pose 和最终合成 prompt；
 - 录制可用时，operator 可截取最近 10 秒，预览并下载 MP4；
@@ -37,15 +38,16 @@ REACTOR_API_KEY=<your-reactor-api-key>
 
 本地 hackathon 开发也可使用根目录的 `reactor.key`。所有 `*.key` 文件均被 Git 忽略，API key 不会进入浏览器；浏览器只从 `POST /api/reactor/token` 获得十分钟有效的短期 JWT。
 
-## 替换图片与 narrative
+## 内容包与 narrative
 
-内容集中在 [`lib/fashion-maze.ts`](./lib/fashion-maze.ts)。每个 maze 的结构为：
+当前内容从 `/Users/addincui/Github/2026TheFashionMaze-Hack` 以只读方式吸收。可携带的原始 spec 与 14-scene registry 位于 [`content/authoring/`](./content/authoring/)，实际运行的入口图和角色图位于 [`public/dataset/`](./public/dataset/)，映射决策记录在 [`content/README.md`](./content/README.md)。运行时内容集中在 [`lib/fashion-maze.ts`](./lib/fashion-maze.ts)。每个 maze 的结构为：
 
 ```ts
 interface FashionMaze {
   id: string;
   title: string;
   seedImage: string;
+  characterImage?: string;
   seed: number;
   entrance: NarrativeBeat;
   basePrompt: string;
@@ -57,9 +59,11 @@ interface FashionMaze {
 }
 ```
 
-将图片放进 `public/dataset/`，然后把 `seedImage` 改为 `/dataset/your-image.jpg`。当前 SVG 占位图会在浏览器中自动转换成 PNG 后再上传；正式数据建议直接使用 16:9 PNG、JPEG 或 WebP。
+新增图片时放进 `public/dataset/`，然后把 `seedImage` 改为 `/dataset/your-image.jpg`。正式 seed 建议使用 16:9 PNG、JPEG 或 WebP。`characterImage` 只用于 HTML concept reference；当前 LingBot `setImage()` 每次接受一个 seed，因此不会把三视图角色表误当成第二张实时 conditioning image。
 
-每条 `route` 同时包含观众看到的 narrative 和模型看到的 `promptDelta`。`composeWorldPrompt()` 会把场景身份、still/moving 镜头层、still/moving 运动层、路线结果和统一连续性约束组合为一次 `setPrompt()`。这种结构吸收自官方 `create-reactor-app` 的 layered scene 模式，但保留为面向 Fashion Maze 内容团队的轻量数据结构，而不是复制通用 prompt editor。
+每条 `route` 同时包含观众看到的 narrative 和模型看到的 `promptDelta.transition / settled`。选择变体时，首个 forward chunk 使用一次性 transition；chunk 完成后立即换成没有生长、出现或攀爬过程动词的 settled prompt。之后普通 WASD 只切换 camera/movement 层，不会再次触发 world morph。`composeWorldPrompt()` 会把场景身份、still/moving 镜头层、still/moving 运动层、路线结果和统一连续性约束组合为一次 `setPrompt()`。当前组合保持低于 authoring spec 建议的约 2000-character budget。这种结构吸收自官方 `create-reactor-app` 的 layered scene 模式，但保留为面向 Fashion Maze 内容团队的轻量数据结构，而不是复制通用 prompt editor。
+
+原始 spec 的第一人称建议面向“纯 installation reference image”；本次实际 opening frame 已经建立了可见的第三人称角色。当前实现以图片为约束，保持一个 blogger、同一套银色服装、两米跟随镜头和连续的 hedge architecture。第一人称与第三人称的最终选择应通过一次明确的小额 Reactor canary 比较，而不是在 prompt 中同时要求两者。
 
 ## Reactor 架构
 

@@ -443,6 +443,58 @@ a:focus-visible {
   white-space: nowrap;
 }
 
+.character-reference {
+  display: grid;
+  grid-template-columns: 68px 1fr;
+  align-items: center;
+  gap: 11px;
+  margin: 20px 0 0;
+  padding: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(6, 6, 8, 0.44);
+  color: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(12px);
+}
+
+.maze-index.is-single .character-reference {
+  margin-top: 0;
+}
+
+.character-reference img {
+  display: block;
+  width: 68px;
+  height: 68px;
+  object-fit: cover;
+  filter: saturate(0.78) contrast(1.06);
+}
+
+.character-reference span {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.character-reference small,
+.character-reference em {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 7px;
+  font-style: normal;
+  letter-spacing: 0.12em;
+}
+
+.character-reference strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.character-reference em {
+  color: var(--maze-accent);
+}
+
 .story-panel {
   position: absolute;
   z-index: 10;
@@ -697,6 +749,61 @@ a:focus-visible {
   gap: 18px;
 }
 
+.cast-director {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.cast-director > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cast-director span {
+  color: var(--maze-accent);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.cast-director small {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.ensemble-button {
+  min-width: 164px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--maze-accent);
+  background: color-mix(in srgb, var(--maze-accent) 12%, transparent);
+  color: #fff;
+  cursor: pointer;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1.35;
+}
+
+.ensemble-button.is-active {
+  background: var(--maze-accent);
+  color: #08080a;
+}
+
+.ensemble-button:disabled {
+  cursor: default;
+  filter: grayscale(0.55);
+  opacity: 0.42;
+}
+
 .control-copy {
   display: flex;
   flex-direction: column;
@@ -752,14 +859,15 @@ a:focus-visible {
 
 .pause-button,
 .mouse-look-button {
-  height: 44px;
-  padding: 0 12px;
+  min-height: 44px;
+  padding: 8px 12px;
   border: 1px solid rgba(255, 255, 255, 0.24);
   background: transparent;
   color: rgba(255, 255, 255, 0.68);
   cursor: pointer;
   font-size: 8px;
   letter-spacing: 0.12em;
+  line-height: 1.35;
 }
 
 .mouse-look-button.is-active {
@@ -1113,7 +1221,7 @@ a:focus-visible {
   }
 
   .maze-stage {
-    min-height: 1230px;
+    min-height: 1370px;
   }
 
   .stage-media {
@@ -1147,6 +1255,10 @@ a:focus-visible {
     top: 84px;
     left: 17px;
     width: 180px;
+  }
+
+  .character-reference {
+    display: none;
   }
 
   .index-list button {
@@ -1230,7 +1342,16 @@ a:focus-visible {
 
 @media (max-width: 520px) {
   .maze-stage {
-    min-height: 1290px;
+    min-height: 1450px;
+  }
+
+  .cast-director {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ensemble-button {
+    width: 100%;
   }
 
   .preview-badge {

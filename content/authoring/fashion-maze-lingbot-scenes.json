@@ -1,0 +1,397 @@
+{
+  "_readme": "360 FASHION MAZE GAME — LingBot World 2 scene registry. One layered scene per maze section. Compose at runtime: prompt = base + camera[isMoving] + movement[isMoving] + heldEvents + vertical. Player POV is first-person (the blogger's own camera). seedImage lists the project photo(s) to use as the reference image (already 16:9, matches 1664x960); seedImagePrompt is provided only where a photo must be generated. Events are hold-keys: 1 = Pose Shift, 2 = Runway Circle, 3 = Group Pose (photo moment — app grants bonus points if P captures during this hold). Timer, coins, photo capture, score, and the maze graph are app-side, never prompted.",
+  "scenes": [
+    {
+      "id": "zone01_neon_mirror_atrium",
+      "name": "Neon Mirror Atrium",
+      "seedImage": [
+        "360fashion_male_cyberpunk_Saudi_arabian_asian_and_black_fashi_3a62e585b7da481c9136c8c88c2693d9_1.png",
+        "360fashion_male_cyberpunk_Saudi_arabian_asian_and_black_fashi_3a62e585b7da481c9136c8c88c2693d9_3.png"
+      ],
+      "base": "Five fashion models of diverse Black, Asian and Middle Eastern heritage in sculptural metallic couture — a central model with locs in a ribbed silver-blue jacket, flanked by hooded figures in iridescent navy coats and a flowing silver gown — inside a vast mirrored cyberpunk atrium. The world contains EXACTLY ONE ring of glowing yellow neon halos suspended overhead at a fixed position AND EXACTLY TWO mirrored corridor walls receding left and right at fixed positions. Violet and magenta neon columns, reflective patterned floor. Cinematic cyberpunk editorial, high gloss.",
+      "camera": {
+        "static": "First-person view, the five models holding steady at the centre of the frame at constant size and distance. Neither the models nor the camera moves on its own; arrow-key look-input is the only source of camera motion, panning the view across the stationary, centred models only while held.",
+        "dynamic": "Strict first-person view, the five models holding steady at the centre of the frame as the viewpoint advances through the mirrored corridor toward them; look-input becomes the heading changing."
+      },
+      "movement": {
+        "static": "The five models hold their formation on the reflective floor, fabric shimmering faintly under the neon, the central model's chest rising with slow breaths, the hooded figures' coats settling in the still air.",
+        "dynamic": "The viewpoint glides forward along the reflective patterned floor at a steady walking pace, mirrored walls and violet neon columns sliding past on both sides, reflections scrolling smoothly underfoot, the five models growing gradually nearer."
+      },
+      "events": [
+        { "key": "1", "name": "Pose Shift", "detail": "The five models flow into a new editorial stance — hips angled, chins lifted, one hand raised — their metallic fabrics catching violet light as they settle and hold." },
+        { "key": "2", "name": "Runway Circle", "detail": "One by one the models step out and trace a small slow circle on the reflective floor, each garment turning through the neon glow, before rejoining the line and settling still." },
+        { "key": "3", "name": "Group Pose", "detail": "The five models draw together into a tight triangular formation, the central model front and centre, all faces toward the viewer, holding perfectly poised under the yellow halos." }
+      ],
+      "vertical": {
+        "jump": "The viewpoint springs upward in a quick smooth arc, rising above the reflective floor before dropping back down and settling level at walking height.",
+        "crouch": "The camera lowers toward the ground as the viewpoint crouches down low, the mirrored hall rising in frame.",
+        "stand": "The viewpoint straightens back up out of the crouch, the camera rising smoothly to standing height."
+      }
+    },
+    {
+      "id": "zone02_golden_circuit_stairway",
+      "name": "Golden Circuit Stairway",
+      "seedImage": [
+        "360fashion_cyberpunk_plus_size_female_black_fashion_model_wea_9f169bd2b9da4ec7a1a823fc7f0cb117_0.png"
+      ],
+      "base": "A regal plus-size Black fashion model in a flowing circuit-board-print kaftan gown with a beaded silver collar, blonde-tipped braids and a geometric headdress, standing at the base of a monumental golden staircase. The world contains EXACTLY ONE wide staircase of glowing amber-lit steps rising straight ahead at a fixed position, flanked by EXACTLY TWO towering walls of pink and teal circuit-pattern panels at fixed positions. Warm gold light, polished reflective floor. Afrofuturist couture editorial, radiant and majestic.",
+      "camera": {
+        "static": "First-person view, the model holding steady at the centre of the frame at constant size and distance. Neither the model nor the camera moves on its own; arrow-key look-input is the only source of camera motion, panning the view across the stationary, centred model only while held.",
+        "dynamic": "Strict first-person view, the model holding steady at the centre of the frame as the viewpoint advances across the polished floor toward her; look-input becomes the heading changing."
+      },
+      "movement": {
+        "static": "The model stands sovereign at the foot of the stairs, her kaftan drifting gently at the hem, beaded collar glinting, her gaze steady on the viewer as the amber steps glow behind her.",
+        "dynamic": "The viewpoint glides forward across the polished reflective floor at a steady walking pace, the circuit-pattern walls sliding past on both sides, amber stair-light strengthening ahead, the model growing gradually nearer."
+      },
+      "events": [
+        { "key": "1", "name": "Pose Shift", "detail": "The model raises both arms slowly outward so the kaftan spreads wide like wings, the circuit print catching the golden stair-light, then holds the open pose." },
+        { "key": "2", "name": "Runway Circle", "detail": "The model walks a slow deliberate circle on the reflective floor, the gown's full silhouette turning through the amber glow, and settles back facing the viewer." },
+        { "key": "3", "name": "Group Pose", "detail": "The model ascends three glowing steps, turns, and holds a crowned, symmetrical pose on the staircase's centre line, the circuit walls blazing on either side." }
+      ],
+      "vertical": {
+        "jump": "The viewpoint springs upward in a quick smooth arc, rising above the polished floor before dropping back down and settling level at walking height.",
+        "crouch": "The camera lowers toward the ground as the viewpoint crouches down low, the golden staircase rising in frame.",
+        "stand": "The viewpoint straightens back up out of the crouch, the camera rising smoothly to standing height."
+      }
+    },
+    {
+      "id": "zone03_afro_psychedelic_rotunda",
+      "name": "Afro-Psychedelic Rotunda",
+      "seedImage": [
+        "360fashion_cyberpunk_plus_size_female_black_fashion_models_we_f55820114c734e2a833e25c86db29e4d_0.png",
+        "360fashion_cyberpunk_plus_size_female_black_fashion_models_we_f55820114c734e2a833e25c86db29e4d_1.png",
+        "360fashion_cyberpunk_plus_size_female_black_fashion_models_we_f55820114c734e2a833e25c86db29e4d_2.png",
+        "360fashion_cyberpunk_plus_size_female_black_fashion_models_we_f55820114c734e2a833e25c86db29e4d_3.png"
+      ],
+      "base": "Four powerful plus-size Black fashion models in bold orange, red and green Afro-psychedelic print robes and hooded wraps, with sculpted braids in amber, black and red and dramatic magenta eye makeup, gathered inside a glowing orange rotunda. The world contains EXACTLY ONE huge circular ribbed dome wall of radiant orange geometric panels behind them at a fixed position. Saturated tangerine light, kaleidoscopic patterned surfaces. Afrofuturist psychedelic editorial, fierce and warm.",
+      "camera": {
+        "static": "First-person view, the four models holding steady at the centre of the frame at constant size and distance. Neither the models nor the camera moves on its own; arrow-key look-input is the only source of camera motion, panning the view across the stationary, centred models only while held.",
+        "dynamic": "Strict first-person view, the four models holding steady at the centre of the frame as the viewpoint advances through the glowing rotunda toward them; look-input becomes the heading changing."
+      },
+      "movement": {
+        "static": "The four models stand shoulder to shoulder in the orange glow, robes hanging heavy and still, long braids swaying almost imperceptibly, their fierce expressions fixed on the viewer.",
+        "dynamic": "The viewpoint glides forward across the kaleidoscopic patterned floor at a steady walking pace, the ribbed orange dome wall wrapping past on both sides, tangerine light deepening, the four models growing gradually nearer."
+      },
+      "events": [
+        { "key": "1", "name": "Pose Shift", "detail": "The four models tilt into a staggered diagonal of attitudes — arms crossed, hand on hip, chin raised — patterned robes overlapping into one kaleidoscope, then hold." },
+        { "key": "2", "name": "Runway Circle", "detail": "One by one each model steps forward and turns a slow full circle in the rotunda's centre, her printed robe flaring softly, before stepping back into the line." },
+        { "key": "3", "name": "Group Pose", "detail": "The four models close ranks around the central figure, faces stacked in a tight pyramid toward the viewer, braids draped forward, holding regally still against the glowing dome." }
+      ],
+      "vertical": {
+        "jump": "The viewpoint springs upward in a quick smooth arc, rising above the patterned floor before dropping back down and settling level at walking height.",
+        "crouch": "The camera lowers toward the ground as the viewpoint crouches down low, the orange dome rising in frame.",
+        "stand": "The viewpoint straightens back up out of the crouch, the camera rising smoothly to standing height."
+      }
+    },
+    {
+      "id": "zone04_kente_neon_cathedral",
+      "name": "Kente Neon Cathedral",
+      "seedImage": [
+        "360fashion_cyberpunk_male_black_fashion_models_wearing_coutur_a5c244322cf8480eb78cad2e2c9e3d02_1.png",
+        "360fashion_cyberpunk_male_black_fashion_models_wearing_coutur_a5c244322cf8480eb78cad2e2c9e3d02_0.png",
+        "360fashion_cyberpunk_male_black_fashion_models_wearing_coutur_a5c244322cf8480eb78cad2e2c9e3d02_2.png"
+      ],
+      "base": "Three Black male fashion models in geometric Afrofuturist couture — the central model in a copper-and-teal diamond-woven zip jacket with cropped braids, flanked by models in matching angular knit hoods — inside a towering hall of orange and gold neon arches. The world contains EXACTLY ONE grand arched neon portal of interlocking amber patterns straight ahead at a fixed position AND EXACTLY TWO columns of stacked glowing rings at fixed positions left and right. Saturated amber and magenta light, ornate patterned walls. Afrofuturist neon editorial, electric and regal.",
+      "camera": {
+        "static": "First-person view, the three models holding steady at the centre of the frame at constant size and distance. Neither the models nor the camera moves on its own; arrow-key look-input is the only source of camera motion, panning the view across the stationary, centred models only while held.",
+        "dynamic": "Strict first-person view, the three models holding steady at the centre of the frame as the viewpoint advances through the neon hall toward them; look-input becomes the heading changing."
+      },
+      "movement": {
+        "static": "The three models stand angled toward one another in quiet conference, jacket patterns glinting copper and teal, the neon arches humming steadily behind them, hoods utterly still.",
+        "dynamic": "The viewpoint glides forward along the patterned hall floor at a steady walking pace, glowing ring-columns sliding past on both sides, amber arch-light intensifying, the three models growing gradually nearer."
+      },
+      "events": [
+        { "key": "1", "name": "Pose Shift", "detail": "The three models square to the viewer in unison, shoulders set, geometric knits aligning into one continuous woven pattern across the trio, then hold." },
+        { "key": "2", "name": "Runway Circle", "detail": "The central model strides a slow circle beneath the amber arch, his diamond-woven jacket cycling through copper, teal and gold as it turns, then resumes his mark." },
+        { "key": "3", "name": "Group Pose", "detail": "The three models compress into a tight staggered column facing the viewer, chins level, hood peaks aligned, holding statue-still as the neon portal frames them." }
+      ],
+      "vertical": {
+        "jump": "The viewpoint springs upward in a quick smooth arc, rising above the hall floor before dropping back down and settling level at walking height.",
+        "crouch": "The camera lowers toward the ground as the viewpoint crouches down low, the neon arches rising in frame.",
+        "stand": "The viewpoint straightens back up out of the crouch, the camera rising smoothly to standing height."
+      }
+    },
+    {
+      "id": "zone05_opart_palace_corridor",
+      "name": "Op-Art Palace Corridor",
+      "seedImage": [
+        "360fashion_middle_eastern_male_fashion_victims_in_couture_gow_70a0c5f27ee444ab98d5fe4adcc51b5e_2.png"
+      ],
+      "base": "Six Middle Eastern fashion models, women and men, in floor-length black-and-white op-art gowns — chevrons, spirals and meander stripes — with matching patterned headbands, arranged down an opulent palace corridor. The world contains EXACTLY ONE arched doorway of nested black-and-white rings straight ahead at a fixed position AND EXACTLY TWO walls of framed baroque paintings and geometric tilework at fixed positions left and right. Black-and-white hexagonal marble floor. Surreal op-art couture editorial, hypnotic and stately.",
+      "baseVersions": {
+        "dead_end": "A short black-and-white op-art alcove in an opulent palace. The world contains EXACTLY ONE solid wall of concentric painted rings sealing the passage straight ahead at a fixed position AND EXACTLY TWO walls of framed baroque paintings at fixed positions left and right. Black-and-white hexagonal marble floor. Surreal op-art interior, hypnotic and stately."
+      },
+      "camera": {
+        "static": "First-person view, the six models holding steady at the centre of the frame at constant size and distance. Neither the models nor the camera moves on its own; arrow-key look-input is the only source of camera motion, panning the view across the stationary, centred models only while held.",
+        "dynamic": "Strict first-person view, the six models holding steady at the centre of the frame as the viewpoint advances down the marble corridor toward them; look-input becomes the heading changing."
+      },
+      "movement": {
+        "static": "The six models stand spaced along the marble corridor, gowns falling in crisp graphic folds, dark hair stirring faintly, the nested arches framing them in receding rings.",
+        "dynamic": "The viewpoint glides forward along the hexagonal marble floor at a steady walking pace, painted walls and tilework sliding past on both sides, the nested arch deepening ahead, the six models growing gradually nearer."
+      },
+      "events": [
+        { "key": "1", "name": "Pose Shift", "detail": "The six models pivot in unison to profile, patterned gowns aligning into one continuous optical stripe down the corridor, then hold the illusion motionless." },
+        { "key": "2", "name": "Runway Circle", "detail": "The two nearest models glide forward and circle each other slowly on the hexagonal floor, their spiral and chevron prints interweaving, then return to their marks." },
+        { "key": "3", "name": "Group Pose", "detail": "The six models converge beneath the nested arch into a symmetrical V-formation, headbands aligned, gowns pooling on the marble, holding statue-still for the frame." }
+      ],
+      "vertical": {
+        "jump": "The viewpoint springs upward in a quick smooth arc, rising above the marble floor before dropping back down and settling level at walking height.",
+        "crouch": "The camera lowers toward the ground as the viewpoint crouches down low, the nested arches rising in frame.",
+        "stand": "The viewpoint straightens back up out of the crouch, the camera rising smoothly to standing height."
+      }
+    },
+    {
+      "id": "zone06_islamic_lattice_maze",
+      "name": "Islamic Psychedelic Lattice",
+      "seedImage": [
+        "360fashion_a_cyberpunk_middle_eastern_man_in_a_couture_led_su_6632867f6eb5445582f814942b806aea_2.png"
+      ],
+      "base": "A bearded Middle Eastern male fashion model in a slim couture suit printed with jewel-toned paisley feathers, standing on a raised walkway inside a night maze of towering Islamic geometric lattice walls — intricate girih screens of dark metal threaded with plants and glowing pink light. The world contains EXACTLY ONE row of white light-bars running along the ceiling straight ahead at a fixed position AND EXACTLY TWO hedge-height lattice walls at fixed positions left and right. Deep indigo night, magenta glow seeping through the screens. Arabesque cyberpunk editorial, mysterious and ornate.",
+      "camera": {
+        "static": "First-person view, the model holding steady at the centre of the frame at constant size and distance. Neither the model nor the camera moves on its own; arrow-key look-input is the only source of camera motion, panning the view across the stationary, centred model only while held.",
+        "dynamic": "Strict first-person view, the model holding steady at the centre of the frame as the viewpoint advances along the raised walkway toward him; look-input becomes the heading changing."
+      },
+      "movement": {
+        "static": "The model stands on the walkway in the indigo gloom, paisley print catching threads of pink light through the lattice, his beard and collar edged in glow, breathing slow and even.",
+        "dynamic": "The viewpoint glides forward along the raised walkway at a steady walking pace, girih lattice screens sliding past on both sides, magenta glow pulsing gently through their patterns, the model growing gradually nearer."
+      },
+      "events": [
+        { "key": "1", "name": "Pose Shift", "detail": "The model turns to profile and lifts his chin toward the lattice, one hand smoothing his lapel, the paisley feathers of his suit glowing against the dark screens, then holds." },
+        { "key": "2", "name": "Runway Circle", "detail": "The model paces a slow tight circle on the walkway, his suit's jewel-toned print cycling through the pink lattice-light as it turns, then settles facing the viewer." },
+        { "key": "3", "name": "Group Pose", "detail": "The model plants both feet at the walkway's centre, squares his shoulders to the viewer and holds a formal portrait stance, framed by the glowing geometric screens." }
+      ],
+      "vertical": {
+        "jump": "The viewpoint springs upward in a quick smooth arc, rising above the walkway before dropping back down and settling level at walking height.",
+        "crouch": "The camera lowers toward the ground as the viewpoint crouches down low, the lattice walls rising in frame.",
+        "stand": "The viewpoint straightens back up out of the crouch, the camera rising smoothly to standing height."
+      }
+    },
+    {
+      "id": "zone07_amber_meander_tunnel",
+      "name": "Amber Meander Tunnel",
+      "seedImage": [
+        "360fashion_a_middle_eastern_man_running_with_arms_wide_in_a_V_48782b8f933d4e6488296937d59911bd_0.png",
+        "360fashion_a_middle_eastern_man_running_with_arms_wide_in_a_V_48782b8f933d4e6488296937d59911bd_3.png"
+      ],
+      "base": "A rugged Middle Eastern male fashion model with a full beard and swept-back hair, in a shimmering charcoal brocade wrap coat with a slim shoulder strap, standing in a tunnel of glowing amber meander patterns. The world contains EXACTLY ONE arched tunnel of luminous orange geometric ribs receding straight ahead at a fixed position AND EXACTLY ONE white light source at the tunnel's far end at a fixed position. The floor is a maze-pattern mosaic lit from within, thin mist in the air. Persian-futurist couture editorial, smoldering and cinematic.",
+      "camera": {
+        "static": "First-person view, the model holding steady at the centre of the frame at constant size and distance. Neither the model nor the camera moves on its own; arrow-key look-input is the only source of camera motion, panning the view across the stationary, centred model only while held.",
+        "dynamic": "Strict first-person view, the model holding steady at the centre of the frame as the viewpoint advances through the glowing tunnel toward him; look-input becomes the heading changing."
+      },
+      "movement": {
+        "static": "The model stands mid-tunnel in the amber glow, brocade coat glinting as the mist drifts past him, the mosaic floor pulsing faintly beneath his boots, his gaze fixed ahead.",
+        "dynamic": "The viewpoint glides forward along the glowing mosaic floor at a steady walking pace, luminous meander ribs sweeping past overhead and on both sides, mist parting, the model growing gradually nearer."
+      },
+      "events": [
+        { "key": "1", "name": "Pose Shift", "detail": "The model spreads both arms wide, coat opening like dark wings against the amber ribs, head tipped back for a breath before he settles into the held stance." },
+        { "key": "2", "name": "Runway Circle", "detail": "The model strides a slow circle on the lit mosaic, his brocade catching and shedding the orange glow with each quarter turn, then plants himself facing the viewer." },
+        { "key": "3", "name": "Group Pose", "detail": "The model steps to the exact centre of the tunnel and holds a squared, smoldering portrait stance, the receding amber arches ringing him like a halo." }
+      ],
+      "vertical": {
+        "jump": "The viewpoint springs upward in a quick smooth arc, rising above the mosaic floor before dropping back down and settling level at walking height.",
+        "crouch": "The camera lowers toward the ground as the viewpoint crouches down low, the amber arches rising in frame.",
+        "stand": "The viewpoint straightens back up out of the crouch, the camera rising smoothly to standing height."
+      }
+    },
+    {
+      "id": "zone08_pink_sequin_legion",
+      "name": "Pink Sequin Legion",
+      "seedImage": [
+        "360fashion_cyberpunk_male_Saudi_Arabian_fashion_models_wearin_5631ee88d75544d293c1c05ffc5cdf04_0.png",
+        "360fashion_cyberpunk_male_Saudi_Arabian_fashion_models_wearin_5631ee88d75544d293c1c05ffc5cdf04_1.png",
+        "360fashion_cyberpunk_male_Saudi_Arabian_fashion_models_wearin_5631ee88d75544d293c1c05ffc5cdf04_2.png",
+        "360fashion_cyberpunk_male_Saudi_Arabian_fashion_models_wearin_5631ee88d75544d293c1c05ffc5cdf04_3.png"
+      ],
+      "base": "A legion of Middle Eastern male fashion models in glittering pink, magenta and coral sequined suits with structured shoulders, gold belt buckles and beaded hooded caps with violet visors, massed in ranks that recede into soft focus. The world contains EXACTLY ONE central model in a rose chainmail-sequin coat standing nearest at a fixed position. Blue-violet studio backdrop, saturated pink light. High-fashion runway editorial, dazzling and uniform.",
+      "camera": {
+        "static": "First-person view, the legion of models holding steady at the centre of the frame at constant size and distance. Neither the models nor the camera moves on its own; arrow-key look-input is the only source of camera motion, panning the view across the stationary, centred legion only while held.",
+        "dynamic": "Strict first-person view, the legion of models holding steady at the centre of the frame as the viewpoint advances across the studio floor toward them; look-input becomes the heading changing."
+      },
+      "movement": {
+        "static": "The legion of models stands in silent ranks, sequins shimmering with each slow breath, the central model's visor catching a line of violet light, hoods utterly still.",
+        "dynamic": "The viewpoint glides forward across the studio floor at a steady walking pace, the pink ranks widening across the frame, sequin shimmer sharpening row by row, the central model growing gradually nearer."
+      },
+      "events": [
+        { "key": "1", "name": "Pose Shift", "detail": "The central model plants one hand on his gold belt and squares his shoulders as the ranks behind mirror him a beat later, a wave of pink sequins settling into the pose." },
+        { "key": "2", "name": "Runway Circle", "detail": "The central model strides a tight circle at the front of the formation, his chainmail coat flashing through pink and silver, then resumes his mark facing the viewer." },
+        { "key": "3", "name": "Group Pose", "detail": "The front three ranks compress into a dense triangular phalanx behind the central model, every visored face level and forward, sequins blazing, holding motionless." }
+      ],
+      "vertical": {
+        "jump": "The viewpoint springs upward in a quick smooth arc, rising above the studio floor before dropping back down and settling level at walking height.",
+        "crouch": "The camera lowers toward the ground as the viewpoint crouches down low, the pink ranks rising in frame.",
+        "stand": "The viewpoint straightens back up out of the crouch, the camera rising smoothly to standing height."
+      }
+    },
+    {
+      "id": "zone09_neon_souk_passage",
+      "name": "Neon Souk Passage",
+      "seedImage": [
+        "360fashion_cyberpunk_male_Saudi_Arabian_fashion_models_wearin_e0d26e89cfa3464fbed50e3a9af0e1d6_0_1.png"
+      ],
+      "base": "Four Saudi Arabian male fashion models in luminous couture thobes — two in white robes with woven belts and white hooded ghutras, one in a glowing aqua diamond-lit robe, one in a marbled sage cloak with a patterned headwrap — walking a corridor whose walls are floor-to-ceiling mosaics of glowing pixel light. The world contains EXACTLY TWO shimmering pixel-mosaic walls in orange, violet and green at fixed positions left and right AND EXACTLY ONE bright vanishing point straight ahead at a fixed position. Polished floor reflecting the light-grid. Gulf-futurist couture editorial, radiant and serene.",
+      "camera": {
+        "static": "First-person view, the four models holding steady at the centre of the frame at constant size and distance. Neither the models nor the camera moves on its own; arrow-key look-input is the only source of camera motion, panning the view across the stationary, centred models only while held.",
+        "dynamic": "Strict first-person view, the four models holding steady at the centre of the frame as the viewpoint advances down the light-mosaic corridor toward them; look-input becomes the heading changing."
+      },
+      "movement": {
+        "static": "The four models stand at ease in the glowing corridor, robes hanging in clean columns, the aqua diamond-lit robe pulsing softly, reflections pooling still on the polished floor.",
+        "dynamic": "The viewpoint glides forward along the polished reflective floor at a steady walking pace, pixel-mosaic walls streaming past in orange and violet on both sides, the four models growing gradually nearer."
+      },
+      "events": [
+        { "key": "1", "name": "Pose Shift", "detail": "The four models turn as one to face the viewer and settle into a calm line abreast, hands folded, the light-walls washing their white robes in shifting color, then hold." },
+        { "key": "2", "name": "Runway Circle", "detail": "The model in the glowing aqua robe steps ahead and turns a slow full circle, his lit diamonds cycling through the corridor's colors, before rejoining the line." },
+        { "key": "3", "name": "Group Pose", "detail": "The four models gather into a close arc facing the viewer, the aqua-lit robe at its centre, headwraps and ghutras aligned, holding serene and statue-still." }
+      ],
+      "vertical": {
+        "jump": "The viewpoint springs upward in a quick smooth arc, rising above the polished floor before dropping back down and settling level at walking height.",
+        "crouch": "The camera lowers toward the ground as the viewpoint crouches down low, the light-mosaic walls rising in frame.",
+        "stand": "The viewpoint straightens back up out of the crouch, the camera rising smoothly to standing height."
+      }
+    },
+    {
+      "id": "zone10_twisted_vine_tunnel",
+      "name": "Twisted Vine Tunnel",
+      "seedImage": [
+        "360fashion_cyberpunk_chinese_male_fashion_models_wearing_cout_e11391f478f443348e1ebf728f1deb82_2.png"
+      ],
+      "base": "Two Chinese male fashion models in gold-and-black baroque brocade suit jackets over black shirts — one with a swept blond-streaked undercut, one with a long dark side-fringe — standing in a dark tunnel of enormous coiled copper vines. The world contains EXACTLY ONE arched vine-woven ceiling glowing faintly gold overhead at a fixed position AND EXACTLY ONE dark stone doorway straight ahead at a fixed position. Shadowed ferns, deep bronze and green gloom. Dark-fantasy couture editorial, moody and cinematic.",
+      "baseVersions": {
+        "dead_end": "A short dark alcove walled by enormous coiled copper vines. The world contains EXACTLY ONE dense woven vine wall sealing the passage straight ahead at a fixed position AND EXACTLY ONE faint gold glow threading the ceiling at a fixed position. Shadowed ferns, deep bronze gloom. Dark-fantasy interior, moody and cinematic."
+      },
+      "camera": {
+        "static": "First-person view, the two models holding steady at the centre of the frame at constant size and distance. Neither the models nor the camera moves on its own; arrow-key look-input is the only source of camera motion, panning the view across the stationary, centred models only while held.",
+        "dynamic": "Strict first-person view, the two models holding steady at the centre of the frame as the viewpoint advances through the vine tunnel toward them; look-input becomes the heading changing."
+      },
+      "movement": {
+        "static": "The two models stand close in the bronze gloom, brocade glinting where thin light finds it, their breathing slow, a fern frond trembling faintly at the tunnel's edge.",
+        "dynamic": "The viewpoint glides forward along the shadowed tunnel floor at a steady walking pace, coiled copper vines sliding past on both sides, gold ceiling-glow strengthening, the two models growing gradually nearer."
+      },
+      "events": [
+        { "key": "1", "name": "Pose Shift", "detail": "The two models turn back-to-back, jaws set, brocade shoulders aligned, the gold thread tracing one continuous pattern across both jackets as they hold." },
+        { "key": "2", "name": "Runway Circle", "detail": "Each model in turn walks a slow half-circle through the vine shadows, his jacket catching and losing the golden ceiling light, then returns beside the other." },
+        { "key": "3", "name": "Group Pose", "detail": "The two models step shoulder to shoulder before the dark doorway, faces forward and lit from above, holding a stern symmetrical stance for the frame." }
+      ],
+      "vertical": {
+        "jump": "The viewpoint springs upward in a quick smooth arc, rising above the tunnel floor before dropping back down and settling level at walking height.",
+        "crouch": "The camera lowers toward the ground as the viewpoint crouches down low, the coiled vines rising in frame.",
+        "stand": "The viewpoint straightens back up out of the crouch, the camera rising smoothly to standing height."
+      }
+    },
+    {
+      "id": "zone11_overgrown_stone_garden",
+      "name": "Overgrown Stone Garden",
+      "seedImage": [
+        "360fashion_cyberpunk_chinese_male_fashion_models_wearing_cout_e11391f478f443348e1ebf728f1deb82_3_1.png"
+      ],
+      "base": "Two young Chinese male fashion models in geometric couture — one in a silver-grey meander-pattern long vest over black, one in a copper-and-black angular coat — standing on a brick path inside an ancient overgrown stone maze. The world contains EXACTLY TWO rows of carved meander-pattern stone pillars draped in golden-green moss at fixed positions left and right AND EXACTLY ONE sunlit open gap in the canopy overhead at a fixed position. Soft green light, glowing mossy hedge blocks. Ethereal fantasy couture editorial, serene and luminous.",
+      "camera": {
+        "static": "First-person view, the two models holding steady at the centre of the frame at constant size and distance. Neither the models nor the camera moves on its own; arrow-key look-input is the only source of camera motion, panning the view across the stationary, centred models only while held.",
+        "dynamic": "Strict first-person view, the two models holding steady at the centre of the frame as the viewpoint advances along the brick path toward them; look-input becomes the heading changing."
+      },
+      "movement": {
+        "static": "The two models stand on the brick path in the green light, coats hanging crisp and still, moss glowing softly around them, dust motes drifting through the shaft of sun.",
+        "dynamic": "The viewpoint glides forward along the brick path at a steady walking pace, mossy carved pillars sliding past on both sides, the sunlit gap brightening overhead, the two models growing gradually nearer."
+      },
+      "events": [
+        { "key": "1", "name": "Pose Shift", "detail": "The two models angle toward each other, one hand each rising to a lapel, their meander patterns echoing the carved pillars, then hold the mirrored stance." },
+        { "key": "2", "name": "Runway Circle", "detail": "One after the other, each model paces a slow circle on the brick path through the shaft of sunlight, his coat's geometry turning fully into view, then stills." },
+        { "key": "3", "name": "Group Pose", "detail": "The two models square up side by side in the sunlit gap, chins level, coats aligned like a single carved relief, holding perfectly composed." }
+      ],
+      "vertical": {
+        "jump": "The viewpoint springs upward in a quick smooth arc, rising above the brick path before dropping back down and settling level at walking height.",
+        "crouch": "The camera lowers toward the ground as the viewpoint crouches down low, the mossy pillars rising in frame.",
+        "stand": "The viewpoint straightens back up out of the crouch, the camera rising smoothly to standing height."
+      }
+    },
+    {
+      "id": "zone12_classic_hedge_garden",
+      "name": "Classic Couture Hedge Garden",
+      "seedImage": [
+        "360fashion_a_middle_eastern_plus_size_man_running_with_arms_w_b0dfb51019e64db38b9875865babe089_3.png"
+      ],
+      "altReferenceImages": [
+        "360fashion_a_cyberpunk_black_man_in_a_couture_led_suit_is_lat_b191bfb336ac40bca62cef2ecf50f9a2_1.png",
+        "360fashion_a_black_man_with_a_prosthetic_running_with_arms_wi_67a836dac69b443e84379faffa7286a5_1.png",
+        "360fashion_a_chinese_woman_running_with_arms_wide_in_a_Vr_fas_e78d37731e0a4410833c400a13632421_1.png",
+        "360fashion_a_cyberpunk_hispanic_woman_in_a_couture_led_suit_i_b13d4db0119e450893cee81d5034d7c7_2.png"
+      ],
+      "base": "A distinguished plus-size Middle Eastern male fashion model with long locs and a groomed beard, in an impeccably tailored black silk couture suit with a jeweled collar chain, standing on a white gravel path inside a grand amphitheatre of sculpted golden-green hedges. The world contains EXACTLY TWO waist-high sculpted hedge rows at fixed positions left and right AND EXACTLY ONE tiered curved hedge wall rising behind him at a fixed position. Bright overcast daylight, crisp topiary geometry. Classic haute-couture garden editorial, elegant and monumental.",
+      "camera": {
+        "static": "First-person view, the model holding steady at the centre of the frame at constant size and distance. Neither the model nor the camera moves on its own; arrow-key look-input is the only source of camera motion, panning the view across the stationary, centred model only while held.",
+        "dynamic": "Strict first-person view, the model holding steady at the centre of the frame as the viewpoint advances along the gravel path toward him; look-input becomes the heading changing."
+      },
+      "movement": {
+        "static": "The model stands composed on the white gravel, silk lapels resting perfectly still, his collar chain glinting in the daylight, hedge leaves shivering faintly in a light breeze.",
+        "dynamic": "The viewpoint glides forward along the white gravel path at a steady walking pace, sculpted hedge rows sliding past on both sides, the tiered hedge wall broadening ahead, the model growing gradually nearer."
+      },
+      "events": [
+        { "key": "1", "name": "Pose Shift", "detail": "The model slips one hand into his trouser pocket and lifts his chin in classic editorial poise, silk catching the daylight along its seams, then holds." },
+        { "key": "2", "name": "Runway Circle", "detail": "The model walks an easy unhurried circle on the gravel, the suit's tailoring shown from every side, and comes to rest facing the viewer." },
+        { "key": "3", "name": "Group Pose", "detail": "The model takes centre path before the tiered hedge wall and holds a stately full-front stance, feet planted, both hands clasped low, monumental against the greenery." }
+      ],
+      "vertical": {
+        "jump": "The viewpoint springs upward in a quick smooth arc, rising above the gravel path before dropping back down and settling level at walking height.",
+        "crouch": "The camera lowers toward the ground as the viewpoint crouches down low, the hedge walls rising in frame.",
+        "stand": "The viewpoint straightens back up out of the crouch, the camera rising smoothly to standing height."
+      }
+    },
+    {
+      "id": "zone13_gate_approach",
+      "name": "The Closing Gate",
+      "seedImage": [],
+      "seedImagePrompt": "A first-person still frame looking down a dark corridor of pulsing color-shifting neon ribs toward a monumental golden gate of two tall sliding panels edged in white light, fully open, a glowing countdown ring mounted above the gate, haze and spotlight beams, 16:9 landscape, photorealistic cinematic event entrance.",
+      "base": "A monumental golden gate of two tall sliding panels edged in white light at the end of a dark corridor of pulsing color-shifting neon ribs. The world contains EXACTLY ONE golden gate straight ahead at a fixed position AND EXACTLY ONE glowing countdown ring mounted above the gate at a fixed position. Haze, anticipatory spotlight beams sweeping slowly. Cinematic event-entrance, electric.",
+      "camera": {
+        "static": "First-person view, the golden gate holding steady at the centre of the frame at constant size and distance. Neither the gate nor the camera moves on its own; arrow-key look-input is the only source of camera motion, panning the view across the stationary, centred gate only while held.",
+        "dynamic": "Strict first-person view, the golden gate holding steady at the centre of the frame as the viewpoint advances down the neon corridor toward it; look-input becomes the heading changing."
+      },
+      "movement": {
+        "static": "The corridor holds its charged hush, neon ribs pulsing in slow waves toward the gate, haze drifting through the spotlight beams, the countdown ring glowing steadily.",
+        "dynamic": "The viewpoint rushes forward along the corridor floor at an urgent pace, neon ribs strobing past on both sides, haze streaming, the golden gate looming gradually larger ahead."
+      },
+      "events": [
+        { "key": "app_timer_open", "name": "Gate Open (timer > 2:00, app-driven)", "detail": "The two golden gate panels stand fully open, white edge-light steady, the corridor beyond glowing warmly." },
+        { "key": "app_timer_closing", "name": "Gate Closing (timer <= 2:00, app-driven)", "detail": "The two golden gate panels slide slowly toward each other, the gap between them narrowing, edge-light pulsing faster." },
+        { "key": "app_timer_zero", "name": "Gate Sealed (timer 0, app-driven — LOSE)", "detail": "The two golden gate panels seal shut with a heavy final glow, the countdown ring going dark, the corridor settling into stillness." }
+      ],
+      "vertical": {
+        "jump": "The viewpoint springs upward in a quick smooth arc, rising above the corridor floor before dropping back down and settling level at walking height.",
+        "crouch": "The camera lowers toward the ground as the viewpoint crouches down low, the golden gate rising in frame.",
+        "stand": "The viewpoint straightens back up out of the crouch, the camera rising smoothly to standing height."
+      }
+    },
+    {
+      "id": "zone14_grand_finale_water_runway",
+      "name": "Grand Finale — Water Runway",
+      "seedImage": [],
+      "styleReferences": [
+        "catwalk crowd and geometric runway: the two runway-show project photos",
+        "front-row industrial show: the purple industrial catwalk photo",
+        "runway lighting: the Saudi runway dotted-lights photo"
+      ],
+      "seedImagePrompt": "A first-person front-row still frame of a mirror-flat water runway between tall white stone pillars in a vast dark arena, a fashion model in sculptural couture walking on the water's surface toward the viewer with ripples spreading from each step, packed fashionable audience rising in tiers on both sides, cool blue spotlights and thin mist over the water, 16:9 landscape, photorealistic cinematic runway spectacle.",
+      "base": "A grand finale fashion show on a mirror-flat water runway between tall white stone pillars in a vast dark arena, a couture model walking on the water's surface, ripples spreading from each step. The world contains EXACTLY ONE straight water runway at a fixed position ahead AND EXACTLY TWO tiered banks of seated fashionable audience at fixed positions left and right. Cool blue spotlights, thin mist over the water. Spectacular cinematic runway, awe-struck.",
+      "camera": {
+        "static": "First-person view from the front row, the runway holding steady at the centre of the frame at constant size and distance. Neither the runway nor the camera moves on its own; arrow-key look-input is the only source of camera motion, panning the view across the stationary, centred runway only while held.",
+        "dynamic": "Strict first-person view, the runway holding steady at the centre of the frame as the viewpoint drifts slowly along the front row beside it; look-input becomes the heading changing."
+      },
+      "movement": {
+        "static": "The model walks the water runway in long even strides toward the viewer, ripples fanning from each footfall, the audience utterly rapt, mist curling in the spotlight beams.",
+        "dynamic": "The viewpoint drifts slowly along the front row at a gentle pace, the water runway gliding past alongside, seated audience streaming by, the walking model holding the spotlight."
+      },
+      "events": [
+        { "key": "1", "name": "Look Change — Afrofuturist Gold", "detail": "The spotlights sweep from cool blue to molten gold as a new model in radiant Afrofuturist metallic couture strides onto the water, the pillars and mist re-lit in amber around the unchanged runway." },
+        { "key": "2", "name": "Look Change — Op-Art White", "detail": "The spotlights snap to brilliant white as a new model in a black-and-white op-art gown strides onto the water, the pillars and audience re-lit in stark monochrome around the unchanged runway." },
+        { "key": "3", "name": "Look Change — Sequin Rose", "detail": "The spotlights melt to saturated pink as a new model in a glittering rose sequined suit strides onto the water, sequin light scattering across the ripples around the unchanged runway." },
+        { "key": "4", "name": "Water Spectacle", "detail": "Slender columns of illuminated water rise one by one from either side of the runway, arcing and falling back in sequence, staged clear of the model's path, droplets glittering in the beams." },
+        { "key": "5", "name": "Sky Installation", "detail": "The runway and audience remain the main scene, unchanged, while a huge sculptural chandelier of woven light lowers slowly from the darkness above the far end of the runway and holds." },
+        { "key": "6", "name": "Fireworks Finale (WIN)", "detail": "Fireworks burst high above the arena in gold and magenta one after another, their reflections blooming across the water runway, drifting sparks fading in the spotlight beams as every look holds for the final frame." }
+      ],
+      "vertical": {
+        "jump": "The viewpoint rises briefly in a quick smooth arc, lifting above the front row before settling back down level at seated height.",
+        "crouch": "The camera lowers as the viewpoint sinks low in the seat, the runway rising in frame.",
+        "stand": "The viewpoint rises smoothly back up to seated height, the runway settling level in frame."
+      }
+    }
+  ]
+}
