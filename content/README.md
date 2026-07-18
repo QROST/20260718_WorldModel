@@ -8,8 +8,11 @@ Imported on 2026-07-18 without modifying the source repository.
 
 ## Runtime assets
 
-- `public/dataset/hedge-threshold.png` — the 16:9 opening frame and Reactor seed image.
+- `public/dataset/hedge-threshold.png` — the original 16:9 opening frame, retained as the composition reference and rollback asset.
+- `public/dataset/hedge-threshold-plan-montage-v4.png` — the active Reactor seed, generated from the original frame and the four character sheets on 2026-07-18; it preserves the blogger and adds exactly one relaxed, candid instance each of Ember Court, Forest Tailor, and Silver Architect as the opening ambient blocking. The historical filename remains for provenance; Plan Montage is now continuous prompt behavior, not a UI button.
 - `public/dataset/fashion-blogger-character-sheet.png` — the three-view concept reference shown in the HTML preview; it is not uploaded to Reactor as a second conditioning image.
+- `public/dataset/models/` — read-only copies of the three supporting-model character sheets supplied in the team repository. They are HTML identity references, not additional Reactor seed images.
+- `plan-montage-seed-receipt.md` — identity inputs and the exact final image-refinement prompt for the active seed.
 
 ## Authoring sources
 

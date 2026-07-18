@@ -28,17 +28,23 @@ export interface FashionMazePromptLayers {
   movement: PromptMotionLayer;
 }
 
-export type EnsembleSettledState = "wander" | "pose";
-export type EnsemblePromptMode =
-  | EnsembleSettledState
-  | "assemble"
-  | "release";
+export type FashionMazeActionMode = "ambient" | "photo" | "photo-release";
+
+export interface FashionMazeEnsembleMember {
+  id: string;
+  name: string;
+  referenceImage: string;
+  identityPrompt: string;
+}
 
 export interface FashionMazeEnsemble {
   count: number;
-  wander: string;
-  assemble: string;
-  pose: string;
+  members: FashionMazeEnsembleMember[];
+  ambient: string;
+}
+
+export interface FashionMazePhotoAction {
+  capture: string;
   release: string;
 }
 
@@ -57,6 +63,7 @@ export interface FashionMaze {
   basePrompt: string;
   promptLayers: FashionMazePromptLayers;
   ensemble: FashionMazeEnsemble;
+  photoAction: FashionMazePhotoAction;
   routes: MazeRoute[];
 }
 
@@ -76,7 +83,7 @@ export const fashionMazes: FashionMaze[] = [
     title: "The Hedge Threshold",
     subtitle: "The invitation was never meant to be easy to find.",
     location: "Shanghai / Golden hour / Living couture",
-    seedImage: "/dataset/hedge-threshold.png",
+    seedImage: "/dataset/hedge-threshold-plan-montage-v4.png",
     characterImage: "/dataset/fashion-blogger-character-sheet.png",
     characterName: "THE BLOGGER / LOOK 01",
     seed: 260718,
@@ -88,31 +95,57 @@ export const fashionMazes: FashionMaze[] = [
         "A fashion PR handed you an envelope. The address led not to a venue, but to a living maze. Somewhere beyond the hedges, the season's final runway has already begun.",
     },
     basePrompt:
-      "A continuous third-person interactive fashion film in an open-air couture hedge maze. The same six physical people persist: EXACTLY ONE fashion blogger stays centred in the foreground with her back to camera, an athletic woman with deep brown skin and short natural locs in the same fitted silver geometric bodysuit with teal inlays, structured shoulders, forearm guards, and silver boots; EXACTLY FIVE distinct supporting fashion models in jewel-toned couture occupy five assigned midground side zones. Preserve all six identities, bodies, outfits, proportions, and the reference architecture. No arrivals, departures, duplicates, merging, role swaps, text, logos, cuts, or montage.",
+      "Continuous third-person fashion film in the same open-air couture hedge maze. BLOGGER is the same athletic deep-brown-skinned woman with short natural locs, seen from behind in her silver geometric bodysuit with teal inlays. Exactly one instance of each named supporting model persists. Preserve all four faces, bodies, hair, outfits, proportions, and the architecture. No arrivals, departures, duplicates, merging, role swaps, text, logos, cuts, or montage.",
     promptLayers: {
       camera: {
         still:
-          "The third-person camera stays at a fixed position two metres behind the blogger at shoulder height. Live look input may pan or tilt gently without translating the camera, changing the horizon, or altering character scale.",
+          "Camera stays fixed two metres behind BLOGGER at shoulder height. Live look may pan or tilt gently without camera translation, horizon change, or character-scale drift.",
         moving:
-          "The third-person camera follows smoothly two metres behind the same blogger at shoulder height in one stabilized game-camera shot, matching her heading without orbiting, cutting, or changing her scale abruptly.",
+          "Camera follows smoothly two metres behind BLOGGER at shoulder height, matching her heading in one stabilized game shot; no orbit, cut, horizon change, or scale jump.",
       },
       movement: {
         still:
-          "The blogger holds a calm ready stance; her breathing and the smallest leaves move subtly while her feet, the hedges, terraces, and path remain anchored.",
+          "BLOGGER holds a calm ready stance with subtle breathing; her feet, hedges, terraces, and path stay anchored while leaves move slightly.",
         moving:
-          "The blogger moves naturally in the exact direction of player input at a steady walking pace. Her steps remain grounded on the path, nearby hedges pass with coherent parallax, and the architecture never slides or follows her.",
+          "BLOGGER follows player input at a steady walk, feet grounded with coherent path parallax; architecture never slides or follows her.",
       },
     },
     ensemble: {
-      count: 5,
-      wander:
-        "The five supporting models remain in their five assigned midground side zones. Only one or two at a time take bounded, non-crossing micro-walks or weight shifts; all stay clear of the blogger and central lane.",
-      assemble:
-        "For this chunk only, the same five models take one short, direct, non-crossing approach from their five side zones to five fixed formation marks, form one sculptural V facing camera, then stop.",
-      pose:
-        "The same five models occupy the five fixed formation marks in one sculptural V facing camera, feet planted and poses fixed. Only breathing and fabric micro-motion continue; nobody walks or changes pose.",
+      count: 3,
+      members: [
+        {
+          id: "M01_EMBER_COURT",
+          name: "Ember Court",
+          referenceImage:
+            "/dataset/models/amber-brocade-character-sheet.png",
+          identityPrompt:
+            "plus-size East Asian woman; black sculptural double-bun hair; burnt-orange high neck; copper brocade asymmetric gown; gold platform stilettos",
+        },
+        {
+          id: "M02_FOREST_TAILOR",
+          name: "Forest Tailor",
+          referenceImage:
+            "/dataset/models/forest-tailoring-character-sheet.png",
+          identityPrompt:
+            "slim East Asian young man; side-swept black hair; grey-black leafless-forest suit; striped shirt; cropped trousers; black platform boots",
+        },
+        {
+          id: "M03_SILVER_ARCHITECT",
+          name: "Silver Architect",
+          referenceImage:
+            "/dataset/models/silver-sculptural-character-sheet.png",
+          identityPrompt:
+            "plus-size Black woman; short blonde afro; dark plum lips; crystal hoop earrings; silver grid dress with armored shoulders; silver platforms",
+        },
+      ],
+      ambient:
+        "The three models continuously inhabit anchored side zones with relaxed short walks, exchanged glances, and fabric touches. At unsynchronized intervals they drift onto varied-depth marks for a loose asymmetrical group pose, hold one shared breath, then peel away and resume wandering. Keep the central lane clear; no lineup, marching loop, teleport, entrance, exit, or frozen mannequins.",
+    },
+    photoAction: {
+      capture:
+        "For this photo chunk, override normal stance. BLOGGER stops, takes one slim phone from her hip, raises it with both hands, and taps the shutter once. The three models notice and settle at varied depths into a relaxed connected pose, never a lineup. Camera smoothly pushes from follow distance to a close over-shoulder view just above the phone, without a cut. End on a steady shutter hold with the phone at the lower edge.",
       release:
-        "For this chunk only, the same five models take one short, direct, non-crossing return from the formation marks to their original five side zones, then stop.",
+        "For this release chunk, BLOGGER lowers the same phone, returns it to her hip, and resumes her ready stance while camera eases back to its normal follow distance. The models break pose in staggered order and resume relaxed wandering and glances. No cut, duplicate phone, frozen cast, or identity change.",
     },
     routes: [
       {
@@ -130,9 +163,9 @@ export const fashionMazes: FashionMaze[] = [
         },
         promptDelta: {
           transition:
-            "During this one forward approach, the garden ahead transitions once into a neon mirror conservatory. Violet and magenta light resolves between the existing terraces, flush mirror panels come into view within both hedge walls, and one warm yellow light ring becomes visible over the open path. The greenery, white concrete, protagonist, and path geometry remain continuous.",
+            "For this one forward approach, the garden ahead changes once into a neon mirror conservatory. Violet-magenta lights and flush mirror panels resolve within the existing hedges; one warm-yellow ring appears above the open path. Greenery, white concrete, all four people, and path geometry remain continuous.",
           settled:
-            "The world ahead is a settled neon mirror conservatory derived from the same hedge maze. Fixed violet and magenta light columns stand between the existing terraces, thin mirror panels sit flush within both hedge walls, and exactly one warm yellow light ring hangs over the open path. The original greenery, white concrete, protagonist, and path geometry remain fixed.",
+            "Ahead is the settled neon mirror conservatory in the same hedge maze: fixed violet-magenta light columns, flush mirror panels in both hedge walls, and one warm-yellow ring above the open path. Greenery, white concrete, all four people, and path geometry remain fixed.",
         },
       },
       {
@@ -150,9 +183,9 @@ export const fashionMazes: FashionMaze[] = [
         },
         promptDelta: {
           transition:
-            "During this one forward approach, the existing garden ahead reveals its living couture runway. Geometric seam patterns resolve across both clipped hedge walls and a shallow mirror-water circle comes into view between the fixed terraces. Golden sunlight, rose vines, and fine mist remain continuous around the same blogger and path.",
+            "For this one forward approach, the garden ahead reveals its living couture runway. Geometric seams resolve across both clipped hedges and one shallow mirror-water circle appears between fixed terraces. Golden light, rose vines, mist, all four people, and path remain continuous.",
           settled:
-            "The path ahead is a settled living couture runway within the same garden. Two clipped hedge walls remain fixed left and right with precise geometric leaf-seam patterns, and exactly one shallow mirror-water circle rests between the existing terraces. Golden sunlight, rose vines, and fine mist reveal the silver and teal suit.",
+            "Ahead is the settled living couture runway: two fixed clipped hedges with geometric leaf seams and one shallow mirror-water circle between existing terraces. Golden light, rose vines, and mist reveal the silver-teal suit.",
         },
       },
       {
@@ -170,9 +203,9 @@ export const fashionMazes: FashionMaze[] = [
         },
         promptDelta: {
           transition:
-            "During this one forward approach, the garden ahead transitions once into its golden circuit state. Amber-lit stone steps and two restrained teal-and-gold circuit inlays resolve within the existing hedges and fixed white terraces. Warm light strengthens across the pale path without replacing the greenery, protagonist, or architecture.",
+            "For this one forward approach, the garden ahead changes once into its golden-circuit state. Amber-lit stone steps and two teal-gold inlays resolve within existing hedges and fixed white terraces. Warm light strengthens without replacing greenery, all four people, or architecture.",
           settled:
-            "The world ahead is a settled golden circuit garden within the same architecture. Exactly one wide low staircase of amber-lit stone rests between the existing hedges, and two teal-and-gold circuit inlays remain fixed in the white terrace walls. Warm light reflects across the pale path without replacing the greenery.",
+            "Ahead is the settled golden-circuit garden: one wide low amber-lit stone staircase between existing hedges, plus two teal-gold inlays fixed in white terrace walls. Warm light reflects across the pale path without replacing greenery.",
         },
       },
     ],
@@ -180,7 +213,7 @@ export const fashionMazes: FashionMaze[] = [
 ];
 
 const thirdPersonMovementContract =
-  "Live controls move only the blogger and following camera; fixed architecture stays anchored. Preserve one protagonist, stable landmarks, coherent gravity, and one unbroken world.";
+  "Controls move only BLOGGER and her camera; architecture and cast marks stay anchored. Reflections are optical only, never extra people. Keep coherent gravity and one unbroken world.";
 
 export function composeWorldPrompt(
   maze: FashionMaze,
@@ -188,22 +221,38 @@ export function composeWorldPrompt(
   options: {
     isMoving?: boolean;
     isRouteTransition?: boolean;
-    ensembleMode?: EnsemblePromptMode;
+    actionMode?: FashionMazeActionMode;
   } = {},
 ): string {
   const isMoving = options.isMoving ?? false;
   const isRouteTransition = options.isRouteTransition ?? false;
-  const ensembleMode = options.ensembleMode ?? "wander";
+  const actionMode = options.actionMode ?? "ambient";
   const destination = route
     ? route.promptDelta[isRouteTransition ? "transition" : "settled"]
     : "At the threshold, one open path continues through the fixed hedge architecture. No world transformation has been applied yet.";
+  const ensembleIdentities = maze.ensemble.members
+    .map((member) => `${member.id}: ${member.identityPrompt}.`)
+    .join(" ");
+  const actionBehavior =
+    actionMode === "photo"
+      ? maze.photoAction.capture
+      : actionMode === "photo-release"
+        ? maze.photoAction.release
+        : maze.ensemble.ambient;
+  const cameraAndMovement =
+    actionMode === "ambient"
+      ? [
+          maze.promptLayers.camera[isMoving ? "moving" : "still"],
+          maze.promptLayers.movement[isMoving ? "moving" : "still"],
+        ]
+      : [];
 
   return [
     maze.basePrompt,
-    maze.promptLayers.camera[isMoving ? "moving" : "still"],
-    maze.promptLayers.movement[isMoving ? "moving" : "still"],
+    ensembleIdentities,
+    ...cameraAndMovement,
     destination,
-    maze.ensemble[ensembleMode],
+    actionBehavior,
     thirdPersonMovementContract,
   ].join(" ");
 }
