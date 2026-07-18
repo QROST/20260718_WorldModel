@@ -1,0 +1,101 @@
+Act as a senior creative technologist, simulation designer, and meticulous frontend engineer. Create a gallery-ready procedural city toy called “FORK THE BLOCK.” Its line is:
+
+DON’T PICK A FUTURE. STEER IT.
+
+MISSION
+Build a tiny living world that remembers and combines decisions. It feels like steering one evolving city, never choosing canned before/after scenes. Make the magic clear in five seconds. This is an interactive world, not a dashboard or conventional game.
+
+ARCHITECTURE — NON-NEGOTIABLE
+Draw the world on native Canvas 2D. Build the header, controls, seed field, meter, and announcements as semantic DOM/CSS using a system font stack. Do not use WebGL, Three.js, libraries, imports, frameworks, external fonts/images/files, fetch, APIs, backend, network calls, or a build step. Inline everything in one HTML document that works directly from disk. Never call Math.random.
+
+ONE-SHOT IMPLEMENTATION BUDGET
+First complete a valid closed HTML containing: one persistent block, three hold controls, one latch per intention, three pairwise blends, all-three culmination, deterministic Reset/New Block, and idempotent input cleanup. Only then add later latch tiers, extra agents, or elaborate fallback UI. If space is tight, omit optional breadth and close every tag; never emit stubs, fake controls, or truncation.
+
+FIRST FRAME AND ART DIRECTION
+Show a full-viewport isometric urban block as the hero: coherent streets, varied buildings, courtyards, vehicles, and tiny people. It already feels alive through traffic, pedestrians, trees, windows, and atmosphere.
+
+Keep four recognizable landmarks fixed: terracotta clock tower, cobalt water tank, cinema with red marquee, and zigzag mural. They retain identity and silhouette throughout interventions. New Block may vary proportions while preserving each motif.
+
+Overlay a restrained editorial header:
+FORK THE BLOCK
+DON’T PICK A FUTURE. STEER IT.
+“Press and hold an intention. Switch midway. The block remembers.”
+
+Use warm architectural-model aesthetics, not neon cyberpunk: stone, asphalt, cream, rust, deep blue-gray. COOL adds green/cyan, MOVE adds amber/cobalt, GATHER adds coral/magenta. Blends alter form, behavior, and occupation, not just tint.
+
+THREE TRUE HOLD CONTROLS
+COOL — shade, water, canopy, biodiversity, pedestrian comfort
+MOVE — transit, cycling, crossings, connected routes, useful motion
+GATHER — plazas, seating, markets, play, culture, social density
+
+Place three real buttons in a centered bottom dock. Support mouse, touch, and C/M/G. Respond within 100 ms: tap nudges; hold changes structure; sources may overlap. Give each a distinct symbol, label, focus, and held state; do not rely on color.
+
+SPATIAL WORLD AND CAUSALITY
+Use one compact fixed-topology isometric block: two crossing streets, four parcels, the four landmarks, and a small set of road/sidewalk polylines. Vary dimensions, heights, colors, occupancy, and agent phases by seed. Objects have stable IDs and render from one centralized state.
+
+Agents follow precomputed road or sidewalk polylines. Do not implement general road generation, pathfinding, collision physics, or arbitrary polygon editing.
+
+Reuse one three-stage transition for every intervention:
+1. A local planning outline appears.
+2. Geometry or infrastructure grows into place.
+3. Agents, occupancy, and lighting respond.
+Curbs can become rain gardens; lanes paint forward; trees sprout; crossings connect; transit porches assemble; awnings unfold; seats and stalls populate. Never crossfade or replace the whole scene except on Reset/New Block.
+
+MEMORY, SEQUENCE, AND LATCHES
+Maintain persistent COOL, MOVE, and GATHER memory plus short-lived active pressure. Holding grows both. Releasing eases active pressure but accumulated memory and interventions remain until Reset. Switching evaluates the next change against the modified city without hiding earlier consequences. Sequence must matter: COOL→MOVE and MOVE→COOL produce at least one different visible spatial priority.
+
+At about 0.8 accumulated hold seconds, create one required permanent named latch per intention:
+COOL — Canopy Spine
+MOVE — Bike Connector
+GATHER — Pocket Plaza
+Each modifies existing geometry, persists until Reset, briefly pulses its location, and announces itself through one compact aria-live toast. Further holding intensifies it.
+
+Only if the complete core comfortably fits the response budget, add optional table-driven tiers using the same state and drawing primitives:
+COOL — Rain Garden, Living Roofs
+MOVE — Shared Street, Transit Porch
+GATHER — Market Court, Night Commons
+
+Create path-dependent upgrades to existing geometry:
+- COOL + MOVE: shaded mobility corridor with trees following its route.
+- MOVE + GATHER: station plaza or car-light market loop with useful foot traffic.
+- GATHER + COOL: shaded civic commons around water and seating.
+- All three: a “Living Block” culmination with connected green paths, transit, warm evening lights, and a brief swell of city life.
+These are not scene swaps. Track which threshold was crossed first so sequence changes emphasis.
+A pairwise blend upgrades an existing latch location rather than creating another simulation system. Store which intention crossed its first threshold first and use that one value to select the visible sequence variant.
+
+SHOW MEMORY, NOT A DASHBOARD
+Keep the city dominant. Show only one compact blend meter, one live causal phrase, transient latch toasts, the three hold buttons, Reset, New Block, and an editable seed. The transformed city itself is the primary memory display.
+
+DETERMINISM
+Hash the editable seed and use one seeded PRNG only while constructing/resetting a block; Math.random is forbidden. Never consume randomness during rendering. Reset rebuilds the same neutral block and clears memory, latches, held inputs, toasts, and animation clocks. New Block hashes the displayed seed plus “|next,” displays it, and rebuilds. Use requestAnimationFrame with clamped delta time; exact replay of wall-clock input timing is unnecessary.
+
+VISUAL DELIGHT
+- Use isometric world-to-screen projection and stable depth ordering for ground, roads, lots, shadows, buildings, roofs, props, trees, agents, and effects.
+- Give building faces light/mid/shadow values and windows; add blob shadows and atmospheric perspective.
+- Ease construction: curbs slide, markings paint forward, trees grow trunk-to-canopy, awnings unfold, lamps warm, people gather.
+- Start with useful idle motion. Use at most 8 vehicles and 16 pedestrians/cyclists on precomputed loops.
+- Avoid clutter, long copy, glass-card overload, generic gradients, and cyberpunk clichés.
+
+RESPONSIVE LAYOUT
+Wide: hero canvas, light top header, compact memory panel, centered bottom dock. Narrow: scale the diorama near the available width, wrap controls, respect safe-area insets, buttons at least 52 px high, no horizontal scroll. Render in CSS pixels at devicePixelRatio capped at 2 and recompose on resize. Keep text readable with translucent panels and solid fallbacks; blur is optional.
+
+ACCESSIBILITY AND INPUT SAFETY
+Use real buttons, labeled seed input, visible focus, aria-pressed while held, useful canvas aria-label, and aria-live latch announcements. Correctly handle pointerdown, pointerup, pointercancel, lostpointercapture, keydown, keyup, window blur, and visibility changes so no intention sticks. Ignore key auto-repeat; do not intercept C/M/G while an editable element is focused.
+
+Track held sources in a Set per intention using IDs like “key:C” and “pointer:12”; a mode is held while its Set is nonempty. Use pointer capture when available and touch-action:none on hold buttons. Release/cancel/lost capture removes only that source. Blur or hidden visibility clears every Set. Cleanup is idempotent.
+
+Honor prefers-reduced-motion by removing decorative drift and shortening construction while preserving state changes and feedback. Maintain contrast and complete functionality without audio.
+
+PERFORMANCE AND FAILURE
+Target smooth desktop and usable mobile performance. Avoid large per-frame allocations or full-world recomputation. Pause while hidden and resume without a giant timestep. If getContext("2d") fails, leave the DOM title/controls visible and show one short error line—never blank. Do not require localStorage, clipboard, audio, permissions, or optional APIs. Produce no console errors or warnings.
+
+MENTAL ACCEPTANCE TEST BEFORE ANSWERING
+- Valid doctype, all code inline, zero network requests, direct-file operation.
+- COOL/MOVE/GATHER work by mouse, touch, and C/M/G hold.
+- Immediate feedback, at least one permanent latch per mode, no reset on switch, three pairwise blends, and all-three culmination.
+- Reset/New Block are deterministic; resize, reduced motion, cancellation, blur, and visibility remain usable.
+- Canvas failure has a fallback; no placeholders, fake controls, external assets, or unfinished explanations.
+- It is attractive before interaction and feels authored, playful, and complete.
+
+FINAL RESPONSE RULE
+Return exactly one complete HTML document beginning with <!doctype html> and ending with </html>. Output no Markdown fence, explanation, preface, or text after </html>.

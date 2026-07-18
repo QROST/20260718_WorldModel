@@ -1,0 +1,102 @@
+Create a polished interactive artwork called “FORK THE BLOCK” as one self-contained HTML document.
+
+OUTPUT
+Return only complete HTML from <!doctype html> through </html>. Put all CSS and JavaScript inline; it must run directly from disk. Use semantic DOM and one authored inline SVG. No Canvas, WebGL, libraries, imports, external assets, network access, backend, or build tools.
+
+IDEA
+A miniature isometric city block remembers what the visitor asks of it. Holding COOL, MOVE, or GATHER permanently reveals improvements in the same scene; combinations upgrade places already changed. Make this clear in five seconds.
+
+Use this exact copy:
+FORK THE BLOCK
+DON’T PICK A FUTURE. STEER IT.
+Hold an intention. The block remembers.
+
+SCENE
+Make the city the full-viewport hero. Use one responsive SVG with viewBox="0 0 1200 760" and preserveAspectRatio="xMidYMid meet". Keep the diorama inside x=135..1065 and y=65..650 so controls never cover it.
+
+Draw a fixed isometric block from SVG shapes and groups. The cream diamond slab stays visible. Use exactly two diagonal street centerlines crossing at the central junction: for each, place a 108 px stone curb stroke beneath an 84 px asphalt stroke. Do not add more road axes. Between them, #parcels contains four explicit large cream parcel polygons—northwest, northeast, southwest, southeast—each with a darker raised edge. Never fill the whole inner diamond with asphalt; at least half the slab must read as parcels and sidewalks. Add varied buildings, trees, four vehicles, bicycles, and tiny people. It must look finished before interaction.
+
+Four permanent landmarks anchor the parcels:
+- upper-left: cream civic building and terracotta clock tower;
+- upper-right: workshop with cobalt rooftop water tank;
+- lower-left: low cinema with a red marquee reading CINEMA;
+- lower-right: apartments with a cream/rust zigzag mural.
+
+Palette: background #eee7d8, cream #e7d4b3, stone #c4ad8e, asphalt #454957, rust #a95335, deep blue-gray #263746. COOL adds green/cyan, MOVE amber/cobalt, GATHER coral/magenta. Use warm architectural-model styling, not neon cyberpunk or glass-card UI.
+
+SVG STRUCTURE
+Use <defs> for subtle gradients, one soft shadow, an awning pattern, and reusable symbols. Buildings need light roofs, mid front faces, dark side faces, deep-blue outlines, window rows, and distinctive roof details. Add a ground shadow, curbs around every parcel, street markings, warm windows, and restrained CSS paper grain. Spend most SVG markup on this neutral authored city; do not sacrifice parcel geometry or landmark silhouettes for effects.
+
+Use this fixed DOM order:
+#ground
+#roads
+#parcels
+#neutral-landmarks
+#neutral-props
+#cool-layer
+#move-layer
+#gather-layer
+#cool-move-layer
+#move-gather-layer
+#gather-cool-layer
+#living-layer
+#highlight-layer
+
+All intervention geometry exists in the initial HTML, hidden with opacity and small transform offsets. JavaScript only reveals or transforms these preset groups; it never generates geometry or replaces the SVG.
+
+PRESET LAYERS
+#cool-layer: six trees along the vertical street, cyan curbside rain channel, two green roof patches.
+#move-layer: cobalt bike connector on the horizontal street, brighter crossings, dashed amber route, two bicycles.
+#gather-layer: coral pocket plaza at lower-right, three striped awnings, benches, lamps, six people.
+
+#cool-move-layer: canopies over the bike route and two cyclists—SHADED MOBILITY CORRIDOR.
+#move-gather-layer: car-light cinema edge, four market stalls, bunting, walking link—MARKET LOOP.
+#gather-cool-layer: reflecting basin joined to the rain channel, shaded seats, footbridge—CIVIC WATER COMMONS.
+#living-layer: a lightweight golden civic canopy over the central junction, cream/green connecting path, dusk wash, lit-window overlays, lamps, extra people, and one gold pulse ring—LIVING BLOCK.
+
+Align additions with existing geometry. Combination layers add to the city; they never cover it with a new scene. LIVING BLOCK is the large, unmistakable visual climax at the center, not a tiny overlay.
+
+INPUT AND MEMORY
+Place three real hold buttons in a centered bottom dock:
+COOL — shade + water
+MOVE — routes + transit
+GATHER — plaza + culture
+
+Support pointer/touch and C/M/G. Each mode has one memory number from 0 to 1. Add 0.12 on initial press, then 0.80 per held second. Release stops growth but never reduces memory. Reset alone returns all values to zero.
+
+Use one Set of source IDs per mode and one generic bindHold function. Sources may overlap. Use pointer capture; remove the relevant source on pointerup, pointercancel, lostpointercapture, or keyup. Clear all on blur or hidden visibility. Ignore key repeat and shortcuts while editing text. Set aria-pressed immediately.
+
+Use one small requestAnimationFrame loop only to accumulate memory and call updateView(); it never redraws the city. updateView changes CSS variables, memory rails, group opacity, stroke-dashoffset, and simple transforms. Interpolate so trees rise, routes draw, and awnings unfold. Compute numeric dash offsets and transforms in JavaScript; do not use multiplication inside CSS calc(). Keep only three memory numbers, source Sets, and one Set of announced IDs.
+
+THRESHOLDS
+Each base layer starts visibly changing on the initial 0.12 press and its opacity/progress continuously tracks its memory; never hide it until a threshold. At memory 0.35, announce its latch once:
+COOL → CANOPY SPINE
+MOVE → BIKE CONNECTOR
+GATHER → POCKET PLAZA
+
+At 0.55 in both relevant memories:
+COOL + MOVE → SHADED MOBILITY CORRIDOR
+MOVE + GATHER → MARKET LOOP
+GATHER + COOL → CIVIC WATER COMMONS
+
+At 0.62 in all three, reveal LIVING BLOCK. Derive combination progress from Math.min of relevant memories, but keep each pair/living group fully hidden before its stated threshold, then ease it in. Earlier layers remain visible.
+
+INTERFACE
+Show only:
+- top-left title, tagline, instruction;
+- top-right status, initially NEUTRAL BLOCK, then latest threshold;
+- bottom dock with three hold buttons, three-color memory rail, and Reset;
+- one polite aria-live toast above the dock.
+
+Buttons need distinct symbols, visible focus/held states, accessible names, and 52px minimum height. Do not rely on color alone. A press pulses a planning outline at its target. LIVING BLOCK briefly shows its name in the SVG, warms the background, lights windows, and animates the gold ring once.
+
+MOTION
+Use CSS transitions and restrained keyframes: tree rise, route draw, awning unfold, lamp glow, planning pulse, subtle figure bob. Honor prefers-reduced-motion. Do not implement agents, path systems, physics, procedural layout, depth sorting, seeds, randomness, or another animation system.
+
+RESPONSIVE AND SAFE
+Scale through the SVG viewBox; use no device-pixel-ratio code. Below 600px, reduce header size, keep the diorama above a wrapping dock, respect safe-area insets, and prevent horizontal scroll. Use a system font stack and readable solid/translucent panels.
+
+Give the SVG a useful role and aria-label. Reset clears memory, sources, announcements, toast, status, variables, and revealed classes. Pause memory growth while hidden and resume without a large delta. Produce no console errors or warnings.
+
+BUILD ORDER
+Finish valid HTML, strong neutral SVG, reliable inputs, persistent memory, three base layers, Reset, and responsive layout first. Then add three pair layers and LIVING BLOCK; decorate last. If space is tight, simplify people and texture, never core interaction. Leave no placeholder, TODO, fake control, or explanation outside the artwork.
