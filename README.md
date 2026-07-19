@@ -5,23 +5,29 @@
 ## 当前体验
 
 - 三张来自团队 dataset 的 1376×768 rose-garden entrance；服务端在每次打开页面时随机选择一张，单次页面与 Reactor session 始终锁定同一张图片和对应 opening prompt；
-- 同一组五位从首帧就存在的 white-and-cobalt couture performers；所有人物保持各自 opening mark，以呼吸、轻微重心变化、叉腰、松肩、摆头和独立目光变化维持自然的 fashion-show plan montage，不被镜头移动驱动，也不在场景里走动或重新聚拢；Tailored Host 只在显式拍照 choreography 中成为摄影者；
+- 同一组五位从首帧就存在的 white-and-cobalt couture performers；所有人物保持各自 opening mark，以及 seed 中每条腿与脚原有的位置、高度、角度和接触状态，以长时间 runway hold、低频眨眼、几乎不可见的呼吸与极小目光变化维持稳重的 fashion-show tableau；不换脚、不转移重心、不原地踏步，也不被镜头移动驱动；
 - 入口只保留 `THE INVITATION` 与小字 narrative，不显示抢占画面的 entrance 大标题；route narrative 的标题仍会正常出现；
 - 三种保持同一角色、服装、观察者镜头和基础空间的 world transformation：Neon Canopy、Living Runway、Golden Circuit；
+- 第一幕提供 `ENTER THE BLACK DOOR`：模型先在当前镜头正前方约八米处生成带微弱冷色轮廓光的实体黑色 door-gate，并用两个完整 chunks 让门形成并保持；镜头不再转向，而是沿当前 forward axis 缓慢直走，最多允许八个真实 `forward` chunks 完成远距离接近与穿门。只有首个真实前进 chunk 已确认后才检测黑场；整幅视频至少 94% 黑、平均亮度低于 8 且连续满足四帧，才允许固定全屏黑幕覆盖并 reset。没有按固定 chunks 提前切幕的成功兜底；无法确认彻底入门时会断开保护 credits；
+- 黑幕完全覆盖后，应用在同一 Reactor 连接中执行 `reset → setSeed → setImage → setPrompt → start`，启动 `CHAPTER 02 · The Cyberpunk Garden`。服务端会从 `/dataset/cyberpunk-garden/scene2.png`、`scene3b.png`、`scene5.png` 中随机锁定一张；转场中不会再次跳图；
+- 第二幕保留三张 seed 共同的五位黑色 couture 人物与赛博 portal atrium，每个 variant 用独立 opening anchor 锁定原图中的站位、支撑腿、悬空脚、跪姿和肢体角度。新 Prompt chunk 与连续可见帧都确认后，黑幕才用 1.1 秒渐隐；
+- 第二幕提供 `ENTER THE NEXT BLACK DOOR`，复用相同的正前方远门、缓慢直行、完整入门与黑场 reset 流程，目标是独立注册的 `CHAPTER 03`；第二幕没有 route，但会自动使用共享拍照流程，WASD 与视角控制仍可使用；
+- 第三幕是 `The Asian Sculpture Garden`，使用 `/dataset/asian-sculpture-garden/grand-finale.png`：六位银白 couture 人物保持各自固定站位与 seed 姿势；S04 的举臂和 S05 的展开双臂被定义为已经完成的静止轮廓，禁止挥动、重复或引发模仿。共享拍照流程会按 `ensemble.count = 6` 指挥全部六人；
+- 第三幕提供第三个 `ENTER THE NEXT BLACK DOOR`，目标是独立注册的 `CHAPTER 04`。第四幕目前是 `The Rose Garden Encore` 占位场景，独立随机复用第一幕三张图片，但不会逻辑倒退成第一幕；
 - 静态预览中即可点击三条 route 阅读 narrative，不会连接 Reactor；
 - prompt 以 `base / camera / movement / route` 四层组织；普通探索使用单一 observer-invariant prompt，WASD、方向键与鼠标不会因按下或松开而 hot-swap prompt；
 - 用户点击 `ENTER LIVE MAZE` 后才连接 Reactor；
 - 参考图上传后，由 `conditions_ready` 事件触发 generation；
 - seed 不会在黑色占位 track 刚出现时消失；generation 启动后，只有 track live/unmuted、视频播放中且连续两帧通过非黑像素检查才交叉淡出。20 秒仍无可见帧会自动断开保护 credits；
 - 变体选择同时发送 hot-swapped prompt 与一段单-chunk 前进指令；确认生效后自动回到 idle 与 settled prompt；入口 seed 没有虚构的三岔口；
-- `TAKE PHOTO` 或快捷键 `C` 会停止观察者镜头并运行一段约 8–10 秒的生成式拍照 choreography：`READY → 1 → 2 → 3 → CHEESE! → SHUTTER`。每一拍必须由匹配 prompt 的 2–3 个新 `chunk_complete` 驱动；Host 掏出手机并在手机旁用克制但清楚的手势倒数，被拍摄的四位模特留在原地、看向手机镜头，并各自保持一次到位的 hand-at-waist、drape、hip 或 lapel editorial pose；只允许极轻微的下巴、肩膀和表情调整，不靠近、不挥手、不做夸张动作；
-- `SHUTTER` 保持完成后，应用才从原始 Reactor video frame 保存 PNG；照片会自动尝试下载，并保留带缩略图的 `PHOTO SAVED / DOWNLOAD` 回执。随后 3 个 release chunks 让 Host 收起手机、其他模特在原位放松目光并回到微动作 tableau，再等待一个真实 ambient prompt chunk 才解锁控制；每一拍有独立的 30 秒 watchdog，恢复失败会自动断开保护 credits；
+- 每一幕默认都有 `TAKE PHOTO` 与快捷键 `C`，并共享同一段约 4–6 秒的通用流程：`LOOK HERE → HOLD → SHUTTER`。流程根据当前 scene 的 `ensemble.count` 描述全部 seed-visible performers，不包含 `M01–M05`、固定人数、服装或场景名称；未来新增 Chapter 无需复制拍照配置。人物只做最小幅度的眼神、头部和必要时的肩部转动，不能为露脸而扭曲原姿势；无人物场景则固定环境构图；
+- `SHUTTER` 保持完成后，应用才从原始 Reactor video frame 保存 PNG；照片会自动尝试下载，并保留带缩略图的 `PHOTO SAVED / DOWNLOAD` 回执。随后 2 个 release chunks 让当前 subjects 在原位放松目光并回到各自 scene 的 ambient hold，再等待一个真实 ambient prompt chunk 才解锁控制；每一拍有独立的 30 秒 watchdog，恢复失败会自动断开保护 credits；
 - WASD 只控制观察者镜头的前后与横移，方向键只控制镜头视角；没有任何人物会跟随输入移动、转身或追踪镜头。`MOUSE LOOK` 使用原生 `setCameraPose()` 与 video chunk 时钟；
 - `OPERATOR` 抽屉显示 session、chunk、action、track、camera pose 和最终合成 prompt；
 - 录制可用时，operator 可截取最近 10 秒，预览并下载 MP4；
 - `keyup`、窗口失焦和页面隐藏都会归零控制状态；
 - `END SESSION` 使用 non-recoverable disconnect；输入归零只会等待最多 750ms，不能阻塞释放 session；
-- 每次 live session 有 5 分钟客户端 safety cap，到时自动断开；
+- 每个可见场景有 30 秒倒计时；到时自动触发该场景已有的黑门并进入下一幕，切换完成后重新从 `00:00 / 00:30` 计时；没有下一幕的最终场景到时才自动断开并释放 session；
 - 入口 arming / start 另有 watchdog；事件迟迟未确认时会断开 session 保护 credits；
 - 群像的“暂停”是 prompt-held pose，live generation 与计费仍继续；SDK `pause()` 在界面中明确写作 `FREEZE STREAM · STILL BILLED`；
 - 页面明确区分 `STATIC PREVIEW`、`LIVE` 和 `PAUSED · STILL BILLED`。
@@ -50,6 +56,7 @@ REACTOR_API_KEY=<your-reactor-api-key>
 ```ts
 interface FashionMaze {
   id: string;
+  entrySelectable?: boolean;
   title: string;
   seedImage: string;
   openingPrompt: string;
@@ -64,12 +71,13 @@ interface FashionMaze {
   seed: number;
   entrance: NarrativeBeat;
   basePrompt: string;
+  defaultDestinationPrompt: string;
   promptLayers: {
     camera: { still: string; moving: string };
     movement: { still: string; moving: string };
   };
   ensemble: {
-    count: 5;
+    count: number;
     members: Array<{
       id: string;
       name: string;
@@ -78,7 +86,7 @@ interface FashionMaze {
     }>;
     ambient: string;
   };
-  photoAction: {
+  photoAction?: { // optional scene-specific override
     continuity: string;
     beats: Array<{
       mode: string;
@@ -89,17 +97,25 @@ interface FashionMaze {
     release: string;
     releaseHoldChunks: number;
   };
+  sceneTransition?: {
+    targetSceneId: string;
+    buttonLabel: string;
+    continuity?: string;
+    portal: { summon: string; enter: string };
+  };
   routes: MazeRoute[];
 }
 ```
 
-新增图片时放进 `public/dataset/`，并为 `entranceVariants` 增加稳定的 `id / seedImage / seed / openingPrompt`。正式 seed 建议使用 16:9 PNG、JPEG 或 WebP。当前三张图位于 `public/dataset/rose-garden/`；它们共享五人身份、服装和空间 prompt，但各自用简短的 opening continuity anchor 锁定初始站位。随机选择发生在动态 Server Component，并把 variant id 传给客户端，因此不会产生 hydration mismatch，也不会在用户点击 `ENTER` 时更换 seed。
+新增图片时放进 `public/dataset/`，并为 `entranceVariants` 增加稳定的 `id / seedImage / seed / openingPrompt`。正式 seed 建议使用 16:9 PNG、JPEG 或 WebP。第一幕三张图位于 `public/dataset/rose-garden/`，第二幕三张图位于 `public/dataset/cyberpunk-garden/`，第三幕单图位于 `public/dataset/asian-sculpture-garden/`，第四幕暂时再次引用 rose-garden 组。每组共享各自的人物、服装和空间 Prompt，但每张都有 opening continuity anchor 锁定初始站位与姿势。随机选择发生在动态 Server Component，它会一次性为四个 Chapter 分别选定 variant id 并传给客户端，因此不会产生 hydration mismatch，也不会在黑门转场过程中再次换 seed；第一幕与第四幕的随机结果彼此独立。
 
-每条 `route` 同时包含观众看到的 narrative 和模型看到的 `promptDelta.transition / settled`。选择变体时，首个 forward chunk 使用一次性 transition；chunk 完成后立即换成没有生长、出现或攀爬过程动词的 settled prompt。普通 WASD、方向键与鼠标只发送 SDK 原生 camera input，不根据按键状态调用 `setPrompt()`，因此人物微动作与偶尔回望不会被镜头行动触发。`composeWorldPrompt()` 会把场景身份、镜头层、路线结果、固定站位群像与临时拍照动作组合为一次完整 prompt。opening anchor 现在以 world-space root / footprint 描述并在整个普通探索中保持，不再用与镜头透视冲突的屏幕大小或深度锁；route 与 photo action 也继续携带同一站位锚。两者互斥；拍照状态机使用本地单调 chunk serial，即使 Reactor run 内的 `chunk_index` 归零也不会提前推进。三条初始 prompt 为 1.72–1.82k characters，最长组合为 1.99k，保持在项目 authoring spec 的约 2k 预算内。
+每条 `route` 同时包含观众看到的 narrative 和模型看到的 `promptDelta.transition / settled`。选择变体时，首个 forward chunk 使用一次性 transition；chunk 完成后立即换成没有生长、出现或攀爬过程动词的 settled prompt。普通 WASD、方向键与鼠标只发送 SDK 原生 camera input，不根据按键状态调用 `setPrompt()`，因此人物微动作与偶尔回望不会被镜头行动触发。`composeWorldPrompt()` 会把场景身份、镜头层、路线结果、固定站位群像与临时拍照动作组合为一次完整 prompt。`composePortalPrompt()` 只在显式换幕时生成 `summon / enter` 两个完整 Prompt；每段动作自带人物固定约束，因此不重复 ambient 段，并保持在约 2k character 预算内。opening anchor 以 world-space root / footprint 描述并在整个普通探索中保持；route、photo 与 portal action 互斥。拍照状态机使用本地单调 chunk serial，即使 Reactor run 内的 `chunk_index` 归零也不会提前推进。
 
-当前实现把玩家定义为不可见的 observer camera，而不是任何一位画面人物；中央白色西装男模仅作为 Tailored Host 和拍照动作的摄影者。五人、白蓝服装、粉色几何迷宫和垂花树冠在镜头探索时保持独立连续。
+`photoAction` 只用于少数场景的特殊覆盖。未配置时，`resolvePhotoAction()` 会根据当前 `ensemble.count` 自动生成共享的 `LOOK HERE / HOLD / SHUTTER / release` 协议，因此第二幕的五人、第三幕的六人、第四幕以及未来新增的每一幕都会默认显示并支持拍照。
 
-当前照片保存的是拍照动作确认后、无 HTML 覆盖的原始 Reactor 主视频帧。拍照 prompt 保留宽幅 editorial 构图，只向 Tailored Host 右肩方向轻微漂移并让手机保持在画面下缘，因此接近 Host 的取景，但不是 SDK 提供的独立手机 POV track。真正的双视角摄影需要后续增加独立 still generation 或第二路视角。
+当前实现把玩家定义为不可见的 observer camera，而不是任何一位画面人物。每幕所有 seed-visible performers 在拍照时都保持原身份、原站位与原姿势，没有任何一位临时成为摄影者。
+
+当前照片保存的是简化 pose 动作确认后、无 HTML 覆盖的原始 Reactor 主视频帧。屏幕本身就是 observer camera；拍照期间不增加可见设备、第二视角或推拉镜头。
 
 ## Reactor 架构
 
@@ -126,5 +142,7 @@ npm run build
 ```
 
 不要在自动测试中点击 live 入口；真实连接测试应作为显式的 credit-spending canary 单独执行。
+
+三段黑门换幕目前已通过类型检查、Prompt 预算断言与 production build；远门距离、实际步行速度、全黑判定以及连续四次 generation 之间的真实时序仍需要一次显式的 credit-spending canary 才能确认。
 
 `submission/oneshot/` 是独立交付包，本应用不会读取其中内容或根目录的 `openai.key`。
