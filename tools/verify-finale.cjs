@@ -179,10 +179,64 @@ check(
   "browser Host must survive a localhost/request.url bind-address mismatch",
 );
 check(
+  isAllowedRequestOrigin(
+    originInput({
+      origin: "http://[::1]:3000",
+      host: "[::1]:3000",
+    }),
+  ),
+  "IPv6 loopback Host must survive an internal bind-address mismatch",
+);
+check(
   isAllowedRequestOrigin(originInput({ origin: "http://localhost:3000" })) ===
     false,
   "localhost and 127.0.0.1 must not be treated as interchangeable origins",
 );
+check(
+  isAllowedRequestOrigin(
+    originInput({
+      origin: "http://evil.test:3000",
+      host: "evil.test:3000",
+    }),
+  ) === false,
+  "an arbitrary Host header must not create an allowed public origin",
+);
+check(
+  isAllowedRequestOrigin(
+    originInput({
+      requestUrl: "https://show.example/api/grand-palais/generate",
+      origin: "https://show.example",
+      host: "show.example",
+    }),
+  ) === false,
+  "a public request URL must require an explicitly configured public origin",
+);
+for (const port of [1, 65535]) {
+  check(
+    isAllowedRequestOrigin(
+      originInput({
+        origin: `http://localhost:${port}`,
+        host: `localhost:${port}`,
+      }),
+    ),
+    `loopback Host port ${port} must pass`,
+  );
+}
+for (const host of [
+  "127.1:3000",
+  "2130706433:3000",
+  "0x7f000001:3000",
+  "localhost.:3000",
+  "127.0.0.2:3000",
+  "[::ffff:127.0.0.1]:3000",
+]) {
+  check(
+    isAllowedRequestOrigin(
+      originInput({ origin: `http://${host}`, host }),
+    ) === false,
+    `non-exact loopback Host ${host} must fail closed`,
+  );
+}
 check(
   isAllowedRequestOrigin(
     originInput({ origin: "https://show.example", host: "127.0.0.1:3000" }),
@@ -220,7 +274,23 @@ for (const [label, overrides] of [
   ["Origin userinfo", { origin: "http://user@127.0.0.1:3000" }],
   ["wrong scheme", { origin: "https://127.0.0.1:3000" }],
   ["wrong port", { origin: "http://127.0.0.1:3001" }],
-  ["host suffix attack", { origin: "http://127.0.0.1:3000.evil.test" }],
+  [
+    "invalid loopback port",
+    { origin: "http://localhost:0", host: "localhost:0" },
+  ],
+  [
+    "leading-zero loopback port",
+    { origin: "http://localhost:03000", host: "localhost:03000" },
+  ],
+  [
+    "out-of-range loopback port",
+    { origin: "http://localhost:65536", host: "localhost:65536" },
+  ],
+  [
+    "multi-value Host",
+    { origin: "http://localhost:3000", host: "localhost:3000, evil.test" },
+  ],
+  ["host suffix attack", { origin: "http://127.0.0.1.evil.test:3000" }],
   ["cross-site fetch", { secFetchSite: "cross-site" }],
 ]) {
   check(

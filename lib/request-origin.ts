@@ -30,7 +30,8 @@ function normalizeHttpOrigin(value: string | null | undefined): string | null {
       url.password ||
       url.pathname !== "/" ||
       url.search ||
-      url.hash
+      url.hash ||
+      url.port === "0"
     ) {
       return null;
     }
@@ -38,6 +39,41 @@ function normalizeHttpOrigin(value: string | null | undefined): string | null {
   } catch {
     return null;
   }
+}
+
+function isLoopbackOrigin(origin: string): boolean {
+  const hostname = new URL(origin).hostname.toLowerCase();
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]"
+  );
+}
+
+function rawAuthorityFromHttpUrl(value: string): string | null {
+  return /^https?:\/\/([^/?#]+)/i.exec(value)?.[1] ?? null;
+}
+
+function isExactLoopbackAuthority(authority: string | null): boolean {
+  if (!authority) return false;
+  const match =
+    /^(?:localhost|127\.0\.0\.1)(?::([1-9]\d{0,4}))?$/i.exec(authority) ??
+    /^\[::1\](?::([1-9]\d{0,4}))?$/i.exec(authority);
+  if (!match) return false;
+  return !match[1] || Number(match[1]) <= 65_535;
+}
+
+function normalizeExactLoopbackOrigin(
+  value: string | null | undefined,
+): string | null {
+  const singleValue = singleHeaderValue(value);
+  const normalized = normalizeHttpOrigin(singleValue);
+  return normalized &&
+    isExactLoopbackAuthority(
+      singleValue ? rawAuthorityFromHttpUrl(singleValue) : null,
+    )
+    ? normalized
+    : null;
 }
 
 function originFromHost(protocol: string, host: string | null): string | null {
@@ -58,6 +94,12 @@ export function isAllowedRequestOrigin(
 
   const browserOrigin = normalizeHttpOrigin(input.origin);
   if (!browserOrigin) return false;
+  if (
+    isLoopbackOrigin(browserOrigin) &&
+    normalizeExactLoopbackOrigin(input.origin) !== browserOrigin
+  ) {
+    return false;
+  }
 
   let requestUrl: URL;
   try {
@@ -67,12 +109,22 @@ export function isAllowedRequestOrigin(
   }
   if (!["http:", "https:"].includes(requestUrl.protocol)) return false;
 
-  const candidates = new Set<string>([requestUrl.origin]);
+  const candidates = new Set<string>();
+  const requestUrlOrigin = normalizeHttpOrigin(requestUrl.origin);
+  if (
+    requestUrlOrigin &&
+    isExactLoopbackAuthority(rawAuthorityFromHttpUrl(input.requestUrl))
+  ) {
+    candidates.add(requestUrlOrigin);
+  }
+  const directHost = singleHeaderValue(input.host);
   const directHostOrigin = originFromHost(
     requestUrl.protocol,
-    singleHeaderValue(input.host),
+    directHost,
   );
-  if (directHostOrigin) candidates.add(directHostOrigin);
+  if (directHostOrigin && isExactLoopbackAuthority(directHost)) {
+    candidates.add(directHostOrigin);
+  }
 
   const configuredPublicOrigin = normalizeHttpOrigin(policy.publicOrigin);
   if (configuredPublicOrigin) candidates.add(configuredPublicOrigin);
