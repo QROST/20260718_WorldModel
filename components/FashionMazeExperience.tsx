@@ -48,7 +48,7 @@ import {
 import {
   canIssueGenerationStart,
   canStagePendingMaze,
-  isReactorDisconnectEdge,
+  classifyReactorDisconnect,
   sanitizeReactorDebugText,
 } from "@/lib/reactor-lifecycle";
 
@@ -221,6 +221,7 @@ const PHOTO_ENCODE_TIMEOUT_MS = 2_000;
 const VIDEO_FRAME_PROBE_TIMEOUT_MS = 1_000;
 const CONTROL_RELEASE_TIMEOUT_MS = 750;
 const DISCONNECT_CONFIRM_TIMEOUT_MS = 10_000;
+const RECONNECT_CONFIRM_TIMEOUT_MS = 15_000;
 const DOOR_QUESTION_WATCHDOG_MS = 20_000;
 const SCENE_TRANSITION_WATCHDOG_MS = 45_000;
 const PORTAL_COVER_MS = 520;
@@ -228,6 +229,10 @@ const PORTAL_REVEAL_MS = 1_100;
 const PORTAL_SUMMON_HOLD_CHUNKS = PORTAL_CHOREOGRAPHY.summonHoldChunks;
 const PORTAL_APPROACH_HOLD_CHUNKS = PORTAL_CHOREOGRAPHY.approachHoldChunks;
 const PORTAL_VIDEO_ZOOM_MS = PORTAL_CHOREOGRAPHY.clientZoomMs;
+const CONNECTION_DROPPED_WARNING =
+  "The Reactor connection dropped. The existing session may still be billing while this app tries to reconnect it.";
+const CONNECTION_RECOVERY_FAILED_WARNING =
+  "The Reactor connection dropped. Reconnection failed and the old session may still be billing. End it before starting another live maze.";
 
 let cachedToken: { jwt: string; expiresAt: number } | null = null;
 let tokenRequest: Promise<string> | null = null;
@@ -615,6 +620,7 @@ function FashionMazeRuntime({
     lastError,
     connect,
     disconnect,
+    reconnect,
     uploadFile,
     setSeed,
     setImage,
@@ -710,6 +716,7 @@ function FashionMazeRuntime({
   const photoWatchdogRef = useRef<number | null>(null);
   const photoFlashTimerRef = useRef<number | null>(null);
   const sceneTransitionWatchdogRef = useRef<number | null>(null);
+  const reconnectWatchdogRef = useRef<number | null>(null);
   const doorQuestionWatchdogRef = useRef<number | null>(null);
   const portalZoomTimerRef = useRef<number | null>(null);
   const portalCoverTimerRef = useRef<number | null>(null);
@@ -723,6 +730,10 @@ function FashionMazeRuntime({
   const debugSequenceRef = useRef(0);
   const debugStartedAtRef = useRef(Date.now());
   const terminatingRef = useRef(false);
+  const intentionalDisconnectRef = useRef(false);
+  const reconnectingSessionIdRef = useRef<string | null>(null);
+  const failedReconnectSessionIdRef = useRef<string | null>(null);
+  const reconnectAttemptRef = useRef(0);
   const lastAxesRef = useRef({
     longitudinal: "idle",
     lateral: "idle",
@@ -892,6 +903,12 @@ function FashionMazeRuntime({
     photoWatchdogRef.current = null;
   }, []);
 
+  const clearReconnectWatchdog = useCallback(() => {
+    if (reconnectWatchdogRef.current === null) return;
+    window.clearTimeout(reconnectWatchdogRef.current);
+    reconnectWatchdogRef.current = null;
+  }, []);
+
   const clearDoorQuestionWatchdog = useCallback(() => {
     if (doorQuestionWatchdogRef.current === null) return;
     window.clearTimeout(doorQuestionWatchdogRef.current);
@@ -981,7 +998,12 @@ function FashionMazeRuntime({
       clearActivationWatchdog();
       clearRouteWatchdog();
       clearPhotoWatchdog();
+      clearReconnectWatchdog();
       clearSceneTransitionTimers();
+      reconnectAttemptRef.current += 1;
+      reconnectingSessionIdRef.current = null;
+      failedReconnectSessionIdRef.current = null;
+      intentionalDisconnectRef.current = true;
       const activatingFinale =
         finalePhase === "starting" ||
         pendingMazeRef.current?.id === GRAND_PALAIS_SCENE_ID;
@@ -1027,6 +1049,7 @@ function FashionMazeRuntime({
       appendDebugEvent,
       clearActivationWatchdog,
       clearPhotoWatchdog,
+      clearReconnectWatchdog,
       clearRouteWatchdog,
       clearSceneTransitionTimers,
       disconnect,
@@ -1504,21 +1527,16 @@ function FashionMazeRuntime({
     videoReady,
   ]);
 
-  useEffect(() => {
-    const previousStatus = previousStatusRef.current;
-    previousStatusRef.current = status;
-
-    // A fresh click changes `phase` before connect() publishes its first
-    // transport status. Reset only on an actual disconnect edge; otherwise a
-    // render in the initial `disconnected` state erases the pending first run.
-    if (!isReactorDisconnectEdge(previousStatus, status)) {
-      return;
-    }
-
+  const resetRuntimeAfterDisconnect = useCallback(() => {
+    clearReconnectWatchdog();
     clearActivationWatchdog();
     clearRouteWatchdog();
     clearPhotoWatchdog();
     clearSceneTransitionTimers();
+    reconnectAttemptRef.current += 1;
+    reconnectingSessionIdRef.current = null;
+    failedReconnectSessionIdRef.current = null;
+    intentionalDisconnectRef.current = false;
     terminatingRef.current = false;
     activationAttemptIdRef.current += 1;
     pendingStartRef.current = false;
@@ -1570,8 +1588,151 @@ function FashionMazeRuntime({
   }, [
     clearActivationWatchdog,
     clearPhotoWatchdog,
+    clearReconnectWatchdog,
     clearRouteWatchdog,
     clearSceneTransitionTimers,
+  ]);
+
+  const failReconnectAttempt = useCallback(
+    (droppedSessionId: string, attempt: number, reason: string) => {
+      if (
+        reconnectingSessionIdRef.current !== droppedSessionId ||
+        reconnectAttemptRef.current !== attempt
+      ) {
+        return;
+      }
+      clearReconnectWatchdog();
+      reconnectingSessionIdRef.current = null;
+      reconnectAttemptRef.current += 1;
+      appendDebugEvent(
+        "sdk",
+        "reconnect_failed",
+        `session=${droppedSessionId.slice(-6)} reason=${reason}`,
+        "error",
+      );
+      resetRuntimeAfterDisconnect();
+      failedReconnectSessionIdRef.current = droppedSessionId;
+      setError(CONNECTION_RECOVERY_FAILED_WARNING);
+      if (finalePhase === "starting") {
+        setFinaleError(CONNECTION_RECOVERY_FAILED_WARNING);
+        setFinalePhase("error");
+      }
+    },
+    [
+      appendDebugEvent,
+      clearReconnectWatchdog,
+      finalePhase,
+      resetRuntimeAfterDisconnect,
+    ],
+  );
+
+  useEffect(() => {
+    const previousStatus = previousStatusRef.current;
+    previousStatusRef.current = status;
+
+    if (status === "ready" && reconnectingSessionIdRef.current) {
+      const restoredSessionId = reconnectingSessionIdRef.current;
+      clearReconnectWatchdog();
+      reconnectingSessionIdRef.current = null;
+      failedReconnectSessionIdRef.current = null;
+      reconnectAttemptRef.current += 1;
+      heldControlsRef.current = [];
+      setPressedControlCodes([]);
+      lastAxesRef.current = {
+        longitudinal: "idle",
+        lateral: "idle",
+        lookHorizontal: "idle",
+        lookVertical: "idle",
+      };
+      void Promise.all([
+        setMoveLongitudinal({ move_longitudinal: "idle" }),
+        setMoveLateral({ move_lateral: "idle" }),
+        setLookHorizontal({ look_horizontal: "idle" }),
+        setLookVertical({ look_vertical: "idle" }),
+        setCameraPose({ camera_pose: [] }),
+      ]).catch((cause) => {
+        appendDebugEvent(
+          "sdk",
+          "reconnect_idle_rejected",
+          errorMessage(cause),
+          "warning",
+        );
+      });
+      appendDebugEvent(
+        "sdk",
+        "reconnect_confirmed",
+        `session=${restoredSessionId.slice(-6)} status=ready`,
+        "success",
+      );
+      setError(
+        "The Reactor connection was interrupted and restored to the existing session.",
+      );
+      return;
+    }
+
+    const disconnectAction = classifyReactorDisconnect({
+      previousStatus,
+      status,
+      intentional: intentionalDisconnectRef.current,
+      sessionId,
+      reconnectingSessionId: reconnectingSessionIdRef.current,
+      failedReconnectSessionId: failedReconnectSessionIdRef.current,
+    });
+    if (disconnectAction === "ignore") return;
+
+    if (disconnectAction === "reset") {
+      const wasIntentional = intentionalDisconnectRef.current;
+      resetRuntimeAfterDisconnect();
+      if (!wasIntentional) setError(CONNECTION_DROPPED_WARNING);
+      return;
+    }
+
+    if (!sessionId) return;
+    if (disconnectAction === "reconnect-failed") {
+      failReconnectAttempt(
+        sessionId,
+        reconnectAttemptRef.current,
+        "the recovery transport disconnected",
+      );
+      return;
+    }
+
+    const attempt = ++reconnectAttemptRef.current;
+    reconnectingSessionIdRef.current = sessionId;
+    failedReconnectSessionIdRef.current = null;
+    setError(CONNECTION_DROPPED_WARNING);
+    appendDebugEvent(
+      "sdk",
+      "reconnect_issued",
+      `session=${sessionId.slice(-6)} attempt=${attempt}`,
+      "warning",
+    );
+    clearReconnectWatchdog();
+    reconnectWatchdogRef.current = window.setTimeout(() => {
+      reconnectWatchdogRef.current = null;
+      failReconnectAttempt(
+        sessionId,
+        attempt,
+        `status did not return to ready within ${RECONNECT_CONFIRM_TIMEOUT_MS}ms`,
+      );
+    }, RECONNECT_CONFIRM_TIMEOUT_MS);
+    // SDK 2.12.1 resolves reconnect() even after its internal failure path.
+    // Observable `status === "ready"` above is the only success signal.
+    void reconnect({ sessionId }).catch((cause) => {
+      failReconnectAttempt(sessionId, attempt, errorMessage(cause));
+    });
+  }, [
+    appendDebugEvent,
+    clearReconnectWatchdog,
+    failReconnectAttempt,
+    reconnect,
+    resetRuntimeAfterDisconnect,
+    sessionId,
+    setCameraPose,
+    setLookHorizontal,
+    setLookVertical,
+    setMoveLateral,
+    setMoveLongitudinal,
     status,
   ]);
 
@@ -1580,6 +1741,10 @@ function FashionMazeRuntime({
       clearActivationWatchdog();
       clearRouteWatchdog();
       clearPhotoWatchdog();
+      clearReconnectWatchdog();
+      reconnectAttemptRef.current += 1;
+      reconnectingSessionIdRef.current = null;
+      failedReconnectSessionIdRef.current = null;
       clearSceneTransitionTimers();
       if (photoFlashTimerRef.current !== null) {
         window.clearTimeout(photoFlashTimerRef.current);
@@ -1588,6 +1753,7 @@ function FashionMazeRuntime({
     [
       clearActivationWatchdog,
       clearPhotoWatchdog,
+      clearReconnectWatchdog,
       clearRouteWatchdog,
       clearSceneTransitionTimers,
     ],
@@ -1949,6 +2115,20 @@ function FashionMazeRuntime({
       "error",
     );
 
+    if (lastError.code === "RECONNECTION_FAILED") {
+      const reconnectingSessionId = reconnectingSessionIdRef.current;
+      if (reconnectingSessionId) {
+        failReconnectAttempt(
+          reconnectingSessionId,
+          reconnectAttemptRef.current,
+          errorMessage(lastError),
+        );
+      } else {
+        setError(CONNECTION_RECOVERY_FAILED_WARNING);
+      }
+      return;
+    }
+
     if (pendingDoorQuestionRef.current) {
       setError(`Door question: ${errorMessage(lastError)}`);
       return;
@@ -1974,7 +2154,13 @@ function FashionMazeRuntime({
       return;
     }
     setError(errorMessage(lastError));
-  }, [abortActivation, appendDebugEvent, lastError, recoverPhoto]);
+  }, [
+    abortActivation,
+    appendDebugEvent,
+    failReconnectAttempt,
+    lastError,
+    recoverPhoto,
+  ]);
 
   useLingbotWorld2Message((message) => {
     const summary = summarizeLingbotMessage(message);
@@ -2566,6 +2752,12 @@ function FashionMazeRuntime({
   }, [stagePendingMaze]);
 
   const enterMaze = useCallback(async () => {
+    if (sessionId) {
+      setError(
+        "A previous Reactor session may still be billing. End that session before starting another live maze.",
+      );
+      return;
+    }
     if (!reactorConfigured) {
       fail(new Error("Add REACTOR_API_KEY before starting a live maze."));
       return;
@@ -2632,6 +2824,7 @@ function FashionMazeRuntime({
     fail,
     reactorConfigured,
     selectedMaze,
+    sessionId,
     stagePendingMaze,
     status,
   ]);
@@ -3549,6 +3742,12 @@ function FashionMazeRuntime({
   }, [clipBusy, modelState?.started, requestClip, status]);
 
   const endSession = useCallback(async (): Promise<boolean> => {
+    const disconnectedAtStart = status === "disconnected";
+    clearReconnectWatchdog();
+    reconnectAttemptRef.current += 1;
+    reconnectingSessionIdRef.current = null;
+    failedReconnectSessionIdRef.current = null;
+    intentionalDisconnectRef.current = true;
     terminatingRef.current = true;
     activationAttemptIdRef.current += 1;
     clearActivationWatchdog();
@@ -3584,10 +3783,12 @@ function FashionMazeRuntime({
         }),
       ]);
       if (disconnectResult.status === "failed") {
+        if (disconnectedAtStart) intentionalDisconnectRef.current = false;
         fail(disconnectResult.cause);
         return false;
       }
       if (disconnectResult.status === "timed-out") {
+        if (disconnectedAtStart) intentionalDisconnectRef.current = false;
         fail(
           new Error(
             "Reactor did not confirm disconnect within 10 seconds. The session may still be active; retry End Session before continuing.",
@@ -3596,6 +3797,7 @@ function FashionMazeRuntime({
         return false;
       }
     } catch (cause) {
+      if (disconnectedAtStart) intentionalDisconnectRef.current = false;
       fail(cause);
       return false;
     } finally {
@@ -3631,15 +3833,18 @@ function FashionMazeRuntime({
     setClip(null);
     setClipError(null);
     setPhase("preview");
+    if (disconnectedAtStart) intentionalDisconnectRef.current = false;
     return true;
   }, [
     clearActivationWatchdog,
     clearPhotoWatchdog,
+    clearReconnectWatchdog,
     clearRouteWatchdog,
     clearSceneTransitionTimers,
     disconnect,
     fail,
     releaseControls,
+    status,
   ]);
 
   const beginGrandPalaisGeneration = useCallback(async () => {
@@ -4046,7 +4251,7 @@ function FashionMazeRuntime({
           >
             Session tools
           </button>
-          {status !== "disconnected" && (
+          {(status !== "disconnected" || Boolean(sessionId)) && (
             <button className="text-button danger" onClick={endSession} disabled={phase === "ending"}>
               End session
             </button>
@@ -4174,7 +4379,7 @@ function FashionMazeRuntime({
             <button
               className="enter-button"
               onClick={enterMaze}
-              disabled={!reactorConfigured || busy}
+              disabled={!reactorConfigured || busy || Boolean(sessionId)}
             >
               <span>Start live maze</span>
             </button>

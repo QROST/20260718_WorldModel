@@ -8,12 +8,50 @@ export interface ReactorStartGate {
   hasPrompt: boolean;
 }
 
+export type ReactorDisconnectAction =
+  | "ignore"
+  | "reset"
+  | "reconnect"
+  | "reconnect-failed";
+
+export interface ReactorDisconnectContext {
+  previousStatus: ReactorStatus;
+  status: ReactorStatus;
+  intentional: boolean;
+  sessionId?: string;
+  reconnectingSessionId: string | null;
+  failedReconnectSessionId: string | null;
+}
+
 /** Ignore the initial disconnected snapshot and reset only after a real edge. */
 export function isReactorDisconnectEdge(
   previousStatus: ReactorStatus,
   status: ReactorStatus,
 ): boolean {
   return previousStatus !== "disconnected" && status === "disconnected";
+}
+
+/**
+ * Preserve a recoverable SDK session long enough to reconnect it. Intentional
+ * disconnects still reset immediately, while a second edge for the same
+ * reconnect attempt is treated as a failed recovery instead of an endless
+ * reconnect loop.
+ */
+export function classifyReactorDisconnect({
+  previousStatus,
+  status,
+  intentional,
+  sessionId,
+  reconnectingSessionId,
+  failedReconnectSessionId,
+}: ReactorDisconnectContext): ReactorDisconnectAction {
+  if (!isReactorDisconnectEdge(previousStatus, status)) return "ignore";
+  if (intentional) return "reset";
+  if (!sessionId) return "reset";
+  return reconnectingSessionId === sessionId ||
+    failedReconnectSessionId === sessionId
+    ? "reconnect-failed"
+    : "reconnect";
 }
 
 export function canStagePendingMaze(
