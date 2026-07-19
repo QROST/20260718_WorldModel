@@ -437,18 +437,24 @@ export async function waitForRenderedVideoDuration(
   video: HTMLVideoElement,
   minimumDurationMs = PHOTO_RENDER_SETTLE_MS,
   timeoutMs = PHOTO_FRAME_TIMEOUT_MS,
-): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
+): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
     let frameRequest: number | null = null;
     let fallbackTimer: number | null = null;
     let timeout: number | null = null;
     let firstMediaTime: number | null = null;
     let settled = false;
     const initialCurrentTime = video.currentTime;
-    const initialPresentedFrames =
-      typeof video.getVideoPlaybackQuality === "function"
-        ? video.getVideoPlaybackQuality().totalVideoFrames
-        : null;
+    const readPresentedFrames = () => {
+      try {
+        return typeof video.getVideoPlaybackQuality === "function"
+          ? video.getVideoPlaybackQuality().totalVideoFrames
+          : null;
+      } catch {
+        return null;
+      }
+    };
+    const initialPresentedFrames = readPresentedFrames();
     const cleanup = () => {
       if (timeout !== null) {
         window.clearTimeout(timeout);
@@ -458,44 +464,50 @@ export async function waitForRenderedVideoDuration(
         window.clearTimeout(fallbackTimer);
         fallbackTimer = null;
       }
-      if (
-        frameRequest !== null &&
-        typeof video.cancelVideoFrameCallback === "function"
-      ) {
-        video.cancelVideoFrameCallback(frameRequest);
+      try {
+        if (
+          frameRequest !== null &&
+          typeof video.cancelVideoFrameCallback === "function"
+        ) {
+          video.cancelVideoFrameCallback(frameRequest);
+        }
+      } catch {
+        // A browser cancellation failure cannot turn an advisory presentation
+        // probe back into a hard photo-save failure.
+      } finally {
+        frameRequest = null;
       }
-      frameRequest = null;
     };
-    const finish = (error?: Error) => {
+    const finish = (didSettle: boolean) => {
       if (settled) return;
       settled = true;
       cleanup();
-      if (error) reject(error);
-      else resolve();
+      resolve(didSettle);
     };
     const requestNextFrame = () => {
       if (settled) return;
-      frameRequest = video.requestVideoFrameCallback((_now, metadata) => {
-        frameRequest = null;
-        if (settled) return;
-        if (firstMediaTime === null) firstMediaTime = metadata.mediaTime;
-        if (hasSettledRenderedVideoEvidence({
-          minimumDurationMs,
-          firstMediaTime,
-          currentMediaTime: metadata.mediaTime,
-        })) {
-          finish();
-        } else {
-          requestNextFrame();
-        }
-      });
+      try {
+        frameRequest = video.requestVideoFrameCallback((_now, metadata) => {
+          frameRequest = null;
+          if (settled) return;
+          if (firstMediaTime === null) firstMediaTime = metadata.mediaTime;
+          if (hasSettledRenderedVideoEvidence({
+            minimumDurationMs,
+            firstMediaTime,
+            currentMediaTime: metadata.mediaTime,
+          })) {
+            finish(true);
+          } else {
+            requestNextFrame();
+          }
+        });
+      } catch {
+        finish(false);
+      }
     };
     const pollFallback = () => {
       if (settled) return;
-      const currentPresentedFrames =
-        typeof video.getVideoPlaybackQuality === "function"
-          ? video.getVideoPlaybackQuality().totalVideoFrames
-          : null;
+      const currentPresentedFrames = readPresentedFrames();
       if (
         hasSettledRenderedVideoEvidence({
           minimumDurationMs,
@@ -504,15 +516,11 @@ export async function waitForRenderedVideoDuration(
           initialPresentedFrames,
           currentPresentedFrames,
         })
-      ) finish();
+      ) finish(true);
       else fallbackTimer = window.setTimeout(pollFallback, 50);
     };
     timeout = window.setTimeout(() => {
-      finish(
-        new Error(
-          "The Reactor view did not render enough settled video for the photo.",
-        ),
-      );
+      finish(false);
     }, timeoutMs);
 
     if (typeof video.requestVideoFrameCallback === "function") {
@@ -528,6 +536,7 @@ export async function captureReactorPhoto(
   track: MediaStreamTrack | undefined,
   mazeId: string,
   chunkIndex: number,
+  onSettleFallback?: () => void,
 ): Promise<CapturedPhoto> {
   const video = stage?.querySelector<HTMLVideoElement>(".reactor-video video");
   if (
@@ -544,8 +553,22 @@ export async function captureReactorPhoto(
   }
 
   // chunk_complete confirms generation/emission, not browser presentation.
-  // Preserve the authored shutter prompt for 1.2 seconds of rendered media.
-  await waitForRenderedVideoDuration(video);
+  // Prefer the authored settle window, but never make it a save requirement:
+  // after the bounded wait, draw the latest frame the browser can provide.
+  let viewSettled = false;
+  try {
+    viewSettled = await waitForRenderedVideoDuration(video);
+  } catch {
+    // A presentation-timing probe is advisory. Canvas capture below remains
+    // authoritative for whether the currently available frame can be saved.
+  }
+  if (!viewSettled) {
+    try {
+      onSettleFallback?.();
+    } catch {
+      // Telemetry is advisory too; the current drawable frame still wins.
+    }
+  }
 
   const canvas = document.createElement("canvas");
   canvas.width = video.videoWidth;
@@ -776,6 +799,12 @@ export function usePhotoCapture({
           mainVideoTrack,
           activeMaze.id,
           completedChunk,
+          () => {
+            onMediaEvent?.(
+              "photo_render_fallback",
+              `chunk=${completedChunk} waitedMs=${PHOTO_FRAME_TIMEOUT_MS} saving=latest-frame`,
+            );
+          },
         );
       } catch (cause) {
         if (

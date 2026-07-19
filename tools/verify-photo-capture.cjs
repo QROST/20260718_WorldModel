@@ -48,6 +48,7 @@ require.extensions[".ts"] = (module, filename) => {
 
 const {
   canContinuePhotoCapture,
+  captureReactorPhoto,
   createInitialPhotoCaptureState,
   hasSettledRenderedVideoEvidence,
   photoExtensionForMimeType,
@@ -342,35 +343,230 @@ async function verifyRenderedWaitLifecycle() {
     const secondFrame = frameCallbacks.get(2);
     frameCallbacks.delete(2);
     secondFrame(0, { mediaTime: 11.21 });
-    await settled;
+    const didSettle = await settled;
     check(
       "a successful rendered-media wait clears its total timeout",
-      timers.size === 0,
+      didSettle && timers.size === 0,
     );
 
     const timedOut = waitForRenderedVideoDuration(video, 1_200, 5_000);
+    const lateFrame = frameCallbacks.get(3);
     const timeout = [...timers.entries()].find(([, timer]) => timer.delay === 5_000);
     timers.delete(timeout[0]);
     timeout[1].callback();
-    let timeoutRejected = false;
-    try {
-      await timedOut;
-    } catch (cause) {
-      timeoutRejected = /did not render enough settled video/.test(
-        String(cause?.message ?? cause),
-      );
-    }
+    const timedOutOutcome = await timedOut;
     check(
-      "a rendered-media timeout rejects and cancels its pending frame callback",
-      timeoutRejected && canceledFrames.includes(3),
+      "a rendered-media timeout resolves to fallback and cancels its pending callback",
+      !timedOutOutcome && canceledFrames.includes(3) && timers.size === 0,
+    );
+    const frameRequestsAfterTimeout = nextFrameId;
+    lateFrame(0, { mediaTime: 12.5 });
+    check(
+      "a late callback after the soft deadline cannot restart frame polling",
+      nextFrameId === frameRequestsAfterTimeout,
+    );
+
+    const callbackFailure = await waitForRenderedVideoDuration(
+      {
+        ...video,
+        requestVideoFrameCallback() {
+          throw new Error("frame callbacks unavailable");
+        },
+      },
+      1_200,
+      5_000,
+    );
+    check(
+      "a frame-callback failure also degrades to the latest-frame fallback",
+      !callbackFailure && timers.size === 0,
+    );
+
+    const cancelFailure = waitForRenderedVideoDuration(
+      {
+        ...video,
+        requestVideoFrameCallback() {
+          return ++nextFrameId;
+        },
+        cancelVideoFrameCallback() {
+          throw new Error("frame callback cancellation failed");
+        },
+      },
+      1_200,
+      5_000,
+    );
+    const cancelFailureTimeout = [...timers.entries()].find(
+      ([, timer]) => timer.delay === 5_000,
+    );
+    timers.delete(cancelFailureTimeout[0]);
+    cancelFailureTimeout[1].callback();
+    check(
+      "a frame-callback cancellation failure cannot block soft fallback",
+      !(await cancelFailure) && timers.size === 0,
     );
   } finally {
     global.window = previousWindow;
   }
 }
 
+async function verifyCaptureAfterSoftSettleDeadline() {
+  const previousWindow = global.window;
+  const previousDocument = global.document;
+  const previousUrl = global.URL;
+  const previousHtmlMediaElement = global.HTMLMediaElement;
+  let nextTimerId = 0;
+  let nextFrameId = 0;
+  let drewFrame = false;
+  let fallbackReported = false;
+  const timers = new Map();
+  const canceledFrames = [];
+  global.window = {
+    setTimeout(callback, delay) {
+      const id = ++nextTimerId;
+      timers.set(id, { callback, delay });
+      return id;
+    },
+    clearTimeout(id) {
+      timers.delete(id);
+    },
+  };
+  global.HTMLMediaElement = { HAVE_CURRENT_DATA: 2 };
+  global.URL = {
+    createObjectURL() {
+      return "blob:soft-settle-photo";
+    },
+  };
+
+  const video = {
+    currentTime: 10,
+    ended: false,
+    readyState: 2,
+    videoWidth: 640,
+    videoHeight: 360,
+    getVideoPlaybackQuality: () => ({ totalVideoFrames: 100 }),
+    requestVideoFrameCallback() {
+      return ++nextFrameId;
+    },
+    cancelVideoFrameCallback(id) {
+      canceledFrames.push(id);
+    },
+  };
+  const canvas = {
+    width: 0,
+    height: 0,
+    getContext() {
+      return {
+        drawImage() {
+          drewFrame = true;
+        },
+      };
+    },
+    toBlob(callback, mimeType) {
+      callback({ type: mimeType });
+    },
+  };
+  global.document = {
+    createElement(tagName) {
+      if (tagName !== "canvas") throw new Error(`unexpected element ${tagName}`);
+      return canvas;
+    },
+  };
+  const completeAfterSettleDeadline = async (capture) => {
+    const settleTimeout = [...timers.entries()].find(
+      ([, timer]) => timer.delay === 5_000,
+    );
+    if (!settleTimeout) throw new Error("photo settle timeout was not armed");
+    timers.delete(settleTimeout[0]);
+    settleTimeout[1].callback();
+    return capture;
+  };
+
+  try {
+    const capture = captureReactorPhoto(
+      { querySelector: () => video },
+      { readyState: "live", muted: false },
+      "soft-settle",
+      7,
+      () => {
+        fallbackReported = true;
+        throw new Error("telemetry unavailable");
+      },
+    );
+    const photo = await completeAfterSettleDeadline(capture);
+    check(
+      "capture survives the soft deadline and a failing telemetry callback",
+      fallbackReported &&
+        drewFrame &&
+        canceledFrames.includes(1) &&
+        photo.url === "blob:soft-settle-photo" &&
+        photo.width === 640 &&
+        photo.height === 360 &&
+        photo.chunkIndex === 7,
+    );
+
+    global.document.createElement = () => ({
+      ...canvas,
+      getContext: () => null,
+    });
+    let missingContextRejected = false;
+    try {
+      await completeAfterSettleDeadline(
+        captureReactorPhoto(
+          { querySelector: () => video },
+          { readyState: "live", muted: false },
+          "missing-context",
+          8,
+        ),
+      );
+    } catch (cause) {
+      missingContextRejected = /Canvas is unavailable/.test(
+        String(cause?.message ?? cause),
+      );
+    }
+    check(
+      "a genuine canvas failure remains fatal after the soft deadline",
+      missingContextRejected,
+    );
+
+    global.document.createElement = () => ({
+      ...canvas,
+      toBlob(callback) {
+        callback(null);
+      },
+    });
+    let encodeRejected = false;
+    try {
+      await completeAfterSettleDeadline(
+        captureReactorPhoto(
+          { querySelector: () => video },
+          { readyState: "live", muted: false },
+          "encode-failure",
+          9,
+        ),
+      );
+    } catch (cause) {
+      encodeRejected = /could not encode/.test(
+        String(cause?.message ?? cause),
+      );
+    }
+    check(
+      "a genuine encoding failure remains fatal after the soft deadline",
+      encodeRejected && timers.size === 0,
+    );
+  } finally {
+    if (previousWindow === undefined) delete global.window;
+    else global.window = previousWindow;
+    if (previousDocument === undefined) delete global.document;
+    else global.document = previousDocument;
+    if (previousUrl === undefined) delete global.URL;
+    else global.URL = previousUrl;
+    if (previousHtmlMediaElement === undefined) delete global.HTMLMediaElement;
+    else global.HTMLMediaElement = previousHtmlMediaElement;
+  }
+}
+
 async function main() {
   await verifyRenderedWaitLifecycle();
+  await verifyCaptureAfterSoftSettleDeadline();
   const failures = assertions.filter(([, passed]) => !passed);
   if (failures.length > 0) {
     for (const [label] of failures) console.error(`FAIL: ${label}`);
