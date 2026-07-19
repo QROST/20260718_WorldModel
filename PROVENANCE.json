@@ -41,8 +41,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "320a21946c01c5109b2e409b5ce9e547132d4f072e3babf43e42320e8582f3e6",
-      "bytes": 25445,
+      "sha256": "bc1a0bd4477d162e010dd4e8a00ee211da90c262d5f39f7f8a84f5b5790b05c7",
+      "bytes": 17415,
       "contentClass": "project-documentation",
       "signaturePolicy": "manifest-only"
     },

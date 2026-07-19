@@ -22,127 +22,14 @@ rights boundaries.
 
 ## Current experience
 
-- Three 1376×768 rose-garden entrances come from the team dataset. The server
-  randomly chooses one whenever the page opens, and the page and Reactor
-  session remain locked to that image and its opening prompt.
-- The same five white-and-cobalt couture performers are present from the first
-  frame. Each performer retains their opening mark and every leg and foot's
-  original position, height, angle, and contact state from the seed. A long
-  runway hold, infrequent blinking, barely perceptible breathing, and minimal
-  eye movement sustain a composed fashion-show tableau. They do not switch
-  feet, shift weight, step in place, or move in response to the camera.
-- The entrance retains only `THE INVITATION`, a small narrative, and one primary
-  `Start live maze` action. It does not display an oversized entrance title.
-- Route and Prompt definitions for Neon Canopy, Living Runway, and Golden
-  Circuit remain as internal material, but the public experience no longer
-  displays the three `Worlds Ahead` buttons.
-- Scene 1 provides `ENTER THE BLACK DOOR`. The model first transforms an
-  existing mid-distance arch or doorway in place into a richly ornamented frame
-  integrated with the scene's materials. Beyond the threshold lies only
-  uniform, featureless darkness. If no suitable opening exists, the frame may
-  extend organically from an adjacent building, but it must never appear as a
-  freestanding object. The door stabilizes for three complete chunks, after
-  which the camera walks straight along the forward axis for eight confirmed
-  real `forward` chunks, crossing the threshold and fully entering darkness in
-  the final two. The web UI adds only a subtle 1.8-second push-in capped at
-  1.1×, then a fixed black curtain fully covers the scene before reset.
-- Every Start action draws a 32-bit run-order seed. The rose garden is always
-  Scene 1; the other six authored scenes are fixed as Scenes 2–7 for that run
-  using a no-repeat Fisher–Yates shuffle. A new order is drawn only after a
-  disconnect and restart.
-- Authored scenes include Cyberpunk Garden, two Asian Sculpture Garden scenes,
-  two Afro-Futurism scenes, and Asian Fusion. Each scene still locks one random
-  image from its own entrance material. `ensembleCount` remains application
-  metadata and is never inserted into model Prompts.
-- Each of the seven authored scenes uses a unique positional door question that
-  is independent of the destination scene, so a randomized order cannot bind a
-  question to the wrong next image. Every scene reuses the same
-  environment-opening-first ornamental frame, pure darkness beyond the
-  threshold, segmented straight walk, complete entry, and black-screen reset.
-- After the seventh authored scene's black door completes, the Reactor session
-  is released. The seven allowlisted seed images actually used in the run are
-  then submitted to the server, where a `gpt-image-2` Images Edit request creates
-  the runtime-only `SCENE 08 · The Grand Palais`. Story copy rotates while the
-  image is generated.
-- Scene 8 displays the generated image and `Attend the show`. Selecting it
-  starts Reactor again from that image and restores the shared photo, WASD,
-  camera, countdown, and session tools.
-- Static preview is no longer a world selector; the invitation leads directly
-  into the live maze.
-- Prompts are organized as inspectable
-  `base / anchor / camera / movement / destination / event / continuity`
-  segments. Normal exploration uses one input-gated, observer-invariant camera
-  contract so pressing or releasing WASD, arrow keys, or the mouse cannot create
-  a one-chunk-delayed Prompt race. Photo and black-door actions select compact
-  `locked / forward` layer versions.
-- Reactor connects only after the user selects `ENTER LIVE MAZE`.
-- On first connection, the reference image is uploaded only after observable
-  `status === ready`. Generation is triggered through a once-only gate after
-  both conditions are confirmed through either `conditions_ready` or the
-  authoritative `state.has_image / has_prompt` path.
-- The seed does not disappear when a black placeholder track first appears.
-  After generation begins, it crossfades only when the track is live and
-  unmuted, the video is playing, and two consecutive frames pass the non-black
-  pixel check. The current hackathon mode does not automatically disconnect
-  merely because a visible frame takes too long.
-- Selecting a variation sends both a hot-swapped Prompt and a one-chunk forward
-  instruction. After confirmation, the experience automatically returns to idle
-  with the settled Prompt. The entrance seed does not invent a three-way fork.
-- Every scene provides `TAKE PHOTO` and the `C` shortcut by default, using the
-  shared `LOOK HERE → HOLD → SHUTTER` sequence. Scenes with people use confirmed
-  `2 / 3 / 2` Prompt chunks: seed-visible performers first face the camera, then
-  settle into position, then hold the shutter composition. Every beat is a
-  compact, self-contained state description with no performer count, performer
-  ID, outfit, or scene name. Empty scenes use three one-chunk environmental
-  composition beats.
-- The `SHUTTER` Prompt describes only the stable visible state of the completed
-  pose; the browser performs the actual frame capture. After `chunk_complete`,
-  the app first waits for 1.2 seconds of Reactor media time that has actually
-  been presented, avoiding capture of an old frame that was emitted but not yet
-  played. Browsers with frame callbacks use a media-time fence. The fallback
-  also verifies presented-frame counts when playback-quality data is available,
-  and otherwise uses `currentTime` as a best effort. Settling is only a quality
-  optimization: after at most five seconds, a timeout or frame-callback error
-  still saves the browser's currently drawable frame. The raw main-video frame
-  is saved without HTML overlays, preferring WebP with a PNG fallback; download
-  is attempted automatically and a receipt is shown. One release chunk lets
-  current subjects relax their gaze, and controls unlock only after one real
-  ambient Prompt chunk. Reactor Prompt and chunk confirmations have no
-  application-level timeout.
-- WASD controls only forward/backward and lateral movement of the observer
-  camera; arrow keys control only camera view direction. No performer moves,
-  turns, or tracks the camera in response to input. `MOUSE LOOK` uses native
-  `setCameraPose()` with the video chunk clock.
-- The `Session tools` drawer displays session, chunk, action, track, camera pose,
-  timer gate, and final Prompt budget. Its collapsed `Debug event log` retains
-  the latest 250 lifecycle events and can copy JSONL or be cleared manually.
-  The implementation redacts common JWT, Bearer, API-key, blob URL, and local
-  path formats, but logs should still be reviewed manually before sharing.
-- When recording is available, an operator can capture, preview, and download
-  the latest ten seconds as MP4.
-- `keyup`, window blur, and page visibility loss all reset control state.
-- `END SESSION` performs a non-recoverable disconnect. Input reset waits up to
-  750 ms, and disconnect confirmation waits up to ten seconds. If the SDK does
-  not confirm disconnection, the UI explicitly warns that the session may still
-  be running and blocks the paid Scene 8 request.
-- Every visible scene uses a prominent `30 → 0` remaining-time countdown. It
-  changes to a warning color for the final ten seconds and pulses faster for the
-  final five. When time expires in any of the seven authored scenes, the door
-  question opens after the current photo, route, or pause action finishes and
-  controls recover. The seventh question enters the generated finale. Scene 8
-  has no following scene, so it remains live at `0` until the user selects
-  `END SESSION`.
-- The current unbounded-wait hackathon policy allows connection readiness,
-  entrance arming, start, route, photo, door-question, and cross-scene generation
-  to wait indefinitely without an application watchdog disconnect. A visible
-  `END SESSION` action remains available while the black curtain waits for the
-  next scene. Explicit SDK or API command errors still end sessions that cannot
-  be recovered reliably.
-- The ensemble's “pause” is a Prompt-held pose; live generation and billing
-  continue. The SDK `pause()` action is explicitly labeled
-  `FREEZE STREAM · STILL BILLED`.
-- The UI clearly distinguishes `STATIC PREVIEW`, `LIVE`, and
-  `PAUSED · STILL BILLED`.
+- Begin at a randomly selected rose-garden entrance, then enter a live fashion
+  maze generated with Reactor LingBot World 2.
+- Explore seven couture worlds with WASD and camera controls, take photos, and
+  follow a different scene order on each run.
+- At the end of each timed scene, cross an ornate black door to continue deeper
+  into the maze.
+- After the seventh world, the journey culminates in a newly generated Grand
+  Palais finale built from the run's seven scene images.
 
 ## Installation and running
 
