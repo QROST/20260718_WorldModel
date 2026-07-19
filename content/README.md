@@ -8,17 +8,19 @@ Imported on 2026-07-18 without modifying the source repository.
 
 ## Runtime assets
 
-- `public/dataset/hedge-threshold.png` — the original 16:9 opening frame, retained as the composition reference and rollback asset.
-- `public/dataset/hedge-threshold-plan-montage-v4.png` — the active Reactor seed, generated from the original frame and the four character sheets on 2026-07-18; it preserves the blogger and adds exactly one relaxed, candid instance each of Ember Court, Forest Tailor, and Silver Architect as the opening ambient blocking. The historical filename remains for provenance; Plan Montage is now continuous prompt behavior, not a UI button.
-- `public/dataset/fashion-blogger-character-sheet.png` — the three-view concept reference shown in the HTML preview; it is not uploaded to Reactor as a second conditioning image.
-- `public/dataset/models/` — read-only copies of the three supporting-model character sheets supplied in the team repository. They are HTML identity references, not additional Reactor seed images.
-- `plan-montage-seed-receipt.md` — identity inputs and the exact final image-refinement prompt for the active seed.
+- `public/dataset/rose-garden/` — three Chapter 01 seeds.
+- `public/dataset/cyberpunk-garden/` — three independently selectable Chapter 02 seeds.
+- `public/dataset/asian-sculpture-garden/grand-finale.png` — the Chapter 03 seed.
+- `public/dataset/afro-futurism/` — three Chapter 04 seeds with 5 / 7 / 5 seed-visible performers. The selected variant overrides `ensemble.count` so the shared photo choreography addresses the correct cast.
+- `public/dataset/scenes/chapter-05/` — three independently replaceable Chapter 05 seeds, currently copied from the Afro-futurism set, with 5 / 7 / 5 performers.
+- `public/dataset/scenes/chapter-06/` — six Chapter 06 silver-garden seeds with 6 / 6 / 5 / 6 / 6 / 6 performers.
+- `public/dataset/scenes/chapter-07/` — five Chapter 07 copper-ring seeds with 6 / 6 / 5 / 5 / 6 performers.
+
+The older hedge-threshold, blogger, and character-sheet files remain as provenance and rollback references. They are not active seed images in the current seven-chapter runtime.
 
 ## Authoring sources
 
 - `authoring/360-fashion-maze-game-spec.md` — story, maze graph, gameplay ownership, and prompt guidance.
 - `authoring/fashion-maze-lingbot-scenes.json` — the 14-scene LingBot prompt registry.
 
-The authoring files are reference sources, not imported wholesale into the client bundle. The current one-world MVP is curated in `lib/fashion-maze.ts` so it never references the many seed filenames that have not yet been delivered.
-
-The source spec recommends first-person for its installation images. The delivered opening frame instead establishes a visible third-person protagonist. The current prompt packet deliberately follows the image and character sheet: it preserves one blogger, one outfit, one trailing camera, and the hedge architecture. Revisit this decision only after a deliberate first-person versus third-person Reactor canary.
+The authoring files are reference sources, not imported wholesale into the client bundle. The current seven-chapter first-person observer experience is curated in `lib/fashion-maze.ts`; Chapters 05–07 share one seed-led Prompt factory so their images can be replaced without rewriting scene prose.

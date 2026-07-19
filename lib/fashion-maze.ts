@@ -18,14 +18,25 @@ export interface MazeRoute {
   };
 }
 
-export interface PromptMotionLayer {
-  still: string;
-  moving: string;
+export interface FashionMazePromptLayers {
+  /** Subject behavior only. Camera and world identity live in other layers. */
+  movement: string;
 }
 
-export interface FashionMazePromptLayers {
-  camera: PromptMotionLayer;
-  movement: PromptMotionLayer;
+export type FashionMazePromptSegmentKind =
+  | "base"
+  | "anchor"
+  | "camera"
+  | "movement"
+  | "destination"
+  | "event"
+  | "continuity";
+
+export interface FashionMazePromptSegment {
+  kind: FashionMazePromptSegmentKind;
+  id: string;
+  label: string;
+  text: string;
 }
 
 export type FashionMazePhotoBeatMode =
@@ -51,12 +62,13 @@ export interface FashionMazeEntranceVariant {
   seedImage: string;
   seed: number;
   openingPrompt: string;
+  ensembleCount?: number;
 }
 
 export interface FashionMazeEnsemble {
   count: number;
+  /** Reusable identity archetypes; variants may contain more instances. */
   members: FashionMazeEnsembleMember[];
-  ambient: string;
 }
 
 export interface FashionMazePhotoBeat {
@@ -67,16 +79,25 @@ export interface FashionMazePhotoBeat {
 }
 
 export interface FashionMazePhotoAction {
-  continuity: string;
   beats: FashionMazePhotoBeat[];
   release: string;
   releaseHoldChunks: number;
 }
 
+export interface FashionMazeDoorChoice {
+  id: string;
+  label: string;
+}
+
+export interface FashionMazeDoorQuestion {
+  prompt: string;
+  choices: [FashionMazeDoorChoice, FashionMazeDoorChoice];
+}
+
 export interface FashionMazeSceneTransition {
   targetSceneId: string;
   buttonLabel: string;
-  continuity?: string;
+  question: FashionMazeDoorQuestion;
   portal: {
     summon: string;
     enter: string;
@@ -120,34 +141,32 @@ export function resolvePhotoAction(
   const performerCount = maze.ensemble.count;
   if (performerCount === 0) {
     return {
-      continuity:
-        "Continue the exact current frame and environment. Hold all architecture, terrain, vegetation, lighting, reflections and props in their current world positions. The invisible observer-camera is the only camera; do not add a photographer, phone, camera, person, object, text, cut or zoom.",
       beats: [
         {
           mode: "photo-ready",
-          cue: "LOOK HERE",
-          holdChunks: 2,
+          cue: "FRAME",
+          holdChunks: 1,
           prompt:
-            "Prepare the current environment as a still photograph. Keep the observer-camera and the complete world steady with no new motion or composition change.",
+            "The current environment settles into a balanced still composition at the present viewpoint.",
         },
         {
           mode: "photo-pose",
           cue: "HOLD",
-          holdChunks: 3,
+          holdChunks: 1,
           prompt:
-            "Hold the finished environmental frame unchanged. Preserve the exact camera, geometry, lighting, depth and reflections.",
+            "The finished environmental composition holds steady with stable geometry, lighting, depth and reflections.",
         },
         {
           mode: "photo-shutter",
           cue: "SHUTTER",
-          holdChunks: 2,
+          holdChunks: 1,
           prompt:
-            "Capture one clean still frame of the same environment. Nothing enters, leaves, moves, transforms or changes depth while the observer-camera remains fixed.",
+            "The finished environmental composition remains motionless for this beat with stable light, depth and reflections.",
         },
       ],
       release:
-        "After one holding beat, continue the exact ambient environment from the same observer-camera position without introducing any new action.",
-      releaseHoldChunks: 2,
+        "Ambient environmental micro-motion resumes gently from the same settled composition.",
+      releaseHoldChunks: 1,
     };
   }
 
@@ -157,42 +176,46 @@ export function resolvePhotoAction(
       : `all ${performerCount} seed-visible performers`;
 
   return {
-    continuity:
-      `Exact current frame; ${performers} retain identities, costumes, props, roots, depth, spacing, supports and limb poses. Only eyes and heads may turn toward the invisible observer-camera; use a slight shoulder or upper-torso turn only when needed. Feet, legs, hips, balance and hands stay fixed. No new person or object, step, gesture, cut, zoom, swap or duplicate.`,
     beats: [
       {
         mode: "photo-ready",
         cue: "LOOK HERE",
-        holdChunks: 2,
+        holdChunks: 1,
         prompt:
-          `${performers} look toward the observer-camera with a small eye-and-head turn. A backward-facing subject may turn shoulders slightly, but pelvis, feet, legs, balance, hands, roots and spacing stay fixed. Preserve the pose; then gaze-lock.`,
+          `${performers} turn eyes and heads toward the observer viewpoint; a backward-facing performer adds a slight shoulder turn. Established roots, supports, hands, limb poses and spacing remain fixed. Their gaze settles.`,
       },
       {
         mode: "photo-pose",
         cue: "HOLD",
-        holdChunks: 3,
+        holdChunks: 1,
         prompt:
-          `${performers} hold their established poses and lens-directed gaze. Keep bodies, support contacts, spacing, hands, costumes and props fixed; only an occasional blink may occur.`,
+          `${performers} hold their poses and observer-directed gaze. Support contacts, spacing, hands, costumes and seed-visible props stay steady; an occasional blink preserves a living portrait.`,
       },
       {
         mode: "photo-shutter",
         cue: "SHUTTER",
-        holdChunks: 2,
+        holdChunks: 1,
         prompt:
-          `Capture one clean still frame of ${performers} in the same composition. Keep the observer-camera and world steady; nobody enters, leaves, gestures, changes pose or changes depth.`,
+          `The finished portrait pose of ${performers} remains motionless for this beat with stable gaze, supports, costumes, depth and spacing.`,
       },
     ],
     release:
-      `${performers} keep the same marks, support contacts and limb poses. Gaze may relax once, then everyone resumes the scene's exact ambient hold with no new action.`,
-    releaseHoldChunks: 2,
+      `${performers} soften their gaze once and resume settled ambient behavior at their established marks, supports and limb poses.`,
+    releaseHoldChunks: 1,
   };
 }
 
+export const PORTAL_CHOREOGRAPHY = {
+  summonHoldChunks: 2,
+  approachHoldChunks: 3,
+  clientZoomMs: 2_600,
+} as const;
+
 const forwardBlackDoorPortal: FashionMazeSceneTransition["portal"] = {
   summon:
-    "One unmistakable human-scale black door-gate is now fully present far ahead on a clear straight sightline, about eight metres from the observer and precisely centred on the current camera-forward axis. Show its complete freestanding silhouette small but clear at the exact centre of the frame: two thick dark-metal jambs, one solid lintel, shallow footings, and a faint cool rim light tracing the outer edges. It is visually distinct from every existing arch or portal bay. Its open interior is perfectly matte black and reveals no destination. Hold the gate fixed there for two full beats while the observer camera remains perfectly still. All seed-visible performers remain rooted in their exact poses. No side-positioned gate, hidden gate, paper-thin frame, duplicate arch, camera turn, cut, zoom, text, or scene transformation.",
+    `The original scene keeps its settled arrangement while exactly one human-scale black door-gate stands medium-far on the camera-forward axis. Its complete silhouette occupies about one sixth of frame height: two thick dark-metal jambs, one solid lintel, shallow footings and a faint cool outer rim. Its matte-black interior conceals the destination. This fixed gate holds for ${PORTAL_CHOREOGRAPHY.summonHoldChunks} beats.`,
   enter:
-    "Continue the exact same world and one fixed black door-gate centred far ahead. Only the first-person observer camera walks forward very slowly and steadily along the camera-forward axis. Keep zero yaw, pitch, roll, strafe or sideways drift; the centred gate grows gradually across multiple chunks. Cross the threshold and continue until both jambs and lintel pass completely behind the observer, outside every image edge. Only then may the entire view become uniform light-absorbing black. All seed-visible performers stay rooted and never follow or change pose. Reveal no destination. No turn, cut, dissolve, teleport, speed jump, extra gate, text, or scene transformation before complete full-frame black.",
+    `The same single black gate stays anchored and grows gradually larger through forward parallax across ${PORTAL_CHOREOGRAPHY.approachHoldChunks} beats. Its matte-black interior conceals the destination while the original scene remains settled behind it.`,
 };
 
 const roseGardenEntrances: FashionMazeEntranceVariant[] = [
@@ -244,22 +267,12 @@ const authoredFashionMazes: FashionMaze[] = [
         "An invitation led you into a rose garden where five guests have arrived in full couture. Between blush paths and a flowering canopy, every encounter becomes another composition of beauty.",
     },
     basePrompt:
-      "First-person observer world continuing the selected rose-garden entrance. Preserve exactly five seed performers M01-M05: crowned gown woman, sari woman, tailored-suit man M03, lace-gown woman, prism-coat man. Keep seed faces, bodies, hair, proportions and white-cobalt couture; never add a sixth. Seed directions are garden marks, never screen targets. Preserve blush maze, flowers, pink wisteria and sunset. No arrivals, exits, duplicates, merging, identity or costume swaps, cuts or new text.",
+      "Exactly five fashion performers form a couture tableau: M01 the crowned-gown woman, M02 the sari woman, M03 the tailored-suit man, M04 the lace-gown woman and M05 the prism-coat man, each with the seed face, body, hair and white-cobalt look. They occupy a blush geometric rose maze beneath pink wisteria in golden sunset light. Photorealistic luxury fashion editorial with coherent anatomy and material detail.",
     defaultDestinationPrompt:
-      "The selected rose-garden tableau continues within the fixed blush maze and flowering canopy. No world transformation has been applied yet.",
+      "The selected rose-garden tableau occupies the blush maze beneath the flowering canopy in its settled golden-hour state.",
     promptLayers: {
-      camera: {
-        still:
-          "First-person observer camera remains still while input is idle and never moves autonomously. Camera input never makes a performer walk, turn, follow, or compensate.",
-        moving:
-          "First-person observer camera, still while input is idle and moving only while camera input is held. Camera motion never makes a performer walk, turn, or follow.",
-      },
-      movement: {
-        still:
-          "All five sustain the exact seed limb arrangement and settled balance. Every foot keeps its position, height, angle, and contact state. No foot lift, landing, tap, shuffle, weight transfer, knee pumping, step in place, pacing, or gait. Only rare blinks, faint breathing, tiny eye or chin changes, and fabric settling occur.",
-        moving:
-          "All five keep roots, limb poses, and every foot's position, height, angle, and contact state fixed. Screen changes come only from camera parallax, never gait, leg motion, or body compensation.",
-      },
+      movement:
+        "All five sustain the completed seed limb arrangements, world roots, settled balance and support contacts. Rare asynchronous blinks, faint breathing, tiny eye or chin changes and gentle fabric settling keep the tableau alive.",
     },
     ensemble: {
       count: 5,
@@ -295,12 +308,17 @@ const authoredFashionMazes: FashionMaze[] = [
             "brown-skinned bearded man; close dark hair; long white coat with cobalt panels and cyan-magenta piping; white trousers; blue shoes",
         },
       ],
-      ambient:
-        "Poised fashion-show finale tableau. All five sustain one pose; most frames stay unchanged. Rarely, one model may blink, breathe faintly, shift eyes, or angle chin a few degrees. Limb arrangement, foot contact, legs, hips, balance, and hands never change. No shuffle, weight transfer, step-in-place, pacing, gait, approach, tracking, waving, regrouping, or motion loop.",
     },
     sceneTransition: {
       targetSceneId: "cyberpunk-garden",
       buttonLabel: "ENTER THE BLACK DOOR",
+      question: {
+        prompt: "What should lead the rose garden into electric night?",
+        choices: [
+          { id: "living_silhouette", label: "A living silhouette" },
+          { id: "charged_atmosphere", label: "A charged atmosphere" },
+        ],
+      },
       portal: forwardBlackDoorPortal,
     },
     routes: [
@@ -376,7 +394,7 @@ const authoredFashionMazes: FashionMaze[] = [
     seedImage: "/dataset/cyberpunk-garden/scene2.png",
     seed: 260724,
     openingPrompt:
-      "Seed marks describe world positions only: C01 low far left; C02 leaning left-centre; C03 upright centre; C04 kneeling right-centre; C05 standing far right. Lock roots, depth, spacing, supported knees, feet, lower-body contacts and torso balance. Completed arm state: all hands rest at or below waist, elbows close to torso, shoulders relaxed; the helmet rests by thigh or lap. Hold unchanged.",
+      "Seed-space marks: C01 is low at far left; C02 leans left-centre with an arm extended diagonally; C03 stands centre with both arms raised; C04 kneels right-centre holding the helmet low; C05 stands far right with one arm extended. These are completed held silhouettes with their seed roots, depth, supports and spacing.",
     entranceVariants: [
       {
         id: "cyberpunk-scene-02",
@@ -384,7 +402,7 @@ const authoredFashionMazes: FashionMaze[] = [
         seedImage: "/dataset/cyberpunk-garden/scene2.png",
         seed: 260724,
         openingPrompt:
-          "Seed marks describe world positions only: C01 low far left; C02 leaning left-centre; C03 upright centre; C04 kneeling right-centre; C05 standing far right. Lock roots, depth, spacing, supported knees, feet, lower-body contacts and torso balance. Completed arm state: all hands rest at or below waist, elbows close to torso, shoulders relaxed; the helmet rests by thigh or lap. Hold unchanged.",
+          "Seed-space marks: C01 is low at far left; C02 leans left-centre with an arm extended diagonally; C03 stands centre with both arms raised; C04 kneels right-centre holding the helmet low; C05 stands far right with one arm extended. These are completed held silhouettes with their seed roots, depth, supports and spacing.",
       },
       {
         id: "cyberpunk-scene-03b",
@@ -392,7 +410,7 @@ const authoredFashionMazes: FashionMaze[] = [
         seedImage: "/dataset/cyberpunk-garden/scene3b.png",
         seed: 260725,
         openingPrompt:
-          "Seed marks describe world positions only: C01 far left; C02 left-centre; C03 centre; C04 behind right-centre; C05 kneeling front-right. Lock roots, depth, spacing, supported knees, feet, lower-body contacts and torso balance. Completed arm state: all hands rest at or below waist, elbows close to torso and shoulders relaxed. Hold unchanged.",
+          "Seed-space marks: C01 stands far left with one arm extended; C02 is left-centre with both arms raised near her headpiece; C03 holds the comparatively low-arm centre pose; C04 is behind right-centre with forearms behind his head; C05 kneels front-right with both arms overhead. These are completed held silhouettes with their seed roots, depth, supports and spacing.",
       },
       {
         id: "cyberpunk-scene-05",
@@ -400,7 +418,7 @@ const authoredFashionMazes: FashionMaze[] = [
         seedImage: "/dataset/cyberpunk-garden/scene5.png",
         seed: 260726,
         openingPrompt:
-          "Seed marks describe world positions only: C01 far left with the seed lower-leg lift; C02 left-centre; C03 in the completed back-arched torso balance at centre; C04 right-centre; C05 kneeling far right. Lock roots, depth, spacing, supported knees, lifted foot, lower-body contacts and torso balance. Completed arm state: all hands rest at or below waist, elbows close to torso, shoulders relaxed; the helmet rests by the thigh. Hold unchanged.",
+          "Seed-space marks: C01 is far left with one lower leg lifted and arms low; C02 is left-centre with both arms overhead at her headpiece; C03 holds a deep back arch at centre with arms hanging low; C04 is right-centre holding the helmet overhead; C05 kneels far right with one hand at his face. These are completed held silhouettes with their seed roots, depth, supports and spacing.",
       },
     ],
     entranceVariantId: "cyberpunk-scene-02",
@@ -412,22 +430,12 @@ const authoredFashionMazes: FashionMaze[] = [
         "Darkness opens onto an electric atrium where five black-clad figures hold a precise formation between magenta, blue and white portals.",
     },
     basePrompt:
-      "Photorealistic first-person continuation of the selected cyberpunk seed. Preserve exactly five performers C01-C05—the long-coat East Asian woman, red-haired headpiece woman, asymmetric-gown dark-haired woman, sculpted-armour Black man and sequined-top dark-haired man—with the same faces, bodies, hair, proportions and black couture. All sustain distinct quiet low-arm holds; no upper-limb choreography, imitation or synchronized gesture. Preserve the circuit atrium, cyan grid floor, overhead rails and fixed magenta, blue and white portal bays. No sixth person, removal, duplicate, merge, swap, arrival, exit, cut, new prop or text.",
+      "Exactly five performers occupy the circuit atrium: C01 the long-coat East Asian woman, C02 the red-haired headpiece woman, C03 the asymmetric-gown dark-haired woman, C04 the sculpted-armour Black man and C05 the sequined-top dark-haired man, each with the seed face, body, hair and black couture. The atrium contains one cyan circuit floor, overhead rails and three fixed magenta, blue and white portal bays. Photorealistic cinematic cyberpunk fashion editorial.",
     defaultDestinationPrompt:
-      "The settled seed atrium remains unchanged: reflective circuit floor, three portal bays, dark wall panels and overhead rails stay fixed; no new structure appears.",
+      "The reflective circuit floor, three portal bays, dark wall panels and overhead rails form the settled seed atrium.",
     promptLayers: {
-      camera: {
-        still:
-          "The observer camera stays still while input is idle, with no autonomous drift, pan or zoom. Camera input never makes a performer compensate or follow.",
-        moving:
-          "The observer camera moves only while input is held, with natural parallax and no autonomous turn or zoom. It never drives performer motion.",
-      },
-      movement: {
-        still:
-          "Lock all roots, depth, spacing, feet, knees and lower-body contacts. Hands remain at or below waist, elbows close, shoulders relaxed and any helmet low. Motion is limited to rare blinks, eye shifts and faint breathing; arms, hands and fingers stay still. No weight shift, foot exchange, pose completion, gesture cycle or loop.",
-        moving:
-          "Lock all roots, depth, spacing and lower-body support. Completed low-arm holds remain unchanged: hands at or below waist, elbows close, shoulders relaxed and any helmet low. Observer-camera parallax is the only screen change; nobody tracks, compensates, gestures or copies another pose.",
-      },
+      movement:
+        "Each performer sustains the completed pose shown in the selected seed, including every raised, extended, low or overhead arm arrangement, world root, support contact and prop position. Rare asynchronous blinks, tiny eye shifts and faint breathing keep the five silhouettes alive.",
     },
     ensemble: {
       count: 5,
@@ -463,14 +471,17 @@ const authoredFashionMazes: FashionMaze[] = [
             "light olive-skinned man; short dark hair; black sequined long-sleeve top and black trousers",
         },
       ],
-      ambient:
-        "Fixed cyberpunk fashion tableau. All five sustain distinct low-arm poses and support contacts: hands at or below waist, elbows close, shoulders relaxed, helmet by thigh or lap. Only asynchronous blinks, tiny eye shifts and faint breathing occur; arms, wrists, hands and fingers stay still. No raised-arm pose, reach, wave, flourish, shared gesture, pose completion, step, weight transfer, approach or camera tracking.",
     },
     sceneTransition: {
       targetSceneId: "chapter-03",
       buttonLabel: "ENTER THE NEXT BLACK DOOR",
-      continuity:
-        "C01-C05 keep the same identities, black couture, world roots, depth, spacing, feet, knees, support contacts and quiet low-arm holds. The circuit atrium and its existing coloured portal bays remain fixed. Nobody reacts, gestures, follows or changes pose.",
+      question: {
+        prompt: "When does an electric signal become a monument?",
+        choices: [
+          { id: "perfect_stillness", label: "In perfect stillness" },
+          { id: "unfolding_motion", label: "Through unfolding motion" },
+        ],
+      },
       portal: forwardBlackDoorPortal,
     },
     routes: [],
@@ -492,7 +503,7 @@ const asianSculptureGardenEntrances: FashionMazeEntranceVariant[] = [
     seedImage: "/dataset/asian-sculpture-garden/grand-finale.png",
     seed: 260727,
     openingPrompt:
-      "Six fixed seed marks: S01 seated far-left foreground in the folded headdress; S02 left-centre; S03 high at back-centre; S04 centre-right with one raised forearm; S05 right-centre in the white cape with forearms outward; S06 far right. Lock roots, depth, spacing, supports, feet, limb angles and hands. S04 and S05 arm positions are completed static silhouettes: never lift, lower, wave, repeat or trigger imitation.",
+      "Seed-space marks: S01 sits at the far-left foreground in the folded headdress; S02 is left-centre; S03 stands high at back-centre; S04 is centre-right with one raised forearm; S05 is right-centre in the white cape with forearms outward; S06 is far right. All six positions are completed held silhouettes with their seed roots, depth, supports and spacing.",
   },
 ];
 
@@ -516,22 +527,12 @@ const chapterThreeAsianSculptureGarden: FashionMaze = {
       "Six figures in silver and white hold a grand-finale composition among immense topiary columns, geometric hedges and misty garden pavilions.",
   },
   basePrompt:
-    "Photorealistic first-person Asian sculpture-garden grand finale. Preserve six S01-S06, their faces, bodies, hair, proportions and silver-white geometric couture: seated headdress woman, short-haired Black woman, tall dark-haired woman, silver-suit Black man, hooded cape-gown woman and bearded long-coat man. Preserve stone paths, geometric hedges, conical topiary, green lattice pavilions and misty daylight. No seventh person, removal, duplicate, merge, identity or costume swap, arrival, exit, cut, prop or text.",
+    "Exactly six performers form a silver-white couture finale: S01 the seated headdress woman, S02 the short-haired Black woman, S03 the tall dark-haired woman, S04 the silver-suit Black man, S05 the hooded cape-gown woman and S06 the bearded long-coat man, each with the seed face, body and hair. One central stone path crosses geometric hedges between conical topiary and green lattice pavilions in misty daylight. Photorealistic sculptural fashion editorial.",
   defaultDestinationPrompt:
-    "The settled sculpture garden remains unchanged: the central stone path, clipped hedge geometry, topiary columns and distant lattice pavilions stay fixed.",
+    "The central stone path, clipped hedge geometry, topiary columns and distant lattice pavilions form the settled sculpture garden.",
   promptLayers: {
-    camera: {
-      still:
-        "The observer camera stays still while input is idle, with no autonomous drift, pan or zoom. Camera input never makes a performer react or compensate.",
-      moving:
-        "The observer camera moves only while input is held, with natural parallax and no autonomous turn or zoom. It never drives performer motion.",
-    },
-    movement: {
-      still:
-        "All six lock exact roots, depth, spacing, supports, feet, limb angles and hands. The two seed-visible raised-arm silhouettes remain finished static poses, never gestures. Only rare blinks, tiny eye shifts and faint breathing occur; no step, weight transfer, pose cycle or imitation.",
-      moving:
-        "All six retain exact world roots, support contacts, limb poses and hand positions. Observer-camera parallax is the only screen change; nobody follows, turns, gestures, repeats an arm motion or copies another pose.",
-    },
+    movement:
+      "All six sustain the completed seed silhouettes, world roots, support contacts, limb angles and hand positions; the raised forearms belong to held poses. Rare independent blinks, tiny eye shifts, faint breathing and slight fabric settling keep the ensemble alive.",
   },
   ensemble: {
     count: 6,
@@ -573,66 +574,465 @@ const chapterThreeAsianSculptureGarden: FashionMaze = {
           "olive-skinned bearded man; short dark hair; structured ivory-silver long coat and trousers",
       },
     ],
-    ambient:
-      "Fixed six-person finale. Everyone sustains the seed silhouette and supports; S04 and S05 arm positions remain motionless, never waving, lowering, repeating or prompting imitation. Only rare independent blinks, tiny eye shifts and faint breathing occur. No step, weight transfer, approach, gesture loop or camera tracking.",
   },
   sceneTransition: {
     targetSceneId: "chapter-04",
     buttonLabel: "ENTER THE NEXT BLACK DOOR",
-    continuity:
-      "S01-S06 keep the same identities, silver-white couture, roots, depth, spacing, supports, feet and finished limb poses. The sculpture garden, topiary and pavilions remain fixed. Nobody gestures, follows or changes pose.",
+    question: {
+      prompt: "Where should the future find its shape?",
+      choices: [
+        { id: "inherited_forms", label: "Within inherited forms" },
+        { id: "radical_invention", label: "Through radical invention" },
+      ],
+    },
     portal: forwardBlackDoorPortal,
   },
   routes: [],
 };
 
-const chapterFourPlaceholder: FashionMaze = {
-  ...roseGardenChapterOne,
+const afroFuturismEntrances: FashionMazeEntranceVariant[] = [
+  {
+    id: "afro-prism-01",
+    label: "Cyber-Pink Platforms",
+    seedImage: "/dataset/afro-futurism/scene-01.png",
+    seed: 260728,
+    ensembleCount: 5,
+    openingPrompt:
+      "Seed-space marks: A01 crouches far left in teal on stacked cubes; A02 holds a completed walking silhouette high at rear-centre in coral; A03 leans front-centre in floral pink on the crystal cube; A04 reclines right-centre in plum metallic; A05 stands high at far right in the coral long coat. All five retain their seed roots, depth, supports and spacing.",
+  },
+  {
+    id: "afro-prism-02",
+    label: "Seven-figure Prism Court",
+    seedImage: "/dataset/afro-futurism/scene-02.png",
+    seed: 260729,
+    ensembleCount: 7,
+    openingPrompt:
+      "Seed-space marks: A01 crouches far left in plum; A02 stands left-centre in plum; A03 sits mid-left in floral pink; A04 leans high at centre in coral; A05 stands mid-right in teal with arms crossed; A06 kneels front-centre in coral; A07 holds a completed walking silhouette at far right in floral pink. All seven retain their seed roots, depth, supports and spacing.",
+  },
+  {
+    id: "afro-prism-03",
+    label: "Five-figure Voyage",
+    seedImage: "/dataset/afro-futurism/scene-03.png",
+    seed: 260730,
+    ensembleCount: 5,
+    openingPrompt:
+      "Seed-space marks: A01 stands far left in plum; A02 leans left-centre in floral pink; A03 kneels at centre in coral; A04 holds a backward lean at right-centre in teal; A05 stands far right in the coral long coat. All five positions are completed held silhouettes with their seed roots, depth, supports and spacing.",
+  },
+];
+
+const chapterFourAfroFuturism: FashionMaze = {
   id: "chapter-04",
   entrySelectable: false,
   edition: "CHAPTER 04",
-  title: "The Rose Garden Encore",
-  subtitle: "A familiar garden holds the place of the fourth world.",
-  location: "Rose garden encore / Temporary Chapter 04",
+  title: "The Afro-Futurist Prism",
+  subtitle: "Metallic travelers hold the cyber-pink voyage.",
+  location: "Afro-futurist prism maze / Cyber-pink voyage",
+  seedImage: afroFuturismEntrances[0].seedImage,
+  seed: afroFuturismEntrances[0].seed,
+  openingPrompt: afroFuturismEntrances[0].openingPrompt,
+  entranceVariants: afroFuturismEntrances,
+  entranceVariantId: afroFuturismEntrances[0].id,
+  accent: "#ff4fa7",
   entrance: {
     eyebrow: "BEYOND THE THIRD BLACK DOOR",
-    title: "The garden returns for an encore.",
+    title: "The voyage folds space into color.",
     body:
-      "This temporary fourth chapter reuses the first rose-garden image set while its own images are being prepared.",
+      "Metallic travelers hold impossible poses across mirrored cubes while a cyber-pink geometric corridor repeats toward infinity.",
   },
-  sceneTransition: undefined,
+  basePrompt:
+    "The seed-visible performers wear metallic coral, plum, floral-pink and teal tailored couture with boots and geometric head coverings, retaining their seed faces, bodies and hair. They occupy a cyber-pink prism maze with magenta-orange walls, transparent and metallic cubes, one reflective floor and seed-visible geometric signage. Photorealistic Afro-futurist fashion editorial with saturated neon light and precise material detail.",
+  defaultDestinationPrompt:
+    "The geometric corridor, mirrored platforms, luminous floor and repeating maze walls form the settled cyber-pink voyage.",
+  promptLayers: {
+    movement:
+      "Every seed-visible performer sustains the completed platform pose, world root, support contact, limb arrangement and hand position shown in the selected seed. Rare independent blinks, tiny eye shifts, faint breathing and metallic fabric settling keep the tableau alive.",
+  },
+  ensemble: {
+    count: 5,
+    members: [
+      {
+        id: "A01_PLUM_SENTINEL",
+        name: "Plum Sentinel",
+        identityPrompt:
+          "seed-visible performer in metallic plum tailored couture and geometric draped head covering",
+      },
+      {
+        id: "A02_FLORAL_VOYAGER",
+        name: "Floral Voyager",
+        identityPrompt:
+          "seed-visible performer in black-floral hot-pink tailored couture and matching head covering",
+      },
+      {
+        id: "A03_CORAL_NAVIGATOR",
+        name: "Coral Navigator",
+        identityPrompt:
+          "seed-visible performer in metallic coral tailored suit or long coat and matching head covering",
+      },
+      {
+        id: "A04_TEAL_CARTOGRAPHER",
+        name: "Teal Cartographer",
+        identityPrompt:
+          "dark-skinned seed-visible performer in metallic teal tailored couture and matching head covering",
+      },
+    ],
+  },
+  sceneTransition: {
+    targetSceneId: "chapter-05",
+    buttonLabel: "ENTER THE NEXT BLACK DOOR",
+    question: {
+      prompt: "Which thread continues through the next prism?",
+      choices: [
+        { id: "metallic_rhythm", label: "The metallic rhythm" },
+        { id: "changing_formation", label: "The changing formation" },
+      ],
+    },
+    portal: forwardBlackDoorPortal,
+  },
   routes: [],
 };
+
+interface ReplaceableSeedAsset {
+  id: string;
+  label: string;
+  seedImage: string;
+  seed: number;
+  ensembleCount: number;
+}
+
+interface ReplaceableChapterSpec {
+  id: string;
+  edition: string;
+  title: string;
+  subtitle: string;
+  location: string;
+  accent: string;
+  entrance: NarrativeBeat;
+  assets: ReplaceableSeedAsset[];
+  nextSceneId?: string;
+  doorQuestion?: FashionMazeDoorQuestion;
+}
+
+const replaceableSeedBasePrompt =
+  "Treat the selected seed image as the authoritative fashion world. Preserve all and only seed-visible people, their faces, bodies, hair, garments, accessories and props, together with seed-visible architecture, vegetation, installations, floor, lighting, palette and markings. Photorealistic fashion editorial with coherent anatomy, geometry and materials.";
+
+const replaceableSeedAnchorPrompt =
+  "The selected seed is the exact spatial anchor. Every seed-visible person and object keeps the seed-space world root, depth, scale, pose, support contact and spacing.";
+
+const replaceableSeedDestinationPrompt =
+  "The selected seed environment remains the settled world with its original depth, layout, lighting and materials.";
+
+const replaceableSeedMovementPrompt =
+  "Every seed-visible person retains the completed seed pose, world root, support contact, limb arrangement and spacing. Only rare asynchronous blinks, tiny eye shifts, faint breathing and fabric settling occur.";
+
+function createReplaceableChapter(
+  spec: ReplaceableChapterSpec,
+): FashionMaze {
+  const entranceVariants: FashionMazeEntranceVariant[] = spec.assets.map(
+    (asset) => ({
+      ...asset,
+      openingPrompt: replaceableSeedAnchorPrompt,
+    }),
+  );
+  const first = entranceVariants[0];
+  if (!first) {
+    throw new Error(`Scene "${spec.id}" requires at least one seed asset.`);
+  }
+  if (spec.nextSceneId && !spec.doorQuestion) {
+    throw new Error(
+      `Scene "${spec.id}" requires a unique door question before "${spec.nextSceneId}".`,
+    );
+  }
+
+  return {
+    id: spec.id,
+    entrySelectable: false,
+    edition: spec.edition,
+    title: spec.title,
+    subtitle: spec.subtitle,
+    location: spec.location,
+    seedImage: first.seedImage,
+    seed: first.seed,
+    openingPrompt: first.openingPrompt,
+    entranceVariants,
+    entranceVariantId: first.id,
+    accent: spec.accent,
+    entrance: spec.entrance,
+    basePrompt: replaceableSeedBasePrompt,
+    defaultDestinationPrompt: replaceableSeedDestinationPrompt,
+    promptLayers: { movement: replaceableSeedMovementPrompt },
+    ensemble: {
+      count: first.ensembleCount ?? 0,
+      members: [],
+    },
+    sceneTransition: spec.nextSceneId
+      ? {
+          targetSceneId: spec.nextSceneId,
+          buttonLabel: "ENTER THE NEXT BLACK DOOR",
+          question: spec.doorQuestion!,
+          portal: forwardBlackDoorPortal,
+        }
+      : undefined,
+    routes: [],
+  };
+}
+
+const chapterFiveAfroFuturism = createReplaceableChapter({
+  id: "chapter-05",
+  edition: "CHAPTER 05",
+  title: "The Afro-Futurist Continuum",
+  subtitle: "A second prism holds a new composition.",
+  location: "Afro-futurist prism / Seed-led continuation",
+  accent: "#ff6b9f",
+  entrance: {
+    eyebrow: "BEYOND THE FOURTH BLACK DOOR",
+    title: "The prism continues in another arrangement.",
+    body:
+      "A new seed-led composition carries the metallic ensemble through the same luminous visual language.",
+  },
+  assets: [
+    {
+      id: "chapter-05-scene-01",
+      label: "Scene 01",
+      seedImage: "/dataset/scenes/chapter-05/scene-01.png",
+      seed: 260731,
+      ensembleCount: 5,
+    },
+    {
+      id: "chapter-05-scene-02",
+      label: "Scene 02",
+      seedImage: "/dataset/scenes/chapter-05/scene-02.png",
+      seed: 260732,
+      ensembleCount: 7,
+    },
+    {
+      id: "chapter-05-scene-03",
+      label: "Scene 03",
+      seedImage: "/dataset/scenes/chapter-05/scene-03.png",
+      seed: 260733,
+      ensembleCount: 5,
+    },
+  ],
+  nextSceneId: "chapter-06",
+  doorQuestion: {
+    prompt: "What leads neon geometry back into the garden?",
+    choices: [
+      { id: "chromatic_pulse", label: "A chromatic pulse" },
+      { id: "sculpted_order", label: "A sculpted order" },
+    ],
+  },
+});
+
+const chapterSixAsianSculptureGarden = createReplaceableChapter({
+  id: "chapter-06",
+  edition: "CHAPTER 06",
+  title: "The Silver Topiary Gallery",
+  subtitle: "Silver silhouettes inhabit the clipped garden.",
+  location: "Asian sculpture garden / Seed-led gallery",
+  accent: "#b8d49a",
+  entrance: {
+    eyebrow: "BEYOND THE FIFTH BLACK DOOR",
+    title: "The path returns as a gallery.",
+    body:
+      "Silver figures hold distinct arrangements among topiary corridors, glass platforms and flowering thresholds.",
+  },
+  assets: [
+    {
+      id: "chapter-06-scene-01",
+      label: "Scene 01",
+      seedImage: "/dataset/scenes/chapter-06/scene-01.png",
+      seed: 260734,
+      ensembleCount: 6,
+    },
+    {
+      id: "chapter-06-scene-02",
+      label: "Scene 02",
+      seedImage: "/dataset/scenes/chapter-06/scene-02.png",
+      seed: 260735,
+      ensembleCount: 6,
+    },
+    {
+      id: "chapter-06-scene-03",
+      label: "Scene 03",
+      seedImage: "/dataset/scenes/chapter-06/scene-03.png",
+      seed: 260736,
+      ensembleCount: 5,
+    },
+    {
+      id: "chapter-06-scene-04",
+      label: "Scene 04",
+      seedImage: "/dataset/scenes/chapter-06/scene-04.png",
+      seed: 260737,
+      ensembleCount: 6,
+    },
+    {
+      id: "chapter-06-scene-05",
+      label: "Scene 05",
+      seedImage: "/dataset/scenes/chapter-06/scene-05.png",
+      seed: 260738,
+      ensembleCount: 6,
+    },
+    {
+      id: "chapter-06-scene-06",
+      label: "Scene 06",
+      seedImage: "/dataset/scenes/chapter-06/scene-06.png",
+      seed: 260739,
+      ensembleCount: 6,
+    },
+  ],
+  nextSceneId: "chapter-07",
+  doorQuestion: {
+    prompt: "What carries clipped nature into the forged finale?",
+    choices: [
+      { id: "organic_balance", label: "Organic balance" },
+      { id: "industrial_force", label: "Industrial force" },
+    ],
+  },
+});
+
+const chapterSevenAsianFusion = createReplaceableChapter({
+  id: "chapter-07",
+  edition: "CHAPTER 07",
+  title: "The Copper Ring Foundry",
+  subtitle: "Copper couture holds the industrial circles.",
+  location: "Asian-fusion foundry / Seed-led finale",
+  accent: "#ee7935",
+  entrance: {
+    eyebrow: "BEYOND THE SIXTH BLACK DOOR",
+    title: "The final frame is forged in rings.",
+    body:
+      "Copper-orange performers occupy monumental circles inside an industrial fashion installation.",
+  },
+  assets: [
+    {
+      id: "chapter-07-scene-01",
+      label: "Scene 01",
+      seedImage: "/dataset/scenes/chapter-07/scene-01.png",
+      seed: 260740,
+      ensembleCount: 6,
+    },
+    {
+      id: "chapter-07-scene-02",
+      label: "Scene 02",
+      seedImage: "/dataset/scenes/chapter-07/scene-02.png",
+      seed: 260741,
+      ensembleCount: 6,
+    },
+    {
+      id: "chapter-07-scene-03",
+      label: "Scene 03",
+      seedImage: "/dataset/scenes/chapter-07/scene-03.png",
+      seed: 260742,
+      ensembleCount: 5,
+    },
+    {
+      id: "chapter-07-scene-04",
+      label: "Scene 04",
+      seedImage: "/dataset/scenes/chapter-07/scene-04.png",
+      seed: 260743,
+      ensembleCount: 5,
+    },
+    {
+      id: "chapter-07-scene-05",
+      label: "Scene 05",
+      seedImage: "/dataset/scenes/chapter-07/scene-05.png",
+      seed: 260744,
+      ensembleCount: 6,
+    },
+  ],
+});
 
 export const fashionMazes: FashionMaze[] = [
   ...authoredFashionMazes,
   chapterThreeAsianSculptureGarden,
-  chapterFourPlaceholder,
+  chapterFourAfroFuturism,
+  chapterFiveAfroFuturism,
+  chapterSixAsianSculptureGarden,
+  chapterSevenAsianFusion,
 ];
 
-const stillWorldContract =
-  "With movement input idle, the observer camera and all scene geometry have zero spatial translation. Reflections are optical only. Keep coherent gravity and one unbroken world.";
+export const FASHION_MAZE_PROMPT_BUDGET = {
+  hard: 2_000,
+  target: 1_800,
+  base: 600,
+  camera: 300,
+  movement: 350,
+  event: 500,
+} as const;
 
-const movingWorldContract =
-  "Controls move only the invisible observer camera. All scene geometry stays independently anchored; camera motion never drives subject or environmental motion. Reflections are optical. Keep coherent gravity and one continuous world.";
+const seedSpaceContract =
+  "Seed directions are fixed world-space marks from the starting image; observer movement changes only their screen projection.";
 
-const actionWorldContract =
-  "Reflections are optical only, never extra people. Keep coherent gravity, physical continuity, and one unbroken world.";
+const interactiveCameraContract =
+  "Strict first-person observer view, stationary while movement input is idle and moving only while held input is active. Look input changes only observer heading; natural parallax reveals a visible world anchored in world space.";
 
-export function composeWorldPrompt(
+const lockedCameraContract =
+  "Strict first-person observer view locked at the current viewpoint with zero translation, rotation, cut or zoom.";
+
+const forwardCameraContract =
+  "Strict first-person observer view moving steadily forward only while held forward input is active. The heading stays centred on the gate with zero yaw, pitch, roll, strafe or sideways drift.";
+
+const physicalContinuityContract =
+  "Gravity, geometry, identities and materials stay coherent in one continuous world; reflections remain optical on visible surfaces.";
+
+const emptyPhysicalContinuityContract =
+  "Gravity, geometry and materials stay coherent in one continuous world; reflections remain optical on visible surfaces.";
+
+const photoMovementContract =
+  "The seed-visible ensemble retains established roots, supports, limb poses and spacing while the current photo direction controls gaze.";
+
+const portalMovementContract =
+  "The seed-visible ensemble keeps its completed pose, world roots, supports and spacing.";
+
+const emptyPhotoMovementContract =
+  "The seed-visible environment retains its established geometry, depth and materials throughout the photo beat.";
+
+const emptyPortalMovementContract =
+  "The seed-visible environment keeps its established geometry, depth and materials.";
+
+function continuityContractFor(maze: FashionMaze): string {
+  return maze.ensemble.count === 0
+    ? emptyPhysicalContinuityContract
+    : physicalContinuityContract;
+}
+
+export interface FashionMazePromptOptions {
+  isRouteTransition?: boolean;
+  actionMode?: FashionMazeActionMode;
+}
+
+function segment(
+  kind: FashionMazePromptSegmentKind,
+  id: string,
+  label: string,
+  text: string,
+): FashionMazePromptSegment {
+  return { kind, id, label, text: text.trim() };
+}
+
+export function joinFashionMazePromptSegments(
+  segments: FashionMazePromptSegment[],
+): string {
+  return segments
+    .map((item) => item.text.trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+export function composeWorldPromptSegments(
   maze: FashionMaze,
   route?: MazeRoute,
-  options: {
-    isMoving?: boolean;
-    isRouteTransition?: boolean;
-    actionMode?: FashionMazeActionMode;
-    includeOpeningAnchor?: boolean;
-  } = {},
-): string {
-  const isMoving = options.isMoving ?? false;
+  options: FashionMazePromptOptions = {},
+): FashionMazePromptSegment[] {
   const isRouteTransition = options.isRouteTransition ?? false;
   const actionMode = options.actionMode ?? "ambient";
-  const includeOpeningAnchor = options.includeOpeningAnchor ?? false;
+  if (isRouteTransition && !route) {
+    throw new Error("A route transition prompt requires an explicit route.");
+  }
+  if (isRouteTransition && actionMode !== "ambient") {
+    throw new Error(
+      `Route transition and ${actionMode} are mutually exclusive prompt events.`,
+    );
+  }
   const destination = route
     ? route.promptDelta[isRouteTransition ? "transition" : "settled"]
     : maze.defaultDestinationPrompt;
@@ -640,36 +1040,168 @@ export function composeWorldPrompt(
   const photoBeat = photoAction.beats.find(
     (beat) => beat.mode === actionMode,
   );
-  const actionBehavior =
-    actionMode === "photo-release"
-      ? `${photoAction.release} ${photoAction.continuity}`
-      : photoBeat
-        ? `${photoBeat.prompt} ${photoAction.continuity}`
-        : maze.ensemble.ambient;
-  const cameraAndMovement =
+  const camera =
     actionMode === "ambient"
-      ? [
-          maze.promptLayers.camera[isMoving ? "moving" : "still"],
-          maze.promptLayers.movement[isMoving ? "moving" : "still"],
-        ]
-      : [];
-  const worldContract =
+      ? segment(
+          "camera",
+          "camera:interactive",
+          "camera · interactive",
+          interactiveCameraContract,
+        )
+      : segment(
+          "camera",
+          "camera:locked",
+          "camera · locked",
+          lockedCameraContract,
+        );
+  const destinationKind =
+    route && isRouteTransition ? "event" : "destination";
+  const movement =
     actionMode === "ambient"
-      ? isMoving
-        ? movingWorldContract
-        : stillWorldContract
-      : actionWorldContract;
+      ? {
+          id: `movement:${maze.id}`,
+          label: "movement · settled",
+          text: maze.promptLayers.movement,
+        }
+      : {
+          id: "movement:photo",
+          label: "movement · photo",
+          text:
+            maze.ensemble.count === 0
+              ? emptyPhotoMovementContract
+              : photoMovementContract,
+        };
+  const segments = [
+    segment("base", `base:${maze.id}`, "base · world", maze.basePrompt),
+    segment(
+      "anchor",
+      `anchor:${maze.entranceVariantId ?? "default"}`,
+      "anchor · seed",
+      maze.openingPrompt,
+    ),
+    segment(
+      "anchor",
+      "anchor:world-space",
+      "anchor · coordinates",
+      seedSpaceContract,
+    ),
+    camera,
+    segment(
+      "movement",
+      movement.id,
+      movement.label,
+      movement.text,
+    ),
+    segment(
+      destinationKind,
+      route
+        ? `route:${route.id}:${isRouteTransition ? "transition" : "settled"}`
+        : `destination:${maze.id}`,
+      route
+        ? `route · ${route.id} · ${isRouteTransition ? "transition" : "settled"}`
+        : "destination · settled",
+      destination,
+    ),
+  ];
+
+  if (photoBeat) {
+    segments.push(
+      segment(
+        "event",
+        `photo:${photoBeat.mode}`,
+        `event · ${photoBeat.mode}`,
+        photoBeat.prompt,
+      ),
+    );
+  } else if (actionMode === "photo-release") {
+    segments.push(
+      segment(
+        "event",
+        "photo:release",
+        "event · photo-release",
+        photoAction.release,
+      ),
+    );
+  }
+
+  segments.push(
+    segment(
+      "continuity",
+      "continuity:physical",
+      "continuity · physical",
+      continuityContractFor(maze),
+    ),
+  );
+  return segments.filter((item) => item.text.length > 0);
+}
+
+export function composeWorldPrompt(
+  maze: FashionMaze,
+  route?: MazeRoute,
+  options: FashionMazePromptOptions = {},
+): string {
+  return joinFashionMazePromptSegments(
+    composeWorldPromptSegments(maze, route, options),
+  );
+}
+
+export function composePortalPromptSegments(
+  maze: FashionMaze,
+  route: MazeRoute | undefined,
+  stage: "summon" | "enter",
+): FashionMazePromptSegment[] {
+  const transition = maze.sceneTransition;
+  if (!transition) {
+    throw new Error(`Scene "${maze.id}" does not define a portal transition.`);
+  }
 
   return [
-    maze.basePrompt,
-    includeOpeningAnchor ? maze.openingPrompt : "",
-    ...cameraAndMovement,
-    destination,
-    actionBehavior,
-    worldContract,
-  ]
-    .filter(Boolean)
-    .join(" ");
+    segment("base", `base:${maze.id}`, "base · world", maze.basePrompt),
+    segment(
+      "anchor",
+      `anchor:${maze.entranceVariantId ?? "default"}`,
+      "anchor · seed",
+      maze.openingPrompt,
+    ),
+    segment(
+      "anchor",
+      "anchor:world-space",
+      "anchor · coordinates",
+      seedSpaceContract,
+    ),
+    segment(
+      "camera",
+      stage === "enter" ? "camera:forward" : "camera:locked",
+      `camera · ${stage === "enter" ? "forward" : "locked"}`,
+      stage === "enter" ? forwardCameraContract : lockedCameraContract,
+    ),
+    segment(
+      "movement",
+      "movement:portal",
+      "movement · portal",
+      maze.ensemble.count === 0
+        ? emptyPortalMovementContract
+        : portalMovementContract,
+    ),
+    segment(
+      "destination",
+      route ? `route:${route.id}:settled` : `destination:${maze.id}`,
+      route ? `route · ${route.id} · settled` : "destination · settled",
+      route ? route.promptDelta.settled : maze.defaultDestinationPrompt,
+    ),
+    segment(
+      "event",
+      `portal:${stage}`,
+      `event · portal-${stage}`,
+      transition.portal[stage],
+    ),
+    segment(
+      "continuity",
+      "continuity:physical",
+      "continuity · physical",
+      continuityContractFor(maze),
+    ),
+  ].filter((item) => item.text.length > 0);
 }
 
 export function composePortalPrompt(
@@ -677,35 +1209,165 @@ export function composePortalPrompt(
   route: MazeRoute | undefined,
   stage: "summon" | "enter",
 ): string {
-  const transition = maze.sceneTransition;
-  if (!transition) return composeWorldPrompt(maze, route, {
-    isMoving: stage === "enter",
-    includeOpeningAnchor: true,
-  });
+  return joinFashionMazePromptSegments(
+    composePortalPromptSegments(maze, route, stage),
+  );
+}
 
+export function explainFashionMazePrompt(
+  maze: FashionMaze,
+  prompt: string,
+): FashionMazePromptSegment[] {
+  const photoAction = resolvePhotoAction(maze);
+  const candidates: FashionMazePromptSegment[] = [
+    segment("base", `base:${maze.id}`, "base · world", maze.basePrompt),
+    segment(
+      "anchor",
+      `anchor:${maze.entranceVariantId ?? "default"}`,
+      "anchor · seed",
+      maze.openingPrompt,
+    ),
+    segment(
+      "anchor",
+      "anchor:world-space",
+      "anchor · coordinates",
+      seedSpaceContract,
+    ),
+    segment(
+      "camera",
+      "camera:interactive",
+      "camera · interactive",
+      interactiveCameraContract,
+    ),
+    segment(
+      "camera",
+      "camera:locked",
+      "camera · locked",
+      lockedCameraContract,
+    ),
+    segment(
+      "camera",
+      "camera:forward",
+      "camera · forward",
+      forwardCameraContract,
+    ),
+    segment(
+      "movement",
+      `movement:${maze.id}`,
+      "movement · settled",
+      maze.promptLayers.movement,
+    ),
+    segment(
+      "movement",
+      "movement:photo",
+      "movement · photo",
+      maze.ensemble.count === 0
+        ? emptyPhotoMovementContract
+        : photoMovementContract,
+    ),
+    segment(
+      "movement",
+      "movement:portal",
+      "movement · portal",
+      maze.ensemble.count === 0
+        ? emptyPortalMovementContract
+        : portalMovementContract,
+    ),
+    segment(
+      "destination",
+      `destination:${maze.id}`,
+      "destination · settled",
+      maze.defaultDestinationPrompt,
+    ),
+    ...maze.routes.flatMap((route) => [
+      segment(
+        "event",
+        `route:${route.id}:transition`,
+        `route · ${route.id} · transition`,
+        route.promptDelta.transition,
+      ),
+      segment(
+        "destination",
+        `route:${route.id}:settled`,
+        `route · ${route.id} · settled`,
+        route.promptDelta.settled,
+      ),
+    ]),
+    ...photoAction.beats.map((beat) =>
+      segment(
+        "event",
+        `photo:${beat.mode}`,
+        `event · ${beat.mode}`,
+        beat.prompt,
+      ),
+    ),
+    segment(
+      "event",
+      "photo:release",
+      "event · photo-release",
+      photoAction.release,
+    ),
+    ...(maze.sceneTransition
+      ? (["summon", "enter"] as const).map((stage) =>
+          segment(
+            "event",
+            `portal:${stage}`,
+            `event · portal-${stage}`,
+            maze.sceneTransition!.portal[stage],
+          ),
+        )
+      : []),
+    segment(
+      "continuity",
+      "continuity:physical",
+      "continuity · physical",
+      continuityContractFor(maze),
+    ),
+  ];
+  const unique = Array.from(
+    new Map(candidates.map((item) => [item.text, item])).values(),
+  );
+  const matched = unique
+    .map((item) => ({ item, index: prompt.indexOf(item.text) }))
+    .filter((entry) => entry.index >= 0)
+    .sort((left, right) => left.index - right.index)
+    .map((entry) => entry.item);
+
+  if (joinFashionMazePromptSegments(matched) === prompt.trim()) return matched;
   return [
-    maze.basePrompt,
-    transition.continuity ?? maze.openingPrompt,
-    route ? route.promptDelta.settled : "",
-    transition.portal[stage],
-    stage === "enter" ? movingWorldContract : stillWorldContract,
-  ]
-    .filter(Boolean)
-    .join(" ");
+    segment(
+      "event",
+      "prompt:unclassified",
+      "active prompt · unclassified",
+      prompt,
+    ),
+  ];
 }
 
 export function findMaze(id: string): FashionMaze {
-  return fashionMazes.find((maze) => maze.id === id) ?? fashionMazes[0];
+  const maze = fashionMazes.find((candidate) => candidate.id === id);
+  if (!maze) throw new Error(`Unknown Fashion Maze scene "${id}".`);
+  return maze;
 }
 
 export function resolveMazeEntrance(
   maze: FashionMaze,
   entranceVariantId: string,
 ): FashionMaze {
-  const variant =
-    maze.entranceVariants.find((candidate) => candidate.id === entranceVariantId) ??
-    maze.entranceVariants[0];
-  if (!variant) return maze;
+  const fallback = maze.entranceVariants[0];
+  if (!fallback) {
+    throw new Error(`Scene "${maze.id}" has no entrance variant.`);
+  }
+  const variant = entranceVariantId
+    ? maze.entranceVariants.find(
+        (candidate) => candidate.id === entranceVariantId,
+      )
+    : fallback;
+  if (!variant) {
+    throw new Error(
+      `Unknown entrance variant "${entranceVariantId}" for scene "${maze.id}".`,
+    );
+  }
 
   return {
     ...maze,
@@ -713,5 +1375,9 @@ export function resolveMazeEntrance(
     seed: variant.seed,
     openingPrompt: variant.openingPrompt,
     entranceVariantId: variant.id,
+    ensemble:
+      variant.ensembleCount === undefined
+        ? maze.ensemble
+        : { ...maze.ensemble, count: variant.ensembleCount },
   };
 }
