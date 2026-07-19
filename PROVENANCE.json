@@ -41,8 +41,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "8944f96f5d44cc7a06527b2e504f375fde4473709920f9a491f2b99e1dcc565c",
-      "bytes": 22332,
+      "sha256": "5cc73769893bef75d3dc9708ed3adab3b803c352efeab8bddfec6b208dbc9733",
+      "bytes": 22244,
       "contentClass": "project-documentation",
       "signaturePolicy": "manifest-only"
     },
@@ -181,8 +181,8 @@
     },
     {
       "path": "lib/fashion-maze.ts",
-      "sha256": "6b27ad5178f6b0f62f52696d061b12de5cc167f136855f576aba39f31e67ad11",
-      "bytes": 45613,
+      "sha256": "7eb91e7eb390971fb52991cd41e6af09e47a8d810970abab8dbcdcc1368d48ff",
+      "bytes": 36453,
       "contentClass": "project-source",
       "signaturePolicy": "header-and-manifest"
     },
@@ -195,8 +195,8 @@
     },
     {
       "path": "lib/grand-palais.ts",
-      "sha256": "9d01ab8f6c7edd8a059b17ad6fc22c36120baae5e7484e69bc9f77a47a27d40d",
-      "bytes": 4606,
+      "sha256": "b13cc6d2956d018079c91802f712f72dec8b007c4f0eee8f462ceb681008ecaa",
+      "bytes": 3370,
       "contentClass": "project-source",
       "signaturePolicy": "header-and-manifest"
     },
@@ -682,8 +682,8 @@
     },
     {
       "path": "tools/verify-prompts.cjs",
-      "sha256": "8123957f19f4635e4ed1b46a54c4bfc1216a96ee39ce919825e9d6c67ab0650c",
-      "bytes": 24055,
+      "sha256": "6ce152b2d60f9ee1e829e2b5953eb48fc3033aeed06fbc8e8f671dec045ce2ae",
+      "bytes": 30599,
       "contentClass": "project-source",
       "signaturePolicy": "header-and-manifest"
     },

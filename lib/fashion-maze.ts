@@ -121,6 +121,18 @@ export interface FashionMaze {
   routes: MazeRoute[];
 }
 
+export const SEED_WORLD_BASE_PROMPT =
+  "The seed is visual truth. Preserve every seed-visible identity, face, body, hair, garment, accessory and prop, plus its environment, materials and lighting.";
+
+export const SEED_WORLD_ANCHOR_PROMPT =
+  "Keep seed-visible subjects and objects at their shown world root, depth, scale, pose, support, limb arrangement and spacing.";
+
+export const SEED_WORLD_DESTINATION_PROMPT =
+  "Keep the seed world unchanged.";
+
+export const SEED_WORLD_MOVEMENT_PROMPT =
+  "Allow only rare blinks, faint breathing, fabric settling and event-light variation.";
+
 /**
  * Every chapter can take a photo without authoring scene-specific choreography.
  * A chapter may still override this when its subjects need unusual direction.
@@ -162,13 +174,6 @@ export function resolvePhotoAction(
     };
   }
 
-  const performers =
-    performerCount === "all"
-      ? "all seed-visible performers"
-      : performerCount === 1
-      ? "the one seed-visible performer"
-      : `all ${performerCount} seed-visible performers`;
-
   return {
     beats: [
       {
@@ -176,25 +181,25 @@ export function resolvePhotoAction(
         cue: "LOOK HERE",
         holdChunks: 2,
         prompt:
-          `${performers} make the smallest head-and-neck turn needed for every face and both open eyes to look directly into the camera lens at the current first-person viewpoint. Only a backward-facing performer adds a slight upper-shoulder turn. Roots, supports, hands, limbs, props and spacing stay fixed. The portrait settles.`,
+          "Have all seed-visible performers turn face and head only as needed, with open eyes looking directly into the camera lens at the current first-person viewpoint. A backward-facing performer may add a slight upper-shoulder turn. Keep roots, supports, limbs, props and spacing unchanged.",
       },
       {
         mode: "photo-pose",
         cue: "HOLD",
         holdChunks: 3,
         prompt:
-          `${performers} hold every face visible and front-facing to the camera lens at the current first-person viewpoint, with open eyes looking directly into the lens. Head, neck and upper shoulders stay steady; roots, supports, hands, limbs, props, costumes and spacing stay fixed.`,
+          "Keep all seed-visible performers in a camera-facing portrait, with open eyes looking directly into the camera lens at the current first-person viewpoint. Keep body pose, position, clothing and props unchanged.",
       },
       {
         mode: "photo-shutter",
         cue: "SHUTTER",
         holdChunks: 2,
         prompt:
-          `${performers} remain in one motionless portrait: every face is visible and front-facing to the camera lens at the current first-person viewpoint, with open eyes looking directly into the lens. Head and shoulder orientation, roots, supports, hands, limbs, props, costumes, depth and spacing stay stable.`,
+          "Keep all seed-visible performers still in a camera-facing portrait, with open eyes looking directly into the camera lens at the current first-person viewpoint. Keep body pose, position, clothing and props unchanged.",
       },
     ],
     release:
-      `${performers} soften their gaze once and resume settled ambient behavior at their established marks, supports and limb poses.`,
+      "Seed-visible performers relax their gaze and resume subtle natural motion without changing pose or position.",
     releaseHoldChunks: 1,
   };
 }
@@ -207,9 +212,9 @@ export const PORTAL_CHOREOGRAPHY = {
 
 const forwardBlackDoorPortal: FashionMazeSceneTransition["portal"] = {
   summon:
-    `One existing arch or doorway medium-far ahead is becoming the scene's single ornamental matte-black door in place, keeping its silhouette, supports and local detail while the opening deepens to lightless black; if none exists, one integrated frame is extending from nearby architecture, never freestanding, and the door is holding near centre at one sixth of frame height for ${PORTAL_CHOREOGRAPHY.summonHoldChunks} beats.`,
+    "An existing arch or doorway medium-far ahead is becoming a richly ornamental scene-native frame at an approachable scale, with elaborate carving around a threshold into pure darkness; it keeps its roots and supports, or is forming within nearby architecture if none exists, never freestanding.",
   enter:
-    `The same ornamental matte-black doorway is holding its anchored place in existing architecture, its scene-native frame and supports staying coherent while the lightless interior conceals the destination.`,
+    "The same richly ornamental frame stays fixed in the architecture; beyond its threshold is only uniform, featureless pure darkness with no visible light, image, detail or destination.",
 };
 
 /**
@@ -276,24 +281,21 @@ const roseGardenEntrances: FashionMazeEntranceVariant[] = [
     label: "Finale Portrait",
     seedImage: "/dataset/rose-garden/entrance-01.webp",
     seed: 260721,
-    openingPrompt:
-      "Seed marks: M01 elevated centre, M02 left, M03 seated right-centre, M04 far right, M05 front-centre among blush blocks. Preserve every seed limb arrangement; each foot keeps its seed-space position, height, angle, and contact state.",
+    openingPrompt: SEED_WORLD_ANCHOR_PROMPT,
   },
   {
     id: "rose-tableau-02",
     label: "Garden Procession",
     seedImage: "/dataset/rose-garden/entrance-02.webp",
     seed: 260722,
-    openingPrompt:
-      "Seed marks: M01 high left, M02 left-centre, M03 in a static open-leg pose at centre, M04 leaning right-centre, M05 leaning far right. Preserve every seed limb arrangement; each foot keeps its seed-space position, height, angle, and contact state.",
+    openingPrompt: SEED_WORLD_ANCHOR_PROMPT,
   },
   {
     id: "rose-tableau-03",
     label: "Relaxed Montage",
     seedImage: "/dataset/rose-garden/entrance-03.webp",
     seed: 260723,
-    openingPrompt:
-      "Seed marks: M01 reclining far left, M02 left-centre, M03 leaning at centre, M04 turned away right-centre, M05 low far right. Preserve every seed limb arrangement; each foot keeps its seed-space position, height, angle, and contact state.",
+    openingPrompt: SEED_WORLD_ANCHOR_PROMPT,
   },
 ];
 
@@ -317,13 +319,10 @@ const authoredFashionMazes: FashionMaze[] = [
       body:
         "An invitation led you into a rose garden where five guests have arrived in full couture. Between blush paths and a flowering canopy, every encounter becomes another composition of beauty.",
     },
-    basePrompt:
-      "Exactly five fashion performers form a couture tableau: M01 the crowned-gown woman, M02 the sari woman, M03 the tailored-suit man, M04 the lace-gown woman and M05 the prism-coat man, each with the seed face, body, hair and white-cobalt look. They occupy a blush geometric rose maze beneath pink wisteria in golden sunset light. Photorealistic luxury fashion editorial with coherent anatomy and material detail.",
-    defaultDestinationPrompt:
-      "The selected rose-garden tableau occupies the blush maze beneath the flowering canopy in its settled golden-hour state.",
+    basePrompt: SEED_WORLD_BASE_PROMPT,
+    defaultDestinationPrompt: SEED_WORLD_DESTINATION_PROMPT,
     promptLayers: {
-      movement:
-        "All five sustain the completed seed limb arrangements, world roots, settled balance and support contacts. Rare asynchronous blinks, faint breathing, tiny eye or chin changes and gentle fabric settling keep the tableau alive.",
+      movement: SEED_WORLD_MOVEMENT_PROMPT,
     },
     ensemble: { count: 5 },
     sceneTransition: {
@@ -346,9 +345,9 @@ const authoredFashionMazes: FashionMaze[] = [
         },
         promptDelta: {
           transition:
-            "For this one forward approach, the rose garden ahead changes once into a neon mirror conservatory. Violet-magenta lights and flush mirror panels resolve within existing blush maze walls; one warm-yellow ring appears above the open path. Flowers, all five people, and path geometry remain continuous.",
+            "Ahead, existing garden surfaces shift to violet light and mirror panels. Keep seed-visible people, flowers and paths unchanged.",
           settled:
-            "Ahead is the settled neon mirror conservatory in the same rose garden: fixed violet-magenta light columns, flush mirror panels in the blush maze walls, and one warm-yellow ring above the open path. Flowers, all five people, and path geometry remain fixed.",
+            "Ahead is the settled neon garden with violet light and mirror panels. Keep seed-visible people, flowers and paths unchanged.",
         },
       },
       {
@@ -366,9 +365,9 @@ const authoredFashionMazes: FashionMaze[] = [
         },
         promptDelta: {
           transition:
-            "For this one forward approach, the garden ahead reveals its living couture runway. Geometric seams resolve across the blush maze walls and one shallow mirror-water circle appears between fixed paths. Golden light, wisteria, all five people, and the existing garden remain continuous.",
+            "Ahead, leaf seams and a shallow mirror pool form within existing garden surfaces. Keep seed-visible people, flowers and paths unchanged.",
           settled:
-            "Ahead is the settled living couture runway: fixed blush maze walls with geometric leaf seams and one shallow mirror-water circle between existing paths. Golden light and wisteria reveal every white-and-cobalt look.",
+            "Ahead is the settled garden runway with leaf seams and a shallow mirror pool. Keep seed-visible people, flowers and paths unchanged.",
         },
       },
       {
@@ -386,9 +385,9 @@ const authoredFashionMazes: FashionMaze[] = [
         },
         promptDelta: {
           transition:
-            "For this one forward approach, the garden ahead changes once into its golden-circuit state. Amber-lit low steps and two teal-gold inlays resolve within existing blush blocks. Warm light strengthens without replacing flowers, all five people, paths, or architecture.",
+            "Ahead, low amber steps and teal-gold inlays form within existing garden surfaces. Keep seed-visible people, flowers and paths unchanged.",
           settled:
-            "Ahead is the settled golden-circuit garden: one wide low amber-lit staircase between existing blush maze walls, plus two teal-gold inlays fixed in the blocks. Warm light reflects across the pale path without replacing flowers or greenery.",
+            "Ahead is the settled golden-circuit garden with low amber steps and teal-gold inlays. Keep seed-visible people, flowers and paths unchanged.",
         },
       },
     ],
@@ -402,32 +401,28 @@ const authoredFashionMazes: FashionMaze[] = [
     location: "Cyberpunk garden / Portal atrium / Electric midnight",
     seedImage: "/dataset/cyberpunk-garden/scene2.webp",
     seed: 260724,
-    openingPrompt:
-      "Seed-space marks: C01 is low at far left; C02 leans left-centre with an arm extended diagonally; C03 stands centre with both arms raised; C04 kneels right-centre holding the helmet low; C05 stands far right with one arm extended. These are completed held silhouettes with their seed roots, depth, supports and spacing.",
+    openingPrompt: SEED_WORLD_ANCHOR_PROMPT,
     entranceVariants: [
       {
         id: "cyberpunk-scene-02",
         label: "Portal Formation",
         seedImage: "/dataset/cyberpunk-garden/scene2.webp",
         seed: 260724,
-        openingPrompt:
-          "Seed-space marks: C01 is low at far left; C02 leans left-centre with an arm extended diagonally; C03 stands centre with both arms raised; C04 kneels right-centre holding the helmet low; C05 stands far right with one arm extended. These are completed held silhouettes with their seed roots, depth, supports and spacing.",
+        openingPrompt: SEED_WORLD_ANCHOR_PROMPT,
       },
       {
         id: "cyberpunk-scene-03b",
         label: "Signal Chorus",
         seedImage: "/dataset/cyberpunk-garden/scene3b.webp",
         seed: 260725,
-        openingPrompt:
-          "Seed-space marks: C01 stands far left with one arm extended; C02 is left-centre with both arms raised near her headpiece; C03 holds the comparatively low-arm centre pose; C04 is behind right-centre with forearms behind his head; C05 kneels front-right with both arms overhead. These are completed held silhouettes with their seed roots, depth, supports and spacing.",
+        openingPrompt: SEED_WORLD_ANCHOR_PROMPT,
       },
       {
         id: "cyberpunk-scene-05",
         label: "Electric Tableau",
         seedImage: "/dataset/cyberpunk-garden/scene5.webp",
         seed: 260726,
-        openingPrompt:
-          "Seed-space marks: C01 is far left with one lower leg lifted and arms low; C02 is left-centre with both arms overhead at her headpiece; C03 holds a deep back arch at centre with arms hanging low; C04 is right-centre holding the helmet overhead; C05 kneels far right with one hand at his face. These are completed held silhouettes with their seed roots, depth, supports and spacing.",
+        openingPrompt: SEED_WORLD_ANCHOR_PROMPT,
       },
     ],
     entranceVariantId: "cyberpunk-scene-02",
@@ -438,13 +433,10 @@ const authoredFashionMazes: FashionMaze[] = [
       body:
         "Darkness opens onto an electric atrium where five black-clad figures hold a precise formation between magenta, blue and white portals.",
     },
-    basePrompt:
-      "Exactly five performers occupy the circuit atrium: C01 the long-coat East Asian woman, C02 the red-haired headpiece woman, C03 the asymmetric-gown dark-haired woman, C04 the sculpted-armour Black man and C05 the sequined-top dark-haired man, each with the seed face, body, hair and black couture. The atrium contains one cyan circuit floor, overhead rails and three fixed magenta, blue and white portal bays. Photorealistic cinematic cyberpunk fashion editorial.",
-    defaultDestinationPrompt:
-      "The reflective circuit floor, three portal bays, dark wall panels and overhead rails form the settled seed atrium.",
+    basePrompt: SEED_WORLD_BASE_PROMPT,
+    defaultDestinationPrompt: SEED_WORLD_DESTINATION_PROMPT,
     promptLayers: {
-      movement:
-        "Each performer sustains the completed pose shown in the selected seed, including every raised, extended, low or overhead arm arrangement, world root, support contact and prop position. Rare asynchronous blinks, tiny eye shifts and faint breathing keep the five silhouettes alive.",
+      movement: SEED_WORLD_MOVEMENT_PROMPT,
     },
     ensemble: { count: 5 },
     sceneTransition: {
@@ -469,8 +461,7 @@ const asianSculptureGardenEntrances: FashionMazeEntranceVariant[] = [
     label: "Grand Finale",
     seedImage: "/dataset/asian-sculpture-garden/grand-finale.webp",
     seed: 260727,
-    openingPrompt:
-      "Seed-space marks: S01 sits at the far-left foreground in the folded headdress; S02 is left-centre; S03 stands high at back-centre; S04 is centre-right with one raised forearm; S05 is right-centre in the white cape with forearms outward; S06 is far right. All six positions are completed held silhouettes with their seed roots, depth, supports and spacing.",
+    openingPrompt: SEED_WORLD_ANCHOR_PROMPT,
   },
 ];
 
@@ -493,13 +484,10 @@ const chapterThreeAsianSculptureGarden: FashionMaze = {
     body:
       "Six figures in silver and white hold a grand-finale composition among immense topiary columns, geometric hedges and misty garden pavilions.",
   },
-  basePrompt:
-    "Exactly six performers form a silver-white couture finale: S01 the seated headdress woman, S02 the short-haired Black woman, S03 the tall dark-haired woman, S04 the silver-suit Black man, S05 the hooded cape-gown woman and S06 the bearded long-coat man, each with the seed face, body and hair. One central stone path crosses geometric hedges between conical topiary and green lattice pavilions in misty daylight. Photorealistic sculptural fashion editorial.",
-  defaultDestinationPrompt:
-    "The central stone path, clipped hedge geometry, topiary columns and distant lattice pavilions form the settled sculpture garden.",
+  basePrompt: SEED_WORLD_BASE_PROMPT,
+  defaultDestinationPrompt: SEED_WORLD_DESTINATION_PROMPT,
   promptLayers: {
-    movement:
-      "All six sustain the completed seed silhouettes, world roots, support contacts, limb angles and hand positions; the raised forearms belong to held poses. Rare independent blinks, tiny eye shifts, faint breathing and slight fabric settling keep the ensemble alive.",
+    movement: SEED_WORLD_MOVEMENT_PROMPT,
   },
   ensemble: { count: 6 },
   sceneTransition: {
@@ -516,8 +504,7 @@ const afroFuturismEntrances: FashionMazeEntranceVariant[] = [
     seedImage: "/dataset/afro-futurism/scene-01.webp",
     seed: 260728,
     ensembleCount: 5,
-    openingPrompt:
-      "Seed-space marks: A01 crouches far left in teal on stacked cubes; A02 holds a completed walking silhouette high at rear-centre in coral; A03 leans front-centre in floral pink on the crystal cube; A04 reclines right-centre in plum metallic; A05 stands high at far right in the coral long coat. All five retain their seed roots, depth, supports and spacing.",
+    openingPrompt: SEED_WORLD_ANCHOR_PROMPT,
   },
   {
     id: "afro-prism-02",
@@ -525,8 +512,7 @@ const afroFuturismEntrances: FashionMazeEntranceVariant[] = [
     seedImage: "/dataset/afro-futurism/scene-02.webp",
     seed: 260729,
     ensembleCount: 7,
-    openingPrompt:
-      "Seed-space marks: A01 crouches far left in plum; A02 stands left-centre in plum; A03 sits mid-left in floral pink; A04 leans high at centre in coral; A05 stands mid-right in teal with arms crossed; A06 kneels front-centre in coral; A07 holds a completed walking silhouette at far right in floral pink. All seven retain their seed roots, depth, supports and spacing.",
+    openingPrompt: SEED_WORLD_ANCHOR_PROMPT,
   },
   {
     id: "afro-prism-03",
@@ -534,8 +520,7 @@ const afroFuturismEntrances: FashionMazeEntranceVariant[] = [
     seedImage: "/dataset/afro-futurism/scene-03.webp",
     seed: 260730,
     ensembleCount: 5,
-    openingPrompt:
-      "Seed-space marks: A01 stands far left in plum; A02 leans left-centre in floral pink; A03 kneels at centre in coral; A04 holds a backward lean at right-centre in teal; A05 stands far right in the coral long coat. All five positions are completed held silhouettes with their seed roots, depth, supports and spacing.",
+    openingPrompt: SEED_WORLD_ANCHOR_PROMPT,
   },
 ];
 
@@ -558,13 +543,10 @@ const chapterFourAfroFuturism: FashionMaze = {
     body:
       "Metallic travelers hold impossible poses across mirrored cubes while a cyber-pink geometric corridor repeats toward infinity.",
   },
-  basePrompt:
-    "The seed-visible performers wear metallic coral, plum, floral-pink and teal tailored couture with boots and geometric head coverings, retaining their seed faces, bodies and hair. They occupy a cyber-pink prism maze with magenta-orange walls, transparent and metallic cubes, one reflective floor and seed-visible geometric signage. Photorealistic Afro-futurist fashion editorial with saturated neon light and precise material detail.",
-  defaultDestinationPrompt:
-    "The geometric corridor, mirrored platforms, luminous floor and repeating maze walls form the settled cyber-pink voyage.",
+  basePrompt: SEED_WORLD_BASE_PROMPT,
+  defaultDestinationPrompt: SEED_WORLD_DESTINATION_PROMPT,
   promptLayers: {
-    movement:
-      "Every seed-visible performer sustains the completed platform pose, world root, support contact, limb arrangement and hand position shown in the selected seed. Rare independent blinks, tiny eye shifts, faint breathing and metallic fabric settling keep the tableau alive.",
+    movement: SEED_WORLD_MOVEMENT_PROMPT,
   },
   ensemble: { count: 5 },
   sceneTransition: {
@@ -593,25 +575,13 @@ interface ReplaceableChapterSpec {
   assets: ReplaceableSeedAsset[];
 }
 
-const replaceableSeedBasePrompt =
-  "Treat the selected seed image as the authoritative fashion world. Preserve all and only seed-visible people, their faces, bodies, hair, garments, accessories and props, together with seed-visible architecture, vegetation, installations, floor, lighting, palette and markings. Photorealistic fashion editorial with coherent anatomy, geometry and materials.";
-
-const replaceableSeedAnchorPrompt =
-  "The selected seed is the exact spatial anchor. Every seed-visible person and object keeps the seed-space world root, depth, scale, pose, support contact and spacing.";
-
-const replaceableSeedDestinationPrompt =
-  "The selected seed environment remains the settled world with its original depth, layout, lighting and materials.";
-
-const replaceableSeedMovementPrompt =
-  "Every seed-visible person retains the completed seed pose, world root, support contact, limb arrangement and spacing. Only rare asynchronous blinks, tiny eye shifts, faint breathing and fabric settling occur.";
-
 function createReplaceableChapter(
   spec: ReplaceableChapterSpec,
 ): FashionMaze {
   const entranceVariants: FashionMazeEntranceVariant[] = spec.assets.map(
     (asset) => ({
       ...asset,
-      openingPrompt: replaceableSeedAnchorPrompt,
+      openingPrompt: SEED_WORLD_ANCHOR_PROMPT,
     }),
   );
   const first = entranceVariants[0];
@@ -632,9 +602,9 @@ function createReplaceableChapter(
     entranceVariantId: first.id,
     accent: spec.accent,
     entrance: spec.entrance,
-    basePrompt: replaceableSeedBasePrompt,
-    defaultDestinationPrompt: replaceableSeedDestinationPrompt,
-    promptLayers: { movement: replaceableSeedMovementPrompt },
+    basePrompt: SEED_WORLD_BASE_PROMPT,
+    defaultDestinationPrompt: SEED_WORLD_DESTINATION_PROMPT,
+    promptLayers: { movement: SEED_WORLD_MOVEMENT_PROMPT },
     ensemble: { count: first.ensembleCount ?? 0 },
     sceneTransition: {
       buttonLabel: "ENTER THE NEXT BLACK DOOR",
@@ -845,46 +815,43 @@ export function assertFashionMazeSceneOrder(
 }
 
 export const FASHION_MAZE_PROMPT_BUDGET = {
-  hard: 2_000,
-  target: 1_800,
-  base: 600,
-  anchor: 450,
-  camera: 300,
-  movement: 350,
-  destination: 300,
-  event: 500,
-  continuity: 180,
+  hard: 1_200,
+  target: 1_000,
+  base: 220,
+  anchor: 220,
+  camera: 220,
+  movement: 180,
+  destination: 180,
+  event: 300,
+  continuity: 100,
 } as const;
 
-const seedSpaceContract =
-  "Seed directions are fixed world-space marks; screen projection shifts do not move them in world space.";
-
 const interactiveCameraContract =
-  "Strict first-person observer view, stationary while movement input is idle and moving only while held input is active. Look input changes only observer heading; natural parallax reveals a visible world anchored in world space.";
+  "First-person camera stays still without input and moves only with held input. Look input changes heading only.";
 
 const lockedCameraContract =
-  "Strict first-person observer view locked at the current viewpoint with zero translation, rotation, cut or zoom.";
+  "Lock the first-person camera at its current position and angle. No translation, rotation, cut or zoom.";
 
 const forwardCameraContract =
-  `First-person view moves straight through the centred ornamental black doorway for ${PORTAL_CHOREOGRAPHY.approachHoldChunks} chunks, with no lens zoom, yaw, roll, strafe or drift. Natural parallax enlarges it; the final 2 chunks cross the threshold and end fully inside its lightless interior.`;
+  `Move the first-person camera through the centred doorway for ${PORTAL_CHOREOGRAPHY.approachHoldChunks} chunks. No zoom, yaw, roll, strafe or drift; natural parallax enlarges it. Cross the threshold in the final 2 chunks and finish fully inside pure darkness.`;
 
 const physicalContinuityContract =
-  "Gravity, geometry, identities and materials stay coherent in one continuous world; reflections remain optical on visible surfaces.";
+  "Keep geometry, identities and materials coherent.";
 
 const emptyPhysicalContinuityContract =
-  "Gravity, geometry and materials stay coherent in one continuous world; reflections remain optical on visible surfaces.";
+  "Keep geometry and materials coherent.";
 
 const photoMovementContract =
-  "The seed-visible ensemble retains established roots, supports, limb poses and spacing while the current photo direction controls gaze.";
+  "Keep seed-visible bodies, poses, positions and supports unchanged.";
 
 const portalMovementContract =
-  "The seed-visible ensemble keeps its completed pose, world roots, supports and spacing.";
+  "Keep seed-visible poses, positions and supports unchanged.";
 
 const emptyPhotoMovementContract =
-  "The seed-visible environment retains its established geometry, depth and materials throughout the photo beat.";
+  "Keep the seed environment unchanged during the photo beat.";
 
 const emptyPortalMovementContract =
-  "The seed-visible environment keeps its established geometry, depth and materials.";
+  "Keep the seed environment unchanged.";
 
 function continuityContractFor(maze: FashionMaze): string {
   return maze.ensemble.count === 0
@@ -976,12 +943,6 @@ export function composeWorldPromptSegments(
       "anchor · seed",
       maze.openingPrompt,
     ),
-    segment(
-      "anchor",
-      "anchor:world-space",
-      "anchor · coordinates",
-      seedSpaceContract,
-    ),
     camera,
     segment(
       "movement",
@@ -1061,12 +1022,6 @@ export function composePortalPromptSegments(
       maze.openingPrompt,
     ),
     segment(
-      "anchor",
-      "anchor:world-space",
-      "anchor · coordinates",
-      seedSpaceContract,
-    ),
-    segment(
       "camera",
       stage === "enter" ? "camera:forward" : "camera:locked",
       `camera · ${stage === "enter" ? "forward" : "locked"}`,
@@ -1123,12 +1078,6 @@ export function explainFashionMazePrompt(
       `anchor:${maze.entranceVariantId ?? "default"}`,
       "anchor · seed",
       maze.openingPrompt,
-    ),
-    segment(
-      "anchor",
-      "anchor:world-space",
-      "anchor · coordinates",
-      seedSpaceContract,
     ),
     segment(
       "camera",

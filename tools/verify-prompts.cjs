@@ -37,12 +37,16 @@ const promptModule = require(path.join(__dirname, "../lib/fashion-maze.ts"));
 const {
   FASHION_MAZE_PROMPT_BUDGET: budget,
   PORTAL_CHOREOGRAPHY: portalChoreography,
+  SEED_WORLD_ANCHOR_PROMPT: seedWorldAnchorPrompt,
+  SEED_WORLD_BASE_PROMPT: seedWorldBasePrompt,
+  SEED_WORLD_MOVEMENT_PROMPT: seedWorldMovementPrompt,
   composePortalPrompt,
   composePortalPromptSegments,
   composeWorldPrompt,
   composeWorldPromptSegments,
   createFashionMazeSceneOrder,
   assertFashionMazeSceneOrder,
+  explainFashionMazePrompt,
   fashionDoorQuestions,
   fashionMazes,
   findMaze,
@@ -54,6 +58,10 @@ const {
   findPromptLayerBudgetViolations,
   findPromptLayerOwnershipViolations,
 } = require(path.join(__dirname, "../lib/fashion-maze-prompt-policy.ts"));
+const {
+  GRAND_PALAIS_IMAGE_PROMPT: grandPalaisImagePrompt,
+  createGrandPalaisMaze,
+} = require(path.join(__dirname, "../lib/grand-palais.ts"));
 
 const errors = [];
 const warnings = [];
@@ -122,9 +130,36 @@ function sentenceCount(text) {
     .filter(Boolean).length;
 }
 
+const castIdentifierPattern = /\b[A-Z]{1,3}-?\d{1,2}\b/;
+const castCountPattern = new RegExp(
+  "\\b(?:exactly\\s+)?(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|both|few|several|pair|trio|quartet|quintet|sextet|septet|\\d+)" +
+    "(?:[\\s-]+[a-z]+){0,3}[\\s-]+(?:performers?|people|persons?|models?|figures?|subjects?|faces?|identities|silhouettes?|cast[\\s-]+members?)\\b" +
+    "|\\b(?:performers?|people|persons?|models?|figures?|subjects?|silhouettes?|cast[\\s-]+members?)\\s*(?:#|number\\s*)?\\d+\\b" +
+    "|\\ball\\s+(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|\\d+)\\b",
+  "i",
+);
+const hiddenFormatPattern =
+  /[\u00AD\u061C\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFE00-\uFE0F\uFEFF\u{E0100}-\u{E01EF}]/u;
+
+function verifySeedRelativeCastLanguage(label, prompt) {
+  if (castIdentifierPattern.test(prompt)) {
+    fail(label, "contains a model-facing cast identifier");
+  }
+  if (castCountPattern.test(prompt)) {
+    fail(label, "contains a model-facing cast count");
+  }
+}
+
+function verifyVisibleText(label, value) {
+  if (hiddenFormatPattern.test(value)) {
+    fail(label, "contains hidden or directional formatting characters");
+  }
+}
+
 function uniqueIds(label, values) {
   const seen = new Set();
   for (const value of values) {
+    verifyVisibleText(`${label} id`, value);
     if (!value) fail(label, "contains an empty id");
     if (seen.has(value)) fail(label, `duplicates id "${value}"`);
     seen.add(value);
@@ -197,6 +232,7 @@ function verifyPacket(label, resolvedMaze, segments, expectedCameraId) {
 
   const counts = new Map();
   for (const item of segments) {
+    verifyVisibleText(`${label} segment id`, item.id);
     counts.set(item.kind, (counts.get(item.kind) ?? 0) + 1);
   }
   if (counts.get("base") !== 1) fail(label, "must contain exactly one base layer");
@@ -207,8 +243,8 @@ function verifyPacket(label, resolvedMaze, segments, expectedCameraId) {
   if (counts.get("continuity") !== 1) {
     fail(label, "must contain exactly one continuity layer");
   }
-  if ((counts.get("anchor") ?? 0) !== 2) {
-    fail(label, "must contain the resolved seed anchor and world-space contract");
+  if ((counts.get("anchor") ?? 0) !== 1) {
+    fail(label, "must contain exactly one resolved seed anchor");
   }
 
   const camera = segments.find((item) => item.kind === "camera");
@@ -226,6 +262,21 @@ function verifyPacket(label, resolvedMaze, segments, expectedCameraId) {
   }
   if (prompt !== joinFashionMazePromptSegments(segments)) {
     fail(label, "packet is not the exact single-space segment join");
+  }
+  if (/\bqrost\b|qrost\.provenance/i.test(prompt)) {
+    fail(label, "project provenance must not enter Reactor prompt semantics");
+  }
+  if (/[\u200B-\u200D\uFEFF]/u.test(prompt)) {
+    fail(label, "prompt contains zero-width watermark characters");
+  }
+  verifyVisibleText(label, prompt);
+  verifySeedRelativeCastLanguage(label, prompt);
+
+  const explained = explainFashionMazePrompt(resolvedMaze, prompt);
+  if (explained.some((item) => item.id === "prompt:unclassified")) {
+    fail(label, "composed prompt is unclassified by the inspector");
+  } else if (joinFashionMazePromptSegments(explained) !== prompt) {
+    fail(label, "prompt inspector does not reconstruct the composed prompt");
   }
 
   verifyLayerBudgets(label, segments);
@@ -272,6 +323,69 @@ for (const [kind, value] of [
     );
   }
 }
+for (const value of [
+  "M01 holds the pose.",
+  "M1 holds the pose.",
+  "M-01 holds the pose.",
+  "AA01 holds the pose.",
+  "Exactly five fashion performers occupy the seed world.",
+  "Both performers hold still.",
+  "A pair of performers hold still.",
+  "A trio of models holds still.",
+  "Five silhouettes hold still.",
+  "Performer 1 holds still.",
+  "Cast member 01 holds still.",
+  "All six retain their poses.",
+]) {
+  const previousErrors = errors.length;
+  verifySeedRelativeCastLanguage("seed-relative cast fixture", value);
+  if (errors.length === previousErrors) {
+    fail("seed-relative cast fixture", `must reject "${value}"`);
+  } else {
+    errors.pop();
+  }
+}
+for (const value of ["soft\u00adhyphen", "bidi\u202etext", "variation\ufe0ftext"]) {
+  if (!hiddenFormatPattern.test(value)) {
+    fail("hidden-format fixture", "must reject hidden formatting characters");
+  }
+}
+
+for (const token of [
+  "identity",
+  "face",
+  "body",
+  "hair",
+  "garment",
+  "accessory",
+  "prop",
+]) {
+  if (!seedWorldBasePrompt.includes(token)) {
+    fail("shared seed base", `must preserve ${token}`);
+  }
+}
+for (const token of [
+  "world root",
+  "depth",
+  "scale",
+  "pose",
+  "support",
+  "limb arrangement",
+  "spacing",
+]) {
+  if (!seedWorldAnchorPrompt.includes(token)) {
+    fail("shared seed anchor", `must preserve ${token}`);
+  }
+}
+if (
+  !seedWorldMovementPrompt.includes("event-light variation") ||
+  seedWorldMovementPrompt.includes("light movement")
+) {
+  fail(
+    "shared seed movement",
+    "must allow event-light variation without suggesting subject movement",
+  );
+}
 const unknownLayer = policyFixture("__unknown__", "synthetic layer");
 if (
   !findPromptLayerBudgetViolations([unknownLayer]).some(
@@ -282,6 +396,20 @@ if (
   )
 ) {
   fail("prompt policy fixture unknown", "unknown layers must fail closed");
+}
+
+const sharedPhotoActions = [1, 5, 7, "all"].map((count) =>
+  resolvePhotoAction({ ensemble: { count }, photoAction: undefined }),
+);
+if (
+  sharedPhotoActions.some(
+    (action) => JSON.stringify(action) !== JSON.stringify(sharedPhotoActions[0]),
+  )
+) {
+  fail(
+    "shared performer photo action",
+    "internal ensemble counts must not alter model-facing photo text",
+  );
 }
 
 uniqueIds("scenes", fashionMazes.map((maze) => maze.id));
@@ -511,6 +639,16 @@ for (const maze of fashionMazes) {
             "must direct open eyes into the lens in every photo beat",
           );
         }
+        if (
+          beat.mode === "photo-ready" &&
+          (!/backward-facing performer/i.test(beat.prompt) ||
+            !/slight upper-shoulder turn/i.test(beat.prompt))
+        ) {
+          fail(
+            `${sceneLabel} variant ${variant.id} ${beat.mode}`,
+            "must allow a minimal shoulder turn for a backward-facing performer",
+          );
+        }
       }
     }
     positiveInteger(
@@ -624,18 +762,22 @@ for (const maze of fashionMazes) {
           if (stage === "summon") {
             if (
               !/\bexisting arch or doorway\b/i.test(portalEvent.text) ||
-              !/\bornamental matte-black door\b/i.test(portalEvent.text) ||
+              !/\bmedium-far ahead\b/i.test(portalEvent.text) ||
+              !/\bapproachable scale\b/i.test(portalEvent.text) ||
+              !/\brichly ornamental scene-native frame\b/i.test(portalEvent.text) ||
+              !/\belaborate carving\b/i.test(portalEvent.text) ||
+              !/\bthreshold into pure darkness\b/i.test(portalEvent.text) ||
               !/\bnever freestanding\b/i.test(portalEvent.text)
             ) {
               fail(
                 `${prefix} / portal-summon`,
-                "must reuse existing architecture as one integrated ornamental black door",
+                "must reuse existing architecture as an ornamental threshold into pure darkness",
               );
             }
-            if (!/\bis becoming\b.*\bis extending\b.*\bis holding\b/i.test(portalEvent.text)) {
+            if (!/\bis becoming\b.*\bis forming\b/i.test(portalEvent.text)) {
               fail(
                 `${prefix} / portal-summon`,
-                "environment event must stay present-continuous",
+                "environment event must describe the direct in-place change",
               );
             }
           } else {
@@ -647,19 +789,29 @@ for (const maze of fashionMazes) {
               !camera.text.includes(
                 `${portalChoreography.approachHoldChunks} chunks`,
               ) ||
-              !/\bno lens zoom\b/i.test(camera.text) ||
-              !/\bfinal 2 chunks cross the threshold\b/i.test(camera.text) ||
-              !/\bend fully inside\b/i.test(camera.text)
+              !/\bno zoom, yaw, roll, strafe or drift\b/i.test(camera.text) ||
+              !/\bnatural parallax\b/i.test(camera.text) ||
+              !/\bcross the threshold in the final 2 chunks\b/i.test(camera.text) ||
+              !/\bfinish fully inside pure darkness\b/i.test(camera.text)
             ) {
               fail(
                 `${prefix} / portal-enter`,
                 "camera must complete the chunk-counted passage through the threshold",
               );
             }
-            if (!/\bis holding\b.*\bstaying coherent\b/i.test(portalEvent.text)) {
+            if (
+              !/\brichly ornamental frame\b/i.test(portalEvent.text) ||
+              !/\bstays fixed\b/i.test(portalEvent.text) ||
+              !/\bbeyond its threshold is only uniform, featureless pure darkness\b/i.test(
+                portalEvent.text,
+              ) ||
+              !/\bno visible light, image, detail or destination\b/i.test(
+                portalEvent.text,
+              )
+            ) {
               fail(
                 `${prefix} / portal-enter`,
-                "doorway event must remain continuous and anchored",
+                "ornamental frame must lead only into uniform pure darkness",
               );
             }
           }
@@ -667,6 +819,45 @@ for (const maze of fashionMazes) {
       }
     }
   }
+}
+
+const grandPalaisMaze = createGrandPalaisMaze("/generated-grand-palais.jpg", 1);
+for (const actionMode of [
+  "ambient",
+  "photo-ready",
+  "photo-pose",
+  "photo-shutter",
+  "photo-release",
+]) {
+  verifyPacket(
+    `runtime finale / ${actionMode}`,
+    grandPalaisMaze,
+    composeWorldPromptSegments(grandPalaisMaze, undefined, { actionMode }),
+    actionMode === "ambient" ? "camera:interactive" : "camera:locked",
+  );
+}
+if (
+  !/all seven reference images as equal source material/i.test(
+    grandPalaisImagePrompt,
+  ) ||
+  !/original coherent venue/i.test(grandPalaisImagePrompt) ||
+  !/do not make a collage/i.test(grandPalaisImagePrompt) ||
+  !/copy of any reference/i.test(grandPalaisImagePrompt)
+) {
+  fail(
+    "Grand Palais image prompt",
+    "must preserve equal-reference remix and non-collage constraints",
+  );
+}
+verifyVisibleText("Grand Palais image prompt", grandPalaisImagePrompt);
+if (
+  !/runway presentation/i.test(grandPalaisMaze.promptLayers.movement) ||
+  !/audience settled/i.test(grandPalaisMaze.promptLayers.movement)
+) {
+  fail(
+    "runtime finale movement",
+    "must retain runway presentation and settled audience semantics",
+  );
 }
 
 const emptyEnvironment = {

@@ -1,7 +1,13 @@
 // Authored by QROST, 2026.
 // Provenance: https://github.com/QROST/20260718_WorldModel
 
-import type { FashionMaze } from "./fashion-maze";
+import {
+  SEED_WORLD_ANCHOR_PROMPT,
+  SEED_WORLD_BASE_PROMPT,
+  SEED_WORLD_DESTINATION_PROMPT,
+  SEED_WORLD_MOVEMENT_PROMPT,
+  type FashionMaze,
+} from "./fashion-maze";
 
 export const GRAND_PALAIS_SCENE_ID = "grand-palais";
 export const GRAND_PALAIS_IMAGE_MODEL = "gpt-image-2";
@@ -16,7 +22,7 @@ export interface GrandPalaisGenerationRequest {
 }
 
 export const GRAND_PALAIS_IMAGE_PROMPT =
-  "Create one completely new photorealistic 16:9 fashion editorial scene centered on ‘grand palais fashion show’. Treat all seven reference images as equal material from one guest’s journey. Invent a future Grand Palais runway that nobody has seen before. Remix environments, materials, colors, architecture, gardens, portals, sculptures, neon prisms, copper forms, models and couture looks from the references into one coherent venue and moment. Earlier environments and performers may reappear in new combinations. Do not create a collage, contact sheet, split screen, mood board, or copy any reference scene exactly. Show a wide first-person arrival view with a clear walkable foreground, runway, audience and monumental architecture, coherent full-depth geometry, cinematic event lighting, no captions, logos, frames or watermark. Make this interpretation original and different on every generation.";
+  "Create a new photorealistic 16:9 grand palais fashion show. Treat all seven reference images as equal source material from the journey. Recombine their architecture, gardens, portals, sculptures, materials, colors and couture into one original coherent venue. Do not make a collage, contact sheet, split screen, mood board or copy of any reference. Show a wide first-person arrival with a clear foreground, runway, audience, monumental architecture and cinematic event light. No text, logos, frames or watermark. Vary the result each run.";
 
 // Paraphrased from MD/360-fashion-maze-game-spec.md, especially lines 8–10
 // and 253–266: invitation, late arrival, changing installations and finale.
@@ -47,16 +53,14 @@ export function createGrandPalaisMaze(
     location: "Grand Palais / Generated finale / Front-row arrival",
     seedImage,
     seed,
-    openingPrompt:
-      "The generated image is the exact Scene 8 spatial anchor. Preserve every seed-visible person, couture look, audience bank, runway edge, architectural span, light source, reflection and depth relationship at its seed-space root.",
+    openingPrompt: SEED_WORLD_ANCHOR_PROMPT,
     entranceVariants: [
       {
         id: "generated-grand-palais",
         label: "This Run’s Grand Palais",
         seedImage,
         seed,
-        openingPrompt:
-          "The generated image is the exact Scene 8 spatial anchor. Preserve every seed-visible person, couture look, audience bank, runway edge, architectural span, light source, reflection and depth relationship at its seed-space root.",
+        openingPrompt: SEED_WORLD_ANCHOR_PROMPT,
         ensembleCount: "all",
       },
     ],
@@ -68,13 +72,11 @@ export function createGrandPalaisMaze(
       body:
         "The seven worlds have recomposed themselves beneath the Grand Palais roof. The show begins from a view that exists only for this run.",
     },
-    basePrompt:
-      "The generated seed is an authoritative Grand Palais fashion show with one primary runway model, seed-visible couture guests and audience, a clear runway, monumental architecture and cinematic event light. Preserve every visible identity, garment, structure, prop, surface, reflection and spatial relationship. Photorealistic luxury fashion editorial.",
-    defaultDestinationPrompt:
-      "The generated Grand Palais runway, audience, architecture and lighting remain the settled finale world at their seed positions.",
+    basePrompt: SEED_WORLD_BASE_PROMPT,
+    defaultDestinationPrompt: SEED_WORLD_DESTINATION_PROMPT,
     promptLayers: {
       movement:
-        "The primary runway model continues a poised slow presentation while the seed-visible audience remains seated and attentive. Rare blinks, faint breathing, restrained fabric motion and subtle event-light movement keep the show alive without changing identities, positions or architecture.",
+        "Continue the seed-visible runway presentation slowly. Keep the audience settled; allow only rare blinks, faint breathing, fabric settling and event-light variation.",
     },
     ensemble: { count: "all" },
     routes: [],
