@@ -1,26 +1,26 @@
 # Fashion Maze × Reactor
 
-一个面向 SIGGRAPH hackathon 的 HTML/React 实时世界体验：用户以 fashion blogger 的身份从真实团队入口图进入由 Reactor LingBot World 2 生成的连续视频世界，并通过世界变体选择、WASD 与视角控制探索会实时变化的 fashion maze。
+一个面向 SIGGRAPH hackathon 的 HTML/React 实时世界体验：用户从真实团队 rose-garden 入口图进入由 Reactor LingBot World 2 生成的连续视频世界，并通过世界变体选择、WASD 与视角控制探索会实时变化的 fashion maze。
 
 ## 当前体验
 
-- 一个基于团队 dataset、并保留原构图生成的 16:9 `Hedge Threshold` cast-ready hero entrance；
-- 一张可从 HTML 打开的三视图 character reference，以及一段 invitation narrative；
-- 三位来自团队 `models/` 角色表、从首帧就存在的 supporting models；松弛走动、眼神交流、自然聚合、共同 pose、短暂停留与散开都持续写在场景 prompt 中，不需要单独按钮；
-- 三种保持同一角色、服装、跟随镜头和基础空间的 world transformation：Neon Canopy、Living Runway、Golden Circuit；
+- 三张来自团队 dataset 的 1376×768 rose-garden entrance；服务端在每次打开页面时随机选择一张，单次页面与 Reactor session 始终锁定同一张图片和对应 opening prompt；
+- 同一组五位从首帧就存在的 white-and-cobalt couture performers；所有人物保持各自 opening mark，以呼吸、轻微重心变化、叉腰、松肩、摆头和独立目光变化维持自然的 fashion-show plan montage，不被镜头移动驱动，也不在场景里走动或重新聚拢；Tailored Host 只在显式拍照 choreography 中成为摄影者；
+- 入口只保留 `THE INVITATION` 与小字 narrative，不显示抢占画面的 entrance 大标题；route narrative 的标题仍会正常出现；
+- 三种保持同一角色、服装、观察者镜头和基础空间的 world transformation：Neon Canopy、Living Runway、Golden Circuit；
 - 静态预览中即可点击三条 route 阅读 narrative，不会连接 Reactor；
-- prompt 以 `base / camera / movement / route` 四层组织，WASD 在 still 与 moving 版本之间自动切换；
+- prompt 以 `base / camera / movement / route` 四层组织；普通探索使用单一 observer-invariant prompt，WASD、方向键与鼠标不会因按下或松开而 hot-swap prompt；
 - 用户点击 `ENTER LIVE MAZE` 后才连接 Reactor；
 - 参考图上传后，由 `conditions_ready` 事件触发 generation；
-- seed 不会在黑色占位 track 刚出现时消失；generation 启动后，只有 track live/unmuted、视频播放中且连续两帧通过非黑像素检查才交叉淡出。20 秒仍无可见帧会自动断开保护 credits；seed 加载失败则回退原始入口图；
+- seed 不会在黑色占位 track 刚出现时消失；generation 启动后，只有 track live/unmuted、视频播放中且连续两帧通过非黑像素检查才交叉淡出。20 秒仍无可见帧会自动断开保护 credits；
 - 变体选择同时发送 hot-swapped prompt 与一段单-chunk 前进指令；确认生效后自动回到 idle 与 settled prompt；入口 seed 没有虚构的三岔口；
-- `TAKE PHOTO` 或快捷键 `C` 会停止移动、发送一次性拍照 prompt，让 Blogger 掏出手机、构图并按下快门；匹配该 prompt 的新 `chunk_complete` 到达后，应用再从原始 Reactor video frame 保存 PNG；
-- 每张照片会自动尝试下载，并保留带缩略图的 `PHOTO SAVED / DOWNLOAD` 回执；随后 release prompt 让 Blogger 收起手机、演员散开并恢复 ambient choreography；拍照动作有独立的 18 秒 watchdog；
-- WASD 控制前后与横移，方向键控制视角；`MOUSE LOOK` 使用原生 `setCameraPose()` 与 video chunk 时钟；
+- `TAKE PHOTO` 或快捷键 `C` 会停止观察者镜头并运行一段约 8–10 秒的生成式拍照 choreography：`READY → 1 → 2 → 3 → CHEESE! → SHUTTER`。每一拍必须由匹配 prompt 的 2–3 个新 `chunk_complete` 驱动；Host 掏出手机并在手机旁用克制但清楚的手势倒数，被拍摄的四位模特留在原地、看向手机镜头，并各自保持一次到位的 hand-at-waist、drape、hip 或 lapel editorial pose；只允许极轻微的下巴、肩膀和表情调整，不靠近、不挥手、不做夸张动作；
+- `SHUTTER` 保持完成后，应用才从原始 Reactor video frame 保存 PNG；照片会自动尝试下载，并保留带缩略图的 `PHOTO SAVED / DOWNLOAD` 回执。随后 3 个 release chunks 让 Host 收起手机、其他模特在原位放松目光并回到微动作 tableau，再等待一个真实 ambient prompt chunk 才解锁控制；每一拍有独立的 30 秒 watchdog，恢复失败会自动断开保护 credits；
+- WASD 只控制观察者镜头的前后与横移，方向键只控制镜头视角；没有任何人物会跟随输入移动、转身或追踪镜头。`MOUSE LOOK` 使用原生 `setCameraPose()` 与 video chunk 时钟；
 - `OPERATOR` 抽屉显示 session、chunk、action、track、camera pose 和最终合成 prompt；
 - 录制可用时，operator 可截取最近 10 秒，预览并下载 MP4；
 - `keyup`、窗口失焦和页面隐藏都会归零控制状态；
-- `END SESSION` 使用非 recoverable disconnect，立即释放 session；
+- `END SESSION` 使用 non-recoverable disconnect；输入归零只会等待最多 750ms，不能阻塞释放 session；
 - 每次 live session 有 5 分钟客户端 safety cap，到时自动断开；
 - 入口 arming / start 另有 watchdog；事件迟迟未确认时会断开 session 保护 credits；
 - 群像的“暂停”是 prompt-held pose，live generation 与计费仍继续；SDK `pause()` 在界面中明确写作 `FREEZE STREAM · STILL BILLED`；
@@ -52,6 +52,14 @@ interface FashionMaze {
   id: string;
   title: string;
   seedImage: string;
+  openingPrompt: string;
+  entranceVariants: Array<{
+    id: string;
+    label: string;
+    seedImage: string;
+    seed: number;
+    openingPrompt: string;
+  }>;
   characterImage?: string;
   seed: number;
   entrance: NarrativeBeat;
@@ -61,30 +69,37 @@ interface FashionMaze {
     movement: { still: string; moving: string };
   };
   ensemble: {
-    count: 3;
+    count: 5;
     members: Array<{
       id: string;
       name: string;
-      referenceImage: string;
+      referenceImage?: string;
       identityPrompt: string;
     }>;
     ambient: string;
   };
   photoAction: {
-    capture: string;
+    continuity: string;
+    beats: Array<{
+      mode: string;
+      cue: string;
+      holdChunks: number;
+      prompt: string;
+    }>;
     release: string;
+    releaseHoldChunks: number;
   };
   routes: MazeRoute[];
 }
 ```
 
-新增图片时放进 `public/dataset/`，然后把 `seedImage` 改为 `/dataset/your-image.jpg`。正式 seed 建议使用 16:9 PNG、JPEG 或 WebP。当前运行时使用 `hedge-threshold-plan-montage-v4.png`；原始 `hedge-threshold.png` 保留作构图与回退依据。新图从第一帧锚定一位 blogger，以及团队角色表定义的 Ember Court、Forest Tailor、Silver Architect 三位 physical supporting models，并把三人放在各自松弛、彼此有眼神联系的 pre-show blocking 中，避免 live prompt 临时召人造成 pop-in、人数漂移或换脸。三张原始角色表的只读副本位于 `public/dataset/models/`，HTML 会显示可点开的 cast references。`characterImage` 只用于 HTML concept reference；当前 LingBot `setImage()` 每次接受一个 seed，因此不会把任何三视图角色表误当成额外的实时 conditioning image。
+新增图片时放进 `public/dataset/`，并为 `entranceVariants` 增加稳定的 `id / seedImage / seed / openingPrompt`。正式 seed 建议使用 16:9 PNG、JPEG 或 WebP。当前三张图位于 `public/dataset/rose-garden/`；它们共享五人身份、服装和空间 prompt，但各自用简短的 opening continuity anchor 锁定初始站位。随机选择发生在动态 Server Component，并把 variant id 传给客户端，因此不会产生 hydration mismatch，也不会在用户点击 `ENTER` 时更换 seed。
 
-每条 `route` 同时包含观众看到的 narrative 和模型看到的 `promptDelta.transition / settled`。选择变体时，首个 forward chunk 使用一次性 transition；chunk 完成后立即换成没有生长、出现或攀爬过程动词的 settled prompt。之后普通 WASD 只切换 camera/movement 层，不会再次触发 world morph。`composeWorldPrompt()` 会把场景身份、still/moving 镜头层、路线结果、持续群像与临时拍照动作组合为一次完整 `setPrompt()`。route 与 photo action 互斥，普通 prompt effect 在临时动作期间不会覆盖它们。当前最长组合约 2.2k characters，接近 authoring spec 的约 2k 建议而仍保留角色身份与连续性约束。这种结构吸收自官方 `create-reactor-app` 的 layered scene 模式，但保留为面向 Fashion Maze 内容团队的轻量数据结构，而不是复制通用 prompt editor。
+每条 `route` 同时包含观众看到的 narrative 和模型看到的 `promptDelta.transition / settled`。选择变体时，首个 forward chunk 使用一次性 transition；chunk 完成后立即换成没有生长、出现或攀爬过程动词的 settled prompt。普通 WASD、方向键与鼠标只发送 SDK 原生 camera input，不根据按键状态调用 `setPrompt()`，因此人物微动作与偶尔回望不会被镜头行动触发。`composeWorldPrompt()` 会把场景身份、镜头层、路线结果、固定站位群像与临时拍照动作组合为一次完整 prompt。opening anchor 现在以 world-space root / footprint 描述并在整个普通探索中保持，不再用与镜头透视冲突的屏幕大小或深度锁；route 与 photo action 也继续携带同一站位锚。两者互斥；拍照状态机使用本地单调 chunk serial，即使 Reactor run 内的 `chunk_index` 归零也不会提前推进。三条初始 prompt 为 1.72–1.82k characters，最长组合为 1.99k，保持在项目 authoring spec 的约 2k 预算内。
 
-原始 spec 的第一人称建议面向“纯 installation reference image”；本次实际 opening frame 已经建立了可见的第三人称角色。当前实现以图片为约束，保持一个 blogger、同一套银色服装、两米跟随镜头和连续的 hedge architecture。第一人称与第三人称的最终选择应通过一次明确的小额 Reactor canary 比较，而不是在 prompt 中同时要求两者。
+当前实现把玩家定义为不可见的 observer camera，而不是任何一位画面人物；中央白色西装男模仅作为 Tailored Host 和拍照动作的摄影者。五人、白蓝服装、粉色几何迷宫和垂花树冠在镜头探索时保持独立连续。
 
-当前照片保存的是拍照动作确认后、无 HTML 覆盖的原始 Reactor 主视频帧。拍照 prompt 会将连续镜头平滑推到手机上方的近距离 over-shoulder 构图，因此它接近 Blogger 的取景，但不是 SDK 提供的独立手机 POV track。真正的双视角摄影需要后续增加独立 still generation 或第二路视角。源 authoring spec 曾把拍照写为 `P`，当前运行时以产品需求为准使用 `C`；本项目未实现原 spec 中与 `C` 冲突的 crouch。
+当前照片保存的是拍照动作确认后、无 HTML 覆盖的原始 Reactor 主视频帧。拍照 prompt 保留宽幅 editorial 构图，只向 Tailored Host 右肩方向轻微漂移并让手机保持在画面下缘，因此接近 Host 的取景，但不是 SDK 提供的独立手机 POV track。真正的双视角摄影需要后续增加独立 still generation 或第二路视角。
 
 ## Reactor 架构
 

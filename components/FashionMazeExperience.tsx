@@ -24,6 +24,7 @@ import {
   composeWorldPrompt,
   fashionMazes,
   findMaze,
+  resolveMazeEntrance,
   type FashionMaze,
   type MazeRoute,
 } from "@/lib/fashion-maze";
@@ -56,6 +57,12 @@ interface PendingRoute {
   navigation: MazeRoute["navigation"];
 }
 
+interface PhotoPromptStep {
+  cue: string;
+  prompt: string;
+  holdChunks: number;
+}
+
 type PhotoActionState =
   | "idle"
   | "framing"
@@ -64,11 +71,25 @@ type PhotoActionState =
   | "saved";
 
 interface PendingPhoto {
-  stage: "capture" | "capturing" | "release";
+  stage: "capture" | "capturing" | "release" | "restore";
   prompt: string;
+  cue: string;
+  holdChunks: number;
+  matchedChunks: number;
+  remaining: PhotoPromptStep[];
+  beatIndex: number;
+  beatCount: number;
   releasePrompt: string;
+  releaseHoldChunks: number;
   ambientPrompt: string;
-  issuedAfterChunk: number;
+  issuedAfterSerial: number;
+  photoSaved: boolean;
+}
+
+interface PhotoCueDisplay {
+  cue: string;
+  beatIndex: number;
+  beatCount: number;
 }
 
 interface CapturedPhoto {
@@ -81,6 +102,7 @@ interface CapturedPhoto {
 
 interface FashionMazeExperienceProps {
   reactorConfigured: boolean;
+  initialEntranceVariantId: string;
 }
 
 const MAX_LIVE_SESSION_SECONDS = 5 * 60;
@@ -92,8 +114,10 @@ const ARMING_WATCHDOG_MS = 30_000;
 const START_WATCHDOG_MS = 20_000;
 const VISIBLE_VIDEO_WATCHDOG_MS = 20_000;
 const ROUTE_WATCHDOG_MS = 15_000;
-const PHOTO_WATCHDOG_MS = 18_000;
+const PHOTO_WATCHDOG_MS = 30_000;
 const PHOTO_FRAME_TIMEOUT_MS = 2_000;
+const PHOTO_ENCODE_TIMEOUT_MS = 2_000;
+const CONTROL_RELEASE_TIMEOUT_MS = 750;
 
 let cachedToken: { jwt: string; expiresAt: number } | null = null;
 let tokenRequest: Promise<string> | null = null;
@@ -187,9 +211,12 @@ async function seedAssetToFile(maze: FashionMaze): Promise<File> {
   }
 
   const source = await response.blob();
+  const seedName = maze.entranceVariantId
+    ? `${maze.id}-${maze.entranceVariantId}`
+    : maze.id;
   if (!source.type.includes("svg")) {
     const extension = source.type.includes("png") ? "png" : "jpg";
-    return new File([source], `${maze.id}.${extension}`, { type: source.type });
+    return new File([source], `${seedName}.${extension}`, { type: source.type });
   }
 
   const objectUrl = URL.createObjectURL(source);
@@ -213,7 +240,7 @@ async function seedAssetToFile(maze: FashionMaze): Promise<File> {
         0.94,
       );
     });
-    return new File([png], `${maze.id}.png`, { type: "image/png" });
+    return new File([png], `${seedName}.png`, { type: "image/png" });
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
@@ -306,15 +333,24 @@ async function captureReactorPhoto(
   context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
   const blob = await new Promise<Blob>((resolve, reject) => {
+    const timeout = window.setTimeout(
+      () => reject(new Error("The browser took too long to encode the photo.")),
+      PHOTO_ENCODE_TIMEOUT_MS,
+    );
     try {
       canvas.toBlob(
-        (result) =>
-          result
-            ? resolve(result)
-            : reject(new Error("The browser could not encode the photo.")),
+        (result) => {
+          window.clearTimeout(timeout);
+          if (result) {
+            resolve(result);
+          } else {
+            reject(new Error("The browser could not encode the photo."));
+          }
+        },
         "image/png",
       );
     } catch (cause) {
+      window.clearTimeout(timeout);
       reject(cause);
     }
   });
@@ -345,6 +381,7 @@ function downloadCapturedPhoto(photo: CapturedPhoto): void {
 
 export function FashionMazeExperience({
   reactorConfigured,
+  initialEntranceVariantId,
 }: FashionMazeExperienceProps) {
   const getJwt = useCallback(() => getReactorJwt(), []);
 
@@ -356,12 +393,18 @@ export function FashionMazeExperience({
         autoResumeTracks: true,
       }}
     >
-      <FashionMazeRuntime reactorConfigured={reactorConfigured} />
+      <FashionMazeRuntime
+        reactorConfigured={reactorConfigured}
+        initialEntranceVariantId={initialEntranceVariantId}
+      />
     </LingbotWorld2Provider>
   );
 }
 
-function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
+function FashionMazeRuntime({
+  reactorConfigured,
+  initialEntranceVariantId,
+}: FashionMazeExperienceProps) {
   const {
     status,
     sessionId,
@@ -384,6 +427,7 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
     requestClip,
   } = useLingbotWorld2();
 
+  const [entranceVariantId] = useState(initialEntranceVariantId);
   const [selectedMazeId, setSelectedMazeId] = useState(fashionMazes[0].id);
   const [activeMazeId, setActiveMazeId] = useState<string | null>(null);
   const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
@@ -395,10 +439,10 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
   const [error, setError] = useState<string | null>(null);
   const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isTraversing, setIsTraversing] = useState(false);
   const [mouseLook, setMouseLook] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [photoState, setPhotoState] = useState<PhotoActionState>("idle");
+  const [photoCue, setPhotoCue] = useState<PhotoCueDisplay | null>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<CapturedPhoto | null>(null);
   const [photoFlash, setPhotoFlash] = useState(false);
   const [operatorOpen, setOperatorOpen] = useState(false);
@@ -415,6 +459,7 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
   const pendingRouteRef = useRef<PendingRoute | null>(null);
   const pendingPhotoRef = useRef<PendingPhoto | null>(null);
   const photoBusyRef = useRef(false);
+  const chunkSerialRef = useRef(0);
   const heldControlsRef = useRef<ControlCode[]>([]);
   const lastPromptRef = useRef("");
   const promptRequestIdRef = useRef(0);
@@ -441,20 +486,27 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
   });
 
   const selectedMaze = useMemo(
-    () => findMaze(selectedMazeId),
-    [selectedMazeId],
+    () => resolveMazeEntrance(findMaze(selectedMazeId), entranceVariantId),
+    [entranceVariantId, selectedMazeId],
   );
-  const activeMaze = activeMazeId ? findMaze(activeMazeId) : selectedMaze;
+  const activeMaze = useMemo(
+    () =>
+      activeMazeId
+        ? resolveMazeEntrance(findMaze(activeMazeId), entranceVariantId)
+        : selectedMaze,
+    [activeMazeId, entranceVariantId, selectedMaze],
+  );
   const activeRoute = activeMaze.routes.find(
     (route) => route.id === activeRouteId,
   );
   const composedPrompt = useMemo(
     () =>
       composeWorldPrompt(activeMaze, activeRoute, {
-        isMoving: isTraversing,
+        isMoving: true,
         actionMode: "ambient",
+        includeOpeningAnchor: true,
       }),
-    [activeMaze, activeRoute, isTraversing],
+    [activeMaze, activeRoute],
   );
   const narrative = activeRoute?.narrative ?? activeMaze.entrance;
   const hasMultipleMazes = fashionMazes.length > 1;
@@ -469,6 +521,8 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
     isLive &&
     !isPaused &&
     !terminatingRef.current &&
+    !pendingRouteRef.current &&
+    !pendingPhotoRef.current &&
     phase === "live";
   const canExplore = canControl;
   const photoBusy =
@@ -527,6 +581,7 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
       photoBusyRef.current = false;
       setPendingRouteId(null);
       setPhotoState("idle");
+      setPhotoCue(null);
       setPhotoFlash(false);
       setError(`${errorMessage(cause)} The session is being disconnected to protect credits.`);
       setPhase("ending");
@@ -552,33 +607,76 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
     [abortActivation, clearActivationWatchdog],
   );
 
-  const recoverPhoto = useCallback(
-    (pending: PendingPhoto, reason: string) => {
+  const restorePhotoAmbient = useCallback(
+    (pending: PendingPhoto, reason: string | null) => {
       if (pendingPhotoRef.current !== pending || terminatingRef.current) return;
 
       clearPhotoWatchdog();
-      pendingPhotoRef.current = null;
-      photoBusyRef.current = false;
-      setPhotoState(pending.stage === "release" ? "saved" : "idle");
-      setPhase("live");
+      const restoring: PendingPhoto = {
+        ...pending,
+        stage: "restore",
+        prompt: pending.ambientPrompt,
+        cue: pending.photoSaved ? "NICE!" : "RESET",
+        holdChunks: 1,
+        matchedChunks: 0,
+        remaining: [],
+        issuedAfterSerial: chunkSerialRef.current,
+      };
+      pendingPhotoRef.current = restoring;
+      photoBusyRef.current = true;
+      setPhotoState("returning");
+      setPhotoCue({
+        cue: restoring.cue,
+        beatIndex: restoring.beatCount,
+        beatCount: restoring.beatCount,
+      });
+      setPhase("switching");
       setError(reason);
 
       const requestId = ++promptRequestIdRef.current;
-      lastPromptRef.current = pending.ambientPrompt;
-      void setPrompt({ prompt: pending.ambientPrompt }).catch((cause) => {
+      lastPromptRef.current = restoring.prompt;
+      photoWatchdogRef.current = window.setTimeout(() => {
+        photoWatchdogRef.current = null;
         if (
+          pendingPhotoRef.current === restoring &&
+          !terminatingRef.current
+        ) {
+          abortActivation(
+            new Error(
+              "The photo action could not restore the ambient world in time.",
+            ),
+          );
+        }
+      }, PHOTO_WATCHDOG_MS);
+
+      void setPrompt({ prompt: restoring.prompt }).catch((cause) => {
+        if (
+          pendingPhotoRef.current === restoring &&
           promptRequestIdRef.current === requestId &&
           !terminatingRef.current
         ) {
-          fail(
+          abortActivation(
             new Error(
-              `The photo action could not return to the live scene: ${errorMessage(cause)}`,
+              `The photo action could not restore the ambient world: ${errorMessage(cause)}`,
             ),
           );
         }
       });
     },
-    [clearPhotoWatchdog, fail, setPrompt],
+    [abortActivation, clearPhotoWatchdog, setPrompt],
+  );
+
+  const recoverPhoto = useCallback(
+    (pending: PendingPhoto, reason: string) => {
+      if (pendingPhotoRef.current !== pending || terminatingRef.current) return;
+
+      if (pending.stage === "restore") {
+        abortActivation(new Error(reason));
+        return;
+      }
+      restorePhotoAmbient(pending, reason);
+    },
+    [abortActivation, restorePhotoAmbient],
   );
 
   const armPhotoWatchdog = useCallback(
@@ -610,6 +708,7 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
       pendingRouteRef.current = null;
       pendingPhotoRef.current = null;
       photoBusyRef.current = false;
+      chunkSerialRef.current = 0;
       heldControlsRef.current = [];
       setPressedControlCodes([]);
       lastAxesRef.current = {
@@ -620,8 +719,8 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
       };
       setSessionStartedAt(null);
       setElapsedSeconds(0);
-      setIsTraversing(false);
       setPhotoState("idle");
+      setPhotoCue(null);
       setPhotoFlash(false);
       setMouseLook(false);
       setVideoReady(false);
@@ -871,10 +970,15 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
         break;
       case "generation_resumed":
         if (terminatingRef.current) break;
-        setPhase("live");
+        setPhase(
+          pendingPhotoRef.current || pendingRouteRef.current
+            ? "switching"
+            : "live",
+        );
         break;
       case "chunk_complete": {
         if (terminatingRef.current) break;
+        const chunkSerial = ++chunkSerialRef.current;
         setChunkIndex(message.chunk_index);
         const pendingRoute = pendingRouteRef.current;
         if (
@@ -889,7 +993,6 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
             lastAxesRef.current.lookHorizontal = "idle";
             void setLookHorizontal({ look_horizontal: "idle" }).catch(fail);
           }
-          setIsTraversing(false);
           setActiveRouteId(pendingRoute.id);
           setPendingRouteId(null);
           pendingRouteRef.current = null;
@@ -898,32 +1001,67 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
         const pendingPhoto = pendingPhotoRef.current;
         if (
           pendingPhoto &&
-          message.chunk_index > pendingPhoto.issuedAfterChunk &&
+          chunkSerial > pendingPhoto.issuedAfterSerial &&
           message.active_prompt.trim() === pendingPhoto.prompt.trim()
         ) {
-          if (pendingPhoto.stage === "capture") {
-            clearPhotoWatchdog();
-            pendingPhoto.stage = "capturing";
-            setPhotoState("capturing");
-            completePhotoCaptureRef.current(pendingPhoto, message.chunk_index);
+          pendingPhoto.matchedChunks += 1;
+          pendingPhoto.issuedAfterSerial = chunkSerial;
+
+          if (pendingPhoto.matchedChunks < pendingPhoto.holdChunks) {
+            armPhotoWatchdog(
+              pendingPhoto,
+              `The ${pendingPhoto.cue} photo beat stopped generating. The ambient scene was restored.`,
+            );
+          } else if (pendingPhoto.stage === "capture") {
+            const [nextStep, ...remaining] = pendingPhoto.remaining;
+            if (nextStep) {
+              const advancing: PendingPhoto = {
+                ...pendingPhoto,
+                ...nextStep,
+                remaining,
+                matchedChunks: 0,
+                beatIndex: pendingPhoto.beatIndex + 1,
+                issuedAfterSerial: chunkSerial,
+              };
+              pendingPhotoRef.current = advancing;
+              setPhotoCue({
+                cue: advancing.cue,
+                beatIndex: advancing.beatIndex,
+                beatCount: advancing.beatCount,
+              });
+              promptRequestIdRef.current += 1;
+              lastPromptRef.current = advancing.prompt;
+              armPhotoWatchdog(
+                advancing,
+                `The ${advancing.cue} photo beat did not begin in time. The ambient scene was restored.`,
+              );
+              void setPrompt({ prompt: advancing.prompt }).catch((cause) => {
+                recoverPhoto(
+                  advancing,
+                  `The ${advancing.cue} photo beat failed: ${errorMessage(cause)}`,
+                );
+              });
+            } else {
+              pendingPhoto.stage = "capturing";
+              setPhotoState("capturing");
+              armPhotoWatchdog(
+                pendingPhoto,
+                "The shutter frame could not be saved in time. The ambient scene is being restored.",
+              );
+              completePhotoCaptureRef.current(
+                pendingPhoto,
+                message.chunk_index,
+              );
+            }
           } else if (pendingPhoto.stage === "release") {
+            restorePhotoAmbient(pendingPhoto, null);
+          } else if (pendingPhoto.stage === "restore") {
             clearPhotoWatchdog();
             pendingPhotoRef.current = null;
             photoBusyRef.current = false;
-            setPhotoState("saved");
+            setPhotoState(pendingPhoto.photoSaved ? "saved" : "idle");
+            setPhotoCue(null);
             setPhase("live");
-            const requestId = ++promptRequestIdRef.current;
-            lastPromptRef.current = pendingPhoto.ambientPrompt;
-            void setPrompt({ prompt: pendingPhoto.ambientPrompt }).catch(
-              (cause) => {
-                if (
-                  promptRequestIdRef.current === requestId &&
-                  !terminatingRef.current
-                ) {
-                  fail(cause);
-                }
-              },
-            );
           }
         }
         sendCameraPoseChunkRef.current();
@@ -936,13 +1074,14 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
         pendingRouteRef.current = null;
         pendingPhotoRef.current = null;
         photoBusyRef.current = false;
+        chunkSerialRef.current = 0;
         setPendingRouteId(null);
         setPhotoState("idle");
+        setPhotoCue(null);
         setPhotoFlash(false);
         setVideoReady(false);
         setModelState(null);
         setChunkIndex(0);
-        setIsTraversing(false);
         lastPromptRef.current = "";
         promptRequestIdRef.current += 1;
         break;
@@ -960,7 +1099,6 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
         if (wasRouting) {
           lastAxesRef.current.longitudinal = "idle";
           lastAxesRef.current.lookHorizontal = "idle";
-          setIsTraversing(false);
           void Promise.all([
             setMoveLongitudinal({ move_longitudinal: "idle" }),
             setLookHorizontal({ look_horizontal: "idle" }),
@@ -995,10 +1133,12 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
       setActiveRouteId(null);
       setPendingRouteId(null);
       setPhotoState("idle");
+      setPhotoCue(null);
       setVideoReady(false);
       pendingRouteRef.current = null;
       pendingPhotoRef.current = null;
       photoBusyRef.current = false;
+      chunkSerialRef.current = 0;
       promptRequestIdRef.current += 1;
       pendingStartRef.current = true;
       startIssuedRef.current = false;
@@ -1013,8 +1153,9 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
       const imageRef = await uploadFile(imageFile, { name: imageFile.name });
       if (!isCurrentAttempt()) return;
       const prompt = composeWorldPrompt(maze, undefined, {
-        isMoving: false,
+        isMoving: true,
         actionMode: "ambient",
+        includeOpeningAnchor: true,
       });
 
       setPhase("arming");
@@ -1097,9 +1238,6 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
         : latest(["ArrowUp", "ArrowDown"]) === "ArrowDown"
           ? "down"
           : "idle";
-    const moving = longitudinal !== "idle" || lateral !== "idle";
-    setIsTraversing((current) => (current === moving ? current : moving));
-
     const previous = lastAxesRef.current;
     const commands: Promise<void>[] = [];
     if (longitudinal !== previous.longitudinal) {
@@ -1147,7 +1285,6 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
   const releaseControls = useCallback(async () => {
     heldControlsRef.current = [];
     setPressedControlCodes([]);
-    setIsTraversing(false);
     mouseLookRef.current = false;
     setMouseLook(false);
     pendingMouseYawRef.current = 0;
@@ -1315,6 +1452,7 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
         isMoving: true,
         isRouteTransition: true,
         actionMode: "ambient",
+        includeOpeningAnchor: true,
       });
       promptRequestIdRef.current += 1;
       const pendingRoute: PendingRoute = {
@@ -1339,7 +1477,6 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
         setPendingRouteId(null);
         lastAxesRef.current.longitudinal = "idle";
         lastAxesRef.current.lookHorizontal = "idle";
-        setIsTraversing(false);
         setPhase("live");
         setError("This route did not settle in time. Navigation was reset; please try again.");
         void Promise.all([
@@ -1355,7 +1492,6 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
         ) {
           return;
         }
-        setIsTraversing(true);
         if (route.navigation === "forward") {
           lastAxesRef.current.longitudinal = "forward";
           await Promise.all([
@@ -1384,7 +1520,6 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
           return;
         }
         clearRouteWatchdog();
-        setIsTraversing(false);
         pendingRouteRef.current = null;
         setPendingRouteId(null);
         lastAxesRef.current.longitudinal = "idle";
@@ -1435,7 +1570,13 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
       }
 
       setCapturedPhoto(photo);
-      downloadCapturedPhoto(photo);
+      try {
+        downloadCapturedPhoto(photo);
+      } catch (cause) {
+        setError(
+          `The photo was saved, but automatic download could not start: ${errorMessage(cause)}`,
+        );
+      }
       setPhotoFlash(true);
       if (photoFlashTimerRef.current !== null) {
         window.clearTimeout(photoFlashTimerRef.current);
@@ -1449,10 +1590,20 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
         ...pending,
         stage: "release",
         prompt: pending.releasePrompt,
-        issuedAfterChunk: completedChunk,
+        cue: "NICE!",
+        holdChunks: pending.releaseHoldChunks,
+        matchedChunks: 0,
+        remaining: [],
+        issuedAfterSerial: chunkSerialRef.current,
+        photoSaved: true,
       };
       pendingPhotoRef.current = releasePending;
       setPhotoState("returning");
+      setPhotoCue({
+        cue: releasePending.cue,
+        beatIndex: releasePending.beatCount,
+        beatCount: releasePending.beatCount,
+      });
       promptRequestIdRef.current += 1;
       lastPromptRef.current = releasePending.prompt;
       armPhotoWatchdog(
@@ -1497,41 +1648,76 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
 
     photoBusyRef.current = true;
     const ambientPrompt = composeWorldPrompt(activeMaze, activeRoute, {
-      isMoving: false,
+      isMoving: true,
       actionMode: "ambient",
+      includeOpeningAnchor: true,
     });
-    const capturePrompt = composeWorldPrompt(activeMaze, activeRoute, {
-      isMoving: false,
-      actionMode: "photo",
-    });
+    const steps: PhotoPromptStep[] = activeMaze.photoAction.beats.map(
+      (beat) => ({
+        cue: beat.cue,
+        holdChunks: beat.holdChunks,
+        prompt: composeWorldPrompt(activeMaze, activeRoute, {
+          isMoving: false,
+          actionMode: beat.mode,
+          includeOpeningAnchor: true,
+        }),
+      }),
+    );
+    const [firstStep, ...remaining] = steps;
+    if (!firstStep) {
+      photoBusyRef.current = false;
+      setError("This maze does not define a photo sequence.");
+      return;
+    }
     const pending: PendingPhoto = {
       stage: "capture",
-      prompt: capturePrompt,
+      ...firstStep,
+      matchedChunks: 0,
+      remaining,
+      beatIndex: 1,
+      beatCount: steps.length,
       releasePrompt: composeWorldPrompt(activeMaze, activeRoute, {
         isMoving: false,
         actionMode: "photo-release",
+        includeOpeningAnchor: true,
       }),
+      releaseHoldChunks: activeMaze.photoAction.releaseHoldChunks,
       ambientPrompt,
-      issuedAfterChunk: chunkIndex,
+      issuedAfterSerial: chunkSerialRef.current,
+      photoSaved: false,
     };
     pendingPhotoRef.current = pending;
     setPhotoState("framing");
+    setPhotoCue({
+      cue: pending.cue,
+      beatIndex: pending.beatIndex,
+      beatCount: pending.beatCount,
+    });
     setPhase("switching");
     setError(null);
     armPhotoWatchdog(
       pending,
-      "The Blogger did not reach the shutter moment in time. The ambient scene was restored.",
+      "The photo sequence did not begin in time. The ambient scene was restored.",
     );
 
     try {
+      if (window.matchMedia("(max-width: 820px)").matches) {
+        const reducedMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)",
+        ).matches;
+        stageMediaRef.current?.scrollIntoView({
+          behavior: reducedMotion ? "auto" : "smooth",
+          block: "start",
+        });
+      }
       if (document.pointerLockElement === stageMediaRef.current) {
         document.exitPointerLock();
       }
       await releaseControls();
       if (pendingPhotoRef.current !== pending || terminatingRef.current) return;
       promptRequestIdRef.current += 1;
-      lastPromptRef.current = capturePrompt;
-      await setPrompt({ prompt: capturePrompt });
+      lastPromptRef.current = pending.prompt;
+      await setPrompt({ prompt: pending.prompt });
     } catch (cause) {
       recoverPhoto(
         pending,
@@ -1543,7 +1729,6 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
     activeRoute,
     armPhotoWatchdog,
     canControl,
-    chunkIndex,
     recoverPhoto,
     releaseControls,
     revealVideo,
@@ -1566,9 +1751,9 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
     return () => window.removeEventListener("keydown", keydown);
   }, [takePhoto]);
 
-  // The official template's structured authoring model is retained here as a
-  // product-sized adapter: locomotion selects the still/moving camera and
-  // movement layers while the maze identity and narrative route stay intact.
+  // Normal navigation never changes the world prompt: WASD, arrow keys, and
+  // mouse look travel exclusively through the SDK camera-input channels. Only
+  // an explicit route or photo action is allowed to swap narrative prompts.
   useEffect(() => {
     if (
       !canControl ||
@@ -1599,6 +1784,13 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
         await resume();
       } else {
         await releaseControls();
+        if (
+          terminatingRef.current ||
+          pendingPhotoRef.current ||
+          pendingRouteRef.current
+        ) {
+          return;
+        }
         await pause();
       }
     } catch (cause) {
@@ -1640,12 +1832,14 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
     clearPhotoWatchdog();
     setPhase("ending");
     setError(null);
-    try {
-      await releaseControls();
-    } catch {
-      // Releasing held inputs is best effort. A failed input reset must never
-      // prevent the non-recoverable disconnect that stops billing.
-    }
+    await Promise.race([
+      releaseControls().catch(() => undefined),
+      new Promise<void>((resolve) =>
+        window.setTimeout(resolve, CONTROL_RELEASE_TIMEOUT_MS),
+      ),
+    ]);
+    // Releasing held inputs is best effort and bounded. A failed or stalled
+    // input reset must never prevent the disconnect that stops billing.
     try {
       await disconnect();
     } catch (cause) {
@@ -1659,14 +1853,16 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
     pendingRouteRef.current = null;
     pendingPhotoRef.current = null;
     photoBusyRef.current = false;
+    chunkSerialRef.current = 0;
     setModelState(null);
     setActiveMazeId(null);
     setActiveRouteId(null);
     setPendingRouteId(null);
     setPhotoState("idle");
-    setPhotoFlash(false);
-    setVideoReady(false);
-    setChunkIndex(0);
+      setPhotoCue(null);
+      setPhotoFlash(false);
+      setVideoReady(false);
+      setChunkIndex(0);
     setClip(null);
     setClipError(null);
     setPhase("preview");
@@ -1721,12 +1917,22 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
         : status.toUpperCase();
   const photoButtonLabel =
     photoState === "framing"
-      ? "FRAMING…"
+      ? photoCue?.cue === "READY"
+        ? "GATHERING CAST…"
+        : photoCue?.cue === "CHEESE!"
+          ? "CHEESE!"
+          : photoCue?.cue === "SHUTTER"
+            ? "HOLD THE POSE…"
+            : photoCue
+              ? `COUNTING ${photoCue.cue}…`
+              : "FRAMING…"
       : photoState === "capturing"
-        ? "SHUTTER…"
+        ? "SAVING PHOTO…"
         : photoState === "returning"
           ? "LOWERING PHONE…"
-          : "TAKE PHOTO";
+          : photoState === "saved"
+            ? "TAKE ANOTHER"
+            : "TAKE PHOTO";
 
   return (
     <main className="maze-app" style={{ "--maze-accent": activeMaze.accent } as React.CSSProperties}>
@@ -1763,11 +1969,6 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
             className={`seed-preview ${revealVideo ? "is-hidden" : ""}`}
             src={activeMaze.seedImage}
             alt={`Entrance frame for ${activeMaze.title}`}
-            onError={(event) => {
-              if (!event.currentTarget.src.endsWith("/dataset/hedge-threshold.png")) {
-                event.currentTarget.src = "/dataset/hedge-threshold.png";
-              }
-            }}
           />
           <LingbotWorld2MainVideoView
             className={`reactor-video ${revealVideo ? "has-track" : ""}`}
@@ -1778,10 +1979,34 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
           <div className="media-grid" />
           {photoFlash && <div className="photo-flash" aria-hidden="true" />}
 
-          {busy && phaseCopy[phase] && (
+          {busy && phaseCopy[phase] && !photoBusy && (
             <div className="materializing" role="status">
               <span className="materializing-mark" />
               <p>{phaseCopy[phase]}</p>
+            </div>
+          )}
+
+          {photoCue && photoBusy && (
+            <div
+              key={`${photoCue.beatIndex}-${photoCue.cue}`}
+              className={`photo-countdown cue-${photoCue.cue
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-")}`}
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <span>
+                {photoCue.cue === "READY"
+                  ? "GATHER THE CAST"
+                  : photoCue.cue === "NICE!"
+                    ? "PHOTO COMPLETE"
+                    : "COUNT IT OUT"}
+              </span>
+              <strong>{photoCue.cue}</strong>
+              <small>
+                BEAT {photoCue.beatIndex.toString().padStart(2, "0")} / {photoCue.beatCount.toString().padStart(2, "0")}
+              </small>
             </div>
           )}
 
@@ -1814,10 +2039,12 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
 
         <aside
           className={`maze-index ${hasMultipleMazes ? "" : "is-single"}`}
-          aria-label={hasMultipleMazes ? "Maze selection" : "Player character"}
+          aria-label={hasMultipleMazes ? "Maze selection" : "Rose garden ensemble"}
         >
           <span className="index-label">
-            {hasMultipleMazes ? "CHOOSE AN ENTRANCE" : "YOU ARE THE BLOGGER"}
+            {hasMultipleMazes
+              ? "CHOOSE AN ENTRANCE"
+              : `ROSE GARDEN ENSEMBLE · ${activeMaze.ensemble.count.toString().padStart(2, "0")}`}
           </span>
           {hasMultipleMazes && (
             <div className="index-list">
@@ -1852,35 +2079,42 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
               />
               <span>
                 <small>CONCEPT REFERENCE</small>
-                <strong>{activeMaze.characterName ?? "THE BLOGGER"}</strong>
+                <strong>{activeMaze.characterName ?? "THE HOST"}</strong>
                 <em>UI ONLY · NOT A SECOND SEED</em>
               </span>
             </figure>
           )}
-          <section className="ensemble-references" aria-label="Authored supporting cast references">
-            <span>AUTHORED CAST · {activeMaze.ensemble.count.toString().padStart(2, "0")}</span>
-            <div>
-              {activeMaze.ensemble.members.map((member) => (
-                <a
-                  key={member.id}
-                  href={member.referenceImage}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`Open ${member.name} character sheet`}
-                >
-                  <i>
-                    <img src={member.referenceImage} alt="" />
-                  </i>
-                  <strong>{member.name}</strong>
-                </a>
-              ))}
-            </div>
-          </section>
+          {activeMaze.ensemble.members.some((member) => member.referenceImage) && (
+            <section className="ensemble-references" aria-label="Authored supporting cast references">
+              <span>AUTHORED CAST · {activeMaze.ensemble.count.toString().padStart(2, "0")}</span>
+              <div>
+                {activeMaze.ensemble.members
+                  .filter((member) => member.referenceImage)
+                  .map((member) => (
+                    <a
+                      key={member.id}
+                      href={member.referenceImage}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`Open ${member.name} character sheet`}
+                    >
+                      <i>
+                        <img src={member.referenceImage} alt="" />
+                      </i>
+                      <strong>{member.name}</strong>
+                    </a>
+                  ))}
+              </div>
+            </section>
+          )}
         </aside>
 
-        <section className="story-panel" aria-live="polite">
+        <section
+          className={`story-panel ${activeRoute ? "" : "is-entrance"}`}
+          aria-live="polite"
+        >
           <p className="story-eyebrow">{narrative.eyebrow}</p>
-          <h1>{narrative.title}</h1>
+          {activeRoute && <h1>{narrative.title}</h1>}
           <p className="story-body">{narrative.body}</p>
           <div className="edition-line">
             <span>{activeMaze.edition}</span>
@@ -1893,7 +2127,7 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
             <span>{isLive ? "CHOOSE THE WORLD SHIFT" : "WORLDS AHEAD"}</span>
             <small>
               {isLive
-                ? "Walks forward for one generated chunk"
+                ? "Glides the observer camera for one generated chunk"
                 : "Preview three transformations"}
             </small>
           </div>
@@ -1956,13 +2190,13 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
               <div>
                 <span>LIVE ENSEMBLE · {activeMaze.ensemble.count} MODELS · AMBIENT</span>
                 <small>
-                  Wander → connect → pose → pause → release, continuously authored in the world prompt
+                  Stay on mark → breathe → shift weight → micro-pose → hold
                 </small>
               </div>
             </div>
             <div className="control-copy">
               <span>HOLD TO EXPLORE</span>
-              <small>Movement persists until release</small>
+              <small>Controls move only the observer camera</small>
             </div>
             <div className="control-keys">
               {CONTROL_BUTTONS.map((control) => (
@@ -2069,8 +2303,8 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
           <dl className="operator-grid">
             <div><dt>CONNECTION</dt><dd>{status}</dd></div>
             <div><dt>PHASE</dt><dd>{phase}</dd></div>
-            <div><dt>PROMPT MODE</dt><dd>{isTraversing ? "moving" : "still"}</dd></div>
-            <div><dt>CAST</dt><dd>{activeMaze.ensemble.count} · ambient choreography</dd></div>
+            <div><dt>PROMPT MODE</dt><dd>{photoState !== "idle" && photoState !== "saved" ? "photo action" : pendingRouteId ? "route transition" : "observer invariant"}</dd></div>
+            <div><dt>CAST</dt><dd>{activeMaze.ensemble.count} · independent micro-motion</dd></div>
             <div><dt>PHOTO</dt><dd>{photoState}</dd></div>
             <div><dt>CHUNK</dt><dd>{chunkIndex}</dd></div>
             <div><dt>ACTION</dt><dd>{modelState?.current_action ?? "—"}</dd></div>
@@ -2133,7 +2367,7 @@ function FashionMazeRuntime({ reactorConfigured }: FashionMazeExperienceProps) {
       )}
 
       <footer className="maze-footer">
-        <span>TEAM DATASET 01 · HEDGE THRESHOLD</span>
+        <span>TEAM DATASET 01 · ROSE GARDEN ENSEMBLE</span>
         <span>
           {sessionId ? `SESSION ${sessionId.slice(0, 8)}…` : "ONE IMAGE · MANY FUTURES"}
         </span>
