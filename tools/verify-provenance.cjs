@@ -249,9 +249,9 @@ check(
 check(
   experienceSource.includes("createQrostRunReceipt({") &&
     experienceSource.includes("runReceipt: qrostRunReceipt") &&
-    experienceSource.includes("<small>BY QROST</small>") &&
+    !experienceSource.includes("<small>BY QROST</small>") &&
     experienceSource.includes('sceneOrderSeed ?? "not drawn"'),
-  "runtime credit or sidecar run receipt is not wired",
+  "runtime provenance sidecar is missing or the visible header credit returned",
 );
 check(
   experienceSource.includes("QROST_OUTPUT_PREFIX}-run-") &&

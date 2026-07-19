@@ -453,14 +453,6 @@ summary:focus-visible {
   box-shadow: 0 0 12px var(--maze-accent);
 }
 
-.maze-wordmark small {
-  margin-left: 2px;
-  color: rgba(255, 255, 255, 0.68);
-  font-size: 8px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-}
-
 .header-meta {
   display: flex;
   align-items: center;
@@ -2206,16 +2198,6 @@ summary:focus-visible {
 
   .maze-wordmark i {
     width: 17px;
-  }
-
-  .maze-wordmark small {
-    position: absolute;
-    top: 18px;
-    left: 0;
-    margin-left: 0;
-    font-size: 8px;
-    letter-spacing: 0.1em;
-    white-space: nowrap;
   }
 
   .header-meta > span:first-child,

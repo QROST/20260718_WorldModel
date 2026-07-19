@@ -2656,7 +2656,6 @@ function FashionMazeRuntime({
           <span>FASHION</span>
           <i />
           <span>MAZE</span>
-          <small>BY QROST</small>
         </a>
         <div className="header-meta">
           <span className={`connection-state state-${statusTone}`}>

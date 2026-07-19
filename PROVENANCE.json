@@ -69,8 +69,8 @@
     },
     {
       "path": "app/globals.css",
-      "sha256": "70d5542e170bde9f753105bec47ff0826666254640491bbc15e567299ae760a9",
-      "bytes": 47427,
+      "sha256": "9e9e7ce43e1f2970d3a0a5d10f548e612278f58a42b15fe2ef171589bda7c68a",
+      "bytes": 47107,
       "contentClass": "project-source",
       "signaturePolicy": "header-and-manifest"
     },
@@ -118,8 +118,8 @@
     },
     {
       "path": "components/FashionMazeExperience.tsx",
-      "sha256": "f46f2857849babe2977b5cbd1cd59da8982cfa47200aad3514559a601ab67efa",
-      "bytes": 108529,
+      "sha256": "224163bc6c9c168edbb54c741ec9a9824e6fb94a770defe82350b9c019de6505",
+      "bytes": 108495,
       "contentClass": "project-source",
       "signaturePolicy": "header-and-manifest"
     },
@@ -689,8 +689,8 @@
     },
     {
       "path": "tools/verify-provenance.cjs",
-      "sha256": "3435ec9e89b6ccb29f163ea306073d30aaff74bf04a7e5b8cbbd04bc1b7c7991",
-      "bytes": 11326,
+      "sha256": "3cb6daa05d1669576c27b9846aa8195f74b41f1f8628b8eb1cf1cdf6e00efc9c",
+      "bytes": 11352,
       "contentClass": "project-source",
       "signaturePolicy": "header-and-manifest"
     },
