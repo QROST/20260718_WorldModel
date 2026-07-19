@@ -35,8 +35,8 @@
 ## 安装与运行
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 打开 `http://localhost:3000`。静态预览不会请求 JWT，也不会创建 Reactor session。
@@ -52,7 +52,7 @@ OPENAI_API_KEY=<your-openai-api-key>
 
 ## 内容包与 narrative
 
-当前内容从 `/Users/addincui/Github/2026TheFashionMaze-Hack` 以只读方式吸收。可携带的原始 spec 与 14-scene registry 位于 [`content/authoring/`](./content/authoring/)，实际运行的入口图和角色图位于 [`public/dataset/`](./public/dataset/)，映射决策记录在 [`content/README.md`](./content/README.md)。运行时内容集中在 [`lib/fashion-maze.ts`](./lib/fashion-maze.ts)。每个 maze 的结构为：
+当前内容从原始 Fashion Maze authoring 仓库以只读方式吸收。可携带的原始 spec 与 14-scene registry 位于 [`content/authoring/`](./content/authoring/)，实际运行的入口图和角色图位于 [`public/dataset/`](./public/dataset/)，映射决策记录在 [`content/README.md`](./content/README.md)。运行时内容集中在 [`lib/fashion-maze.ts`](./lib/fashion-maze.ts)。每个 maze 的结构为：
 
 ```ts
 interface FashionMaze {
@@ -113,7 +113,7 @@ interface FashionMaze {
 
 每条 `route` 同时包含观众看到的 narrative 和模型看到的 `promptDelta.transition / settled`。选择变体时，首个 forward chunk 使用一次性 transition；chunk 完成后立即换成没有生长、出现或攀爬过程动词的 settled Prompt。普通 WASD、方向键与鼠标只发送 SDK 原生 camera input；普通探索的 camera segment 同时明确“idle 时静止、held input 时才运动”，避免 `setPrompt()` 的 next-chunk 延迟与实时输入竞态。`composeWorldPromptSegments()` / `composePortalPromptSegments()` 是唯一的分层真源，字符串 composer 只负责单空格拼接。黑门使用 compact layer version：Reactor 用 3 个 chunks 让环境既有拱或门洞完成 ornamental 黑化并稳定，再用 8 个同时匹配 `forward` action 与 portal Prompt 的 chunks 走近、越过门槛并完整进入；客户端末段只做最大 1.1× 的轻微推进，真正黑场由门内画面与固定 curtain 完成。opening anchor 始终作为 world-space mark 携带；route、photo 与 portal action 互斥。拍照状态机使用本地单调 chunk serial，即使 Reactor run 内的 `chunk_index` 归零也不会提前推进。
 
-六道黑门分别围绕相邻两幕的视觉边界提问：玫瑰与电光、信号与纪念碑、雕塑与未来、棱镜与延续、霓虹与花园、自然与锻造终章。六个问题、十二个选项文案和十二个 choice ID 全局唯一。手动点击黑门或 30 秒自动到点都会进入同一个 `pausing → choosing → preparing → resuming` 决策状态机：立即释放镜头输入并冻结本幕倒计时，收到 Reactor pause 确认后才开放两个答案；选择后在暂停状态预设黑门 Prompt，resume 的第一个生成 chunk 直接进入原有黑门流程。问答期间不会发送环境 Prompt，普通暂停按钮也会锁定；弹窗明确提示 session 暂停期间仍在计费，并始终提供 End Session。
+七道黑门各使用一道与目标场景无关的问题，因此随机幕序不会让文案与下一张 seed 错配；七个问题、十四个选项文案和十四个 choice ID 全局唯一。手动点击黑门或 30 秒自动到点都会进入同一个 `pausing → choosing → preparing → resuming` 决策状态机：立即释放镜头输入并冻结本幕倒计时，收到 Reactor pause 确认后才开放两个答案；选择后在暂停状态预设黑门 Prompt，resume 的第一个生成 chunk 直接进入原有黑门流程。问答期间不会发送环境 Prompt，普通暂停按钮也会锁定；弹窗明确提示 session 暂停期间仍在计费，并始终提供 End Session。第七次决策结束 authored journey，并进入 runtime-only Grand Palais finale 的生成流程。
 
 `photoAction` 只用于少数场景的特殊覆盖。未配置时，`resolvePhotoAction()` 会根据当前 variant 的 `ensemble.count` 自动生成共享的 `LOOK HERE / HOLD / SHUTTER / release` 协议；第五幕为 5 / 7 / 5 人，第六幕为 6 / 6 / 5 / 6 / 6 / 6 人，第七幕为 6 / 6 / 5 / 5 / 6 人，全部默认支持拍照。
 
@@ -153,11 +153,11 @@ interface FashionMaze {
 ## 验证
 
 ```bash
-npm run typecheck
-npm run verify:prompts
-npm run verify:startup
-npm run verify:finale
-npm run build
+pnpm typecheck
+pnpm verify:prompts
+pnpm verify:startup
+pnpm verify:finale
+pnpm build
 ```
 
 三个 `verify:*` 都不连接 Reactor 或 OpenAI，也不花费 credits；`prebuild` 会自动运行全部验证。Prompt suite 穷举 authored scene × entrance variant × route × photo beat × portal stage，检查随机顺序、七道门问答、seed 文件、ID、anchor、layer ownership、photo shutter 语义与字符预算；当前矩阵覆盖 7 个 authored scenes、24 个入口变体、240 个完整 Prompt packets，最长组合为 1797 / 2000 characters。Startup suite 覆盖 disconnect edge、once-only gate 与 debug redaction；finale suite 覆盖七张 allowlisted references、十条等待文案、single-flight guard 与 runtime Scene 8，不发真实 API 请求。

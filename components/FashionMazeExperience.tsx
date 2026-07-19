@@ -3571,16 +3571,23 @@ function FashionMazeRuntime({
     // input reset must never prevent the disconnect that stops billing.
     let disconnectTimer: number | null = null;
     try {
-      const disconnected = await Promise.race([
-        disconnect().then(() => true),
-        new Promise<boolean>((resolve) => {
+      const disconnectAttempt = disconnect()
+        .then(() => ({ status: "disconnected" as const }))
+        .catch((cause: unknown) => ({ status: "failed" as const, cause }));
+      const disconnectResult = await Promise.race([
+        disconnectAttempt,
+        new Promise<{ status: "timed-out" }>((resolve) => {
           disconnectTimer = window.setTimeout(
-            () => resolve(false),
+            () => resolve({ status: "timed-out" }),
             DISCONNECT_CONFIRM_TIMEOUT_MS,
           );
         }),
       ]);
-      if (!disconnected) {
+      if (disconnectResult.status === "failed") {
+        fail(disconnectResult.cause);
+        return false;
+      }
+      if (disconnectResult.status === "timed-out") {
         fail(
           new Error(
             "Reactor did not confirm disconnect within 10 seconds. The session may still be active; retry End Session before continuing.",
