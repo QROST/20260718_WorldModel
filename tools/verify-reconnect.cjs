@@ -31,9 +31,11 @@ require.extensions[".ts"] = (module, filename) => {
 };
 
 const root = path.join(__dirname, "..");
-const { classifyReactorDisconnect } = require(
-  path.join(root, "lib/reactor-lifecycle.ts"),
-);
+const {
+  classifyReactorDisconnect,
+  isReactorSessionActive,
+  shouldConfirmReactorReconnect,
+} = require(path.join(root, "lib/reactor-lifecycle.ts"));
 const experienceSource = fs.readFileSync(
   path.join(root, "components/FashionMazeExperience.tsx"),
   "utf8",
@@ -80,6 +82,18 @@ const assertions = [
     classify({ sessionId: undefined }) === "reset",
   ],
   [
+    "recovery confirms only a retained session at observable ready",
+    shouldConfirmReactorReconnect("ready", "session-1") &&
+      !shouldConfirmReactorReconnect("connecting", "session-1") &&
+      !shouldConfirmReactorReconnect("ready", null),
+  ],
+  [
+    "an active transport or retained id blocks a second billed session",
+    isReactorSessionActive("ready", undefined) &&
+      isReactorSessionActive("disconnected", "session-1") &&
+      !isReactorSessionActive("disconnected", undefined),
+  ],
+  [
     "SDK reconnect failure is not represented by a rejected promise",
     sdkReconnectSource.includes("this.disconnect(true)") &&
       sdkReconnectSource.includes('"RECONNECTION_FAILED"') &&
@@ -88,12 +102,9 @@ const assertions = [
   [
     "app reconnects the retained session and confirms only observable ready",
     experienceSource.includes("reconnect({ sessionId })") &&
-      (experienceSource.includes(
-        'status === "ready" && reconnectingSessionIdRef.current',
-      ) ||
-        experienceSource.includes(
-          "shouldConfirmReactorReconnect(status, reconnectingSessionId)",
-        )),
+      experienceSource.includes(
+        "shouldConfirmReactorReconnect(status, reconnectingSessionId)",
+      ),
   ],
   [
     "reconnect confirmation has an always-on bounded watchdog",
@@ -110,11 +121,10 @@ const assertions = [
     experienceSource.includes('lastError.code === "RECONNECTION_FAILED"'),
   ],
   [
-    "retained billed session blocks Start and keeps End Session visible",
+    "session predicate is wired across Start, End, and Grand Palais flows",
     experienceSource.includes("A previous Reactor session may still be billing") &&
-      (experienceSource.includes("busy || Boolean(sessionId)") ||
-        (experienceSource.match(/isReactorSessionActive\(status, sessionId\)/g) ?? [])
-          .length >= 3),
+      (experienceSource.match(/isReactorSessionActive\(status, sessionId\)/g) ?? [])
+        .length >= 6,
   ],
 ];
 

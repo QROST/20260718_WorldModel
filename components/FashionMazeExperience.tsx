@@ -43,9 +43,11 @@ import {
 import {
   canIssueGenerationStart,
   classifyReactorDisconnect,
+  isReactorSessionActive,
   planFrameProbeRecovery,
   planPendingMazeStage,
   sanitizeReactorDebugText,
+  shouldConfirmReactorReconnect,
 } from "@/lib/reactor-lifecycle";
 import {
   useReactorControls,
@@ -1228,8 +1230,9 @@ function FashionMazeRuntime({
     const previousStatus = previousStatusRef.current;
     previousStatusRef.current = status;
 
-    if (status === "ready" && reconnectingSessionIdRef.current) {
-      const restoredSessionId = reconnectingSessionIdRef.current;
+    const reconnectingSessionId = reconnectingSessionIdRef.current;
+    if (shouldConfirmReactorReconnect(status, reconnectingSessionId)) {
+      const restoredSessionId = reconnectingSessionId;
       clearReconnectWatchdog();
       reconnectingSessionIdRef.current = null;
       failedReconnectSessionIdRef.current = null;
@@ -1922,7 +1925,7 @@ function FashionMazeRuntime({
   }, [stagePendingMaze]);
 
   const enterMaze = useCallback(async () => {
-    if (sessionId) {
+    if (isReactorSessionActive(status, sessionId)) {
       setError(
         "A previous Reactor session may still be billing. End that session before starting another live maze.",
       );
@@ -2154,7 +2157,7 @@ function FashionMazeRuntime({
       setFinaleStoryIndex(0);
       setFinaleError(null);
 
-      if (status !== "disconnected" || Boolean(sessionId)) {
+      if (isReactorSessionActive(status, sessionId)) {
         const ended = await endSession();
         if (!ended || finaleGenerationAttemptRef.current !== attempt) {
           if (finaleGenerationAttemptRef.current === attempt) {
@@ -2274,8 +2277,7 @@ function FashionMazeRuntime({
     try {
       const mustEndSession =
         finalePhase === "starting" ||
-        status !== "disconnected" ||
-        Boolean(sessionId);
+        isReactorSessionActive(status, sessionId);
       if (mustEndSession) {
         const ended = await endSession();
         if (finaleGenerationAttemptRef.current !== attempt) return;
@@ -2619,7 +2621,7 @@ function FashionMazeRuntime({
           >
             Session tools
           </button>
-          {(status !== "disconnected" || Boolean(sessionId)) && (
+          {isReactorSessionActive(status, sessionId) && (
             <button className="text-button danger" onClick={endSession} disabled={phase === "ending"}>
               End session
             </button>
@@ -2750,7 +2752,11 @@ function FashionMazeRuntime({
             <button
               className="enter-button"
               onClick={enterMaze}
-              disabled={!reactorConfigured || busy || Boolean(sessionId)}
+              disabled={
+                !reactorConfigured ||
+                busy ||
+                isReactorSessionActive(status, sessionId)
+              }
             >
               <span>Start live maze</span>
             </button>
@@ -3001,7 +3007,7 @@ function FashionMazeRuntime({
                 <p className="grand-palais-kicker">THE FINAL ATELIER PAUSED</p>
                 <h2>{finaleMaze ? "Your show is still waiting." : "The image did not arrive."}</h2>
                 <p role="alert">{finaleError ?? "Please try again."}</p>
-                {status !== "disconnected" || Boolean(sessionId) ? (
+                {isReactorSessionActive(status, sessionId) ? (
                   <button
                     onClick={() => void cancelGrandPalais()}
                     disabled={phase === "ending"}

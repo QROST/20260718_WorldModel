@@ -102,6 +102,20 @@ export function planFrameProbeRecovery(
   };
 }
 
+export function shouldConfirmReactorReconnect(
+  status: ReactorStatus,
+  reconnectingSessionId: string | null,
+): reconnectingSessionId is string {
+  return status === "ready" && Boolean(reconnectingSessionId);
+}
+
+export function isReactorSessionActive(
+  status: ReactorStatus,
+  sessionId: string | undefined,
+): boolean {
+  return status !== "disconnected" || Boolean(sessionId);
+}
+
 export function canIssueGenerationStart(gate: ReactorStartGate): boolean {
   return (
     !gate.terminating &&
