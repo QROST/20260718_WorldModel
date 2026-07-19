@@ -15,6 +15,8 @@ if [ ! -x node_modules/.bin/next ]; then
   "$REPO_ROOT/setup-demo.sh"
 fi
 
+"$REPO_ROOT/check-demo-keys.sh"
+
 DEMO_PORT=${FASHION_MAZE_PORT:-3000}
 case "$DEMO_PORT" in
   ''|*[!0-9]*)

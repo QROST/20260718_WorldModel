@@ -21,34 +21,7 @@ else
   printf '%s\n' "[demo] Using the existing production build. Run ./build-demo.sh after source changes."
 fi
 
-env_file_declares() {
-  VARIABLE_NAME=$1
-  for CONFIG_FILE in \
-    .env.local \
-    .env.production.local \
-    .env.development.local \
-    .env.production \
-    .env.development \
-    .env
-  do
-    if [ -f "$CONFIG_FILE" ] && grep -Eq "^[[:space:]]*${VARIABLE_NAME}[[:space:]]*=[[:space:]]*.+$" "$CONFIG_FILE"; then
-      return 0
-    fi
-  done
-  return 1
-}
-
-if [ -n "${REACTOR_API_KEY:-}" ] || [ -s reactor.key ] || env_file_declares REACTOR_API_KEY; then
-  printf '%s\n' "[demo] Reactor server credential detected; its value will not be printed."
-else
-  printf '%s\n' "[demo] Warning: no Reactor server credential was detected; live maze startup will be unavailable." >&2
-fi
-
-if [ -n "${OPENAI_API_KEY:-}" ] || [ -s openai.key ] || env_file_declares OPENAI_API_KEY; then
-  printf '%s\n' "[demo] OpenAI server credential detected; its value will not be printed."
-else
-  printf '%s\n' "[demo] Warning: no OpenAI server credential was detected; Scene 8 generation will be unavailable." >&2
-fi
+"$REPO_ROOT/check-demo-keys.sh"
 
 DEMO_PORT=${FASHION_MAZE_PORT:-3000}
 case "$DEMO_PORT" in

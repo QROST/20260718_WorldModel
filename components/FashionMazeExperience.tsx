@@ -1932,7 +1932,11 @@ function FashionMazeRuntime({
       return;
     }
     if (!reactorConfigured) {
-      fail(new Error("Add REACTOR_API_KEY before starting a live maze."));
+      fail(
+        new Error(
+          "Reactor API key is missing. Only the static preview is available; run ./check-demo-keys.sh in the server repository, save the key, and restart.",
+        ),
+      );
       return;
     }
 
@@ -2168,7 +2172,9 @@ function FashionMazeRuntime({
         }
       }
       if (!openaiConfigured) {
-        setFinaleError("Add OPENAI_API_KEY or ./openai.key to generate Scene 8.");
+        setFinaleError(
+          "OpenAI API key is missing. Scene 8 is unavailable; run ./check-demo-keys.sh in the server repository, save the key, and restart.",
+        );
         setFinalePhase("error");
         return;
       }
@@ -2760,7 +2766,20 @@ function FashionMazeRuntime({
             >
               <span>Start live maze</span>
             </button>
-            <p>Starts a billed Reactor session.</p>
+            <p>
+              {reactorConfigured
+                ? "Starts a billed Reactor session."
+                : "Reactor key missing · static preview only."}
+            </p>
+            {!openaiConfigured && (
+              <p>OpenAI key missing · Scene 8 generation is unavailable.</p>
+            )}
+            {(!reactorConfigured || !openaiConfigured) && (
+              <p>
+                Run <code>./check-demo-keys.sh</code> in the server repository
+                for setup links and safe local paths.
+              </p>
+            )}
           </div>
         ) : (
           <div className="control-dock">

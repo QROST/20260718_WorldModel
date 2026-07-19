@@ -43,25 +43,62 @@ pnpm dev
 
 ### 演示脚本
 
-仓库根目录提供四个无需记忆参数的入口：
+仓库根目录提供五个无需记忆参数的入口：
 
 ```bash
 ./setup-demo.sh  # 安装 lockfile 固定的依赖
 ./build-demo.sh  # 同步依赖、类型检查、全部离线验证与 production build
+./check-demo-keys.sh  # 只检查凭据是否存在，不输出 key 内容
 ./start-demo.sh  # 启动 loopback-only production 演示
 ./start-dev.sh   # 启动 loopback-only development server
 ```
 
 从干净 clone 直接运行 `./start-demo.sh` 也可以；缺少依赖或 production build 时，它会自动准备。正式演示建议提前运行 `./setup-demo.sh` 与 `./build-demo.sh`，现场只运行 `./start-demo.sh`。首次安装需要访问 package registry；构建与启动均使用 lockfile 固定的依赖。所有脚本都不会输出、创建或复制 API key，也不会在安装或构建阶段连接 Reactor / OpenAI。若已开始 live Reactor session，停止本地服务器前仍应先在页面点击 `End Session`。
 
-应用优先读取服务端环境变量：
+### API key 获取与本地保存
+
+Reactor 与 OpenAI 是两项独立的服务。在对应账号具备模型访问权和 credits 的前提下，可用范围如下：
+
+| Reactor key | OpenAI key | 可用体验 |
+| --- | --- | --- |
+| 缺少 | 任意 | 只有静态预览，不会建立 Reactor session |
+| 已配置 | 缺少 | Scene 1–7 的 live maze 可用，Scene 8 生成不可用 |
+| 已配置 | 已配置 | 完整 Scene 1–8 体验 |
+
+1. **Reactor**：打开 [Reactor API Keys](https://www.reactor.inc/account/api-keys)，登录或注册后创建 key；官方文档说明 key 以 `rk_` 开头。同时确认账号已获得 LingBot World 2 的访问权与 credits。详见 [Reactor Authentication](https://docs.reactor.inc/authentication) 和 [LingBot World 2 API](https://www.reactor.inc/models/lingbot-world-2/api)。
+2. **OpenAI**：打开 [OpenAI Platform API Keys](https://platform.openai.com/settings/organization/api-keys) 创建 API key，并在 [API Billing Overview](https://platform.openai.com/account/billing/overview) 确认 API 计费可用。Scene 8 使用 `gpt-image-2`；官方 [Image generation guide](https://developers.openai.com/api/docs/guides/image-generation) 说明 GPT Image 模型可能还需要在 [Organization settings](https://platform.openai.com/settings/organization/general) 完成验证。OpenAI API 与 ChatGPT 订阅分开计费；只有 ChatGPT Plus/Pro 不等于已有 API credits。安全原则见 [OpenAI API key best practices](https://developers.openai.com/api/docs/guides/production-best-practices#api-keys)。
+
+获得 key 后，选下列一种保存方式。
+
+**A. 推荐：使用仓库根目录的 `.env.local`**
+
+如果还没有 `.env.local`，先初始化并收紧权限：
 
 ```bash
-REACTOR_API_KEY=<your-reactor-api-key>
-OPENAI_API_KEY=<your-openai-api-key>
+cp .env.example .env.local
+chmod 600 .env.local
 ```
 
-本地 hackathon 开发也可分别使用根目录的 `reactor.key` 与 `openai.key`。所有 `*.key` 文件均被 Git 忽略；Reactor key 不会进入浏览器，浏览器只从 `POST /api/reactor/token` 获得十分钟有效的短期 JWT；OpenAI key 只由 Scene 8 服务端 route 读取。
+然后编辑 `.env.local`：
+
+```bash
+REACTOR_API_KEY=<paste-your-reactor-key>
+OPENAI_API_KEY=<paste-your-openai-key>
+```
+
+**B. 本地 hackathon 备选：使用根目录 key 文件**
+
+- `./reactor.key`：只写一行原始 Reactor key。
+- `./openai.key`：只写一行原始 OpenAI key。
+
+```bash
+chmod 600 reactor.key
+chmod 600 openai.key
+```
+
+保存后重新运行 `./start-demo.sh` 或 `./start-dev.sh`；Next.js 在服务器启动时读取这些凭据。可先执行 `./check-demo-keys.sh` 检查配置，它只报告“已检测/缺少”，不输出 key 内容。
+
+`.env.local`、`.env.*` 和所有 `*.key` 都被 Git 忽略。不要把真实 key 写进 `.env.example`、`NEXT_PUBLIC_*`、源码、README、截图或日志；手工 ZIP/Finder 复制不会遵守 `.gitignore`，交付前必须显式排除这些文件。Reactor key 不会进入浏览器，浏览器只从 `POST /api/reactor/token` 获得短期 JWT；OpenAI key 只由 Scene 8 服务端 route 读取。正式部署应使用 hosting 平台的 secret manager，而不是 key 文件。
 
 ## 内容包与 narrative
 
