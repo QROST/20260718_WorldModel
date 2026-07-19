@@ -20,8 +20,8 @@
 - 首次连接只在 observable `status === ready` 后上传参考图；`conditions_ready` 与权威 `state.has_image / has_prompt` 任一路径确认双条件后，以 once-only gate 触发 generation；
 - seed 不会在黑色占位 track 刚出现时消失；generation 启动后，只有 track live/unmuted、视频播放中且连续两帧通过非黑像素检查才交叉淡出。当前 hackathon 模式不会因可见帧等待过久而自动断开；
 - 变体选择同时发送 hot-swapped prompt 与一段单-chunk 前进指令；确认生效后自动回到 idle 与 settled prompt；入口 seed 没有虚构的三岔口；
-- 每一幕默认都有 `TAKE PHOTO` 与快捷键 `C`，并共享同一段短暂通用流程：`LOOK HERE → HOLD → SHUTTER`，三个 beat 各保持一个已确认的 Prompt chunk。流程根据当前 scene 的 `ensemble.count` 描述全部 seed-visible performers，不包含 `M01–M05`、固定人数、服装或场景名称；第二幕及其后所有当前与未来 Chapter 都无需复制拍照配置。人物只做最小幅度的眼神、头部和必要时的肩部转动；无人物场景则固定环境构图；
-- `SHUTTER` Prompt 只描述完成姿势的稳定可见状态，真正的截帧完全由网页完成。确认后应用从原始 Reactor video frame 保存 PNG，自动尝试下载，并保留带缩略图的 `PHOTO SAVED / DOWNLOAD` 回执；随后一个 release chunk 让当前 subjects 放松目光，再等待一个真实 ambient Prompt chunk 才解锁控制。Reactor Prompt/chunk 确认没有应用层等待上限；
+- 每一幕默认都有 `TAKE PHOTO` 与快捷键 `C`，并共享同一段通用流程：`LOOK HERE → HOLD → SHUTTER`。人物场景使用 `2 / 3 / 2` 个已确认的 Prompt chunks：先完成面部、头部和必要的轻微肩部转向，再稳定姿势，最后保持快门构图；每个 beat 都用紧凑、自包含的正面状态要求全部人物正脸、睁眼并直视当前 first-person camera lens，而不是回指上一个 beat 的抽象 `gaze`。流程根据当前 scene 的 `ensemble.count` 描述全部 seed-visible performers，不包含 `M01–M05`、固定人数、服装或场景名称。第二幕及其后所有当前与未来 Chapter 都无需复制拍照配置；无人物场景仍使用三段单-chunk 环境构图；
+- `SHUTTER` Prompt 只描述完成姿势的稳定可见状态，真正的截帧完全由网页完成。`chunk_complete` 后应用继续等待 1.2 秒已实际呈现的 Reactor media time，避免把已发出但尚未播放到浏览器的旧帧保存为照片；支持 frame callback 的浏览器按 media time 栅栏，fallback 在浏览器提供 playback-quality counter 时同时验证已呈现帧数，否则以 `currentTime` 做 best-effort，两条路径都在 5 秒内 fail closed。随后从无 HTML 覆盖的原始主视频帧保存 PNG、自动尝试下载并显示回执。一个 release chunk 让当前 subjects 放松目光，再等待一个真实 ambient Prompt chunk 才解锁控制。Reactor Prompt/chunk 确认没有应用层等待上限；
 - WASD 只控制观察者镜头的前后与横移，方向键只控制镜头视角；没有任何人物会跟随输入移动、转身或追踪镜头。`MOUSE LOOK` 使用原生 `setCameraPose()` 与 video chunk 时钟；
 - `Session tools` 抽屉显示 session、chunk、action、track、camera pose、计时器 gate 与最终 Prompt 预算；其中默认折叠的 `Debug event log` 保留最近 250 条 lifecycle 事件，可复制 JSONL 或手动清空；实现会遮蔽常见 JWT、Bearer、API-key、blob URL 与本机路径格式，但仍应在对外分享前人工检查；
 - 录制可用时，operator 可截取最近 10 秒，预览并下载 MP4；

@@ -216,7 +216,8 @@ const START_WATCHDOG_MS = 20_000;
 const VISIBLE_VIDEO_WATCHDOG_MS = 20_000;
 const ROUTE_WATCHDOG_MS = 15_000;
 const PHOTO_WATCHDOG_MS = 30_000;
-const PHOTO_FRAME_TIMEOUT_MS = 2_000;
+const PHOTO_RENDER_SETTLE_MS = 1_200;
+const PHOTO_FRAME_TIMEOUT_MS = 5_000;
 const PHOTO_ENCODE_TIMEOUT_MS = 2_000;
 const VIDEO_FRAME_PROBE_TIMEOUT_MS = 1_000;
 const CONTROL_RELEASE_TIMEOUT_MS = 750;
@@ -482,30 +483,91 @@ function scheduleCreditProtectionTimeout(
   return window.setTimeout(callback, timeoutMs);
 }
 
-async function waitForFreshVideoFrame(video: HTMLVideoElement): Promise<void> {
-  if (typeof video.requestVideoFrameCallback !== "function") {
-    await new Promise<void>((resolve) =>
-      window.requestAnimationFrame(() => resolve()),
-    );
-    return;
-  }
-
+async function waitForRenderedVideoDuration(
+  video: HTMLVideoElement,
+  minimumDurationMs: number,
+): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     let frameRequest: number | null = null;
-    const timeout = window.setTimeout(() => {
+    let fallbackTimer: number | null = null;
+    let timeout: number | null = null;
+    let firstMediaTime: number | null = null;
+    let settled = false;
+    const initialCurrentTime = video.currentTime;
+    const initialPresentedFrames =
+      typeof video.getVideoPlaybackQuality === "function"
+        ? video.getVideoPlaybackQuality().totalVideoFrames
+        : null;
+    const cleanup = () => {
+      if (timeout !== null) {
+        window.clearTimeout(timeout);
+        timeout = null;
+      }
+      if (fallbackTimer !== null) {
+        window.clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
       if (
         frameRequest !== null &&
         typeof video.cancelVideoFrameCallback === "function"
       ) {
         video.cancelVideoFrameCallback(frameRequest);
       }
-      reject(new Error("No fresh Reactor frame arrived for the photo."));
+      frameRequest = null;
+    };
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (error) {
+        reject(error);
+      } else {
+        resolve();
+      }
+    };
+    const requestNextFrame = () => {
+      if (settled) return;
+      frameRequest = video.requestVideoFrameCallback((_now, metadata) => {
+        frameRequest = null;
+        if (settled) return;
+        if (firstMediaTime === null) firstMediaTime = metadata.mediaTime;
+        if (
+          (metadata.mediaTime - firstMediaTime) * 1_000 >= minimumDurationMs
+        ) {
+          finish();
+        } else {
+          requestNextFrame();
+        }
+      });
+    };
+    const pollFallback = () => {
+      if (settled) return;
+      const mediaAdvanced =
+        (video.currentTime - initialCurrentTime) * 1_000 >= minimumDurationMs;
+      const framesAdvanced =
+        initialPresentedFrames === null ||
+        (typeof video.getVideoPlaybackQuality === "function" &&
+          video.getVideoPlaybackQuality().totalVideoFrames >
+            initialPresentedFrames);
+      if (mediaAdvanced && framesAdvanced) {
+        finish();
+      } else {
+        fallbackTimer = window.setTimeout(pollFallback, 50);
+      }
+    };
+    timeout = window.setTimeout(() => {
+      finish(
+        new Error(
+          "The Reactor view did not render enough settled video for the photo.",
+        ),
+      );
     }, PHOTO_FRAME_TIMEOUT_MS);
 
-    frameRequest = video.requestVideoFrameCallback(() => {
-      window.clearTimeout(timeout);
-      resolve();
-    });
+    if (typeof video.requestVideoFrameCallback === "function") {
+      requestNextFrame();
+    } else {
+      pollFallback();
+    }
   });
 }
 
@@ -529,7 +591,10 @@ async function captureReactorPhoto(
     throw new Error("The Reactor view is not ready to take a photo yet.");
   }
 
-  await waitForFreshVideoFrame(video);
+  // chunk_complete confirms generation/emission, not that the browser has
+  // presented the tail of that chunk. Keep the shutter prompt active while a
+  // bounded span of fresh media is visibly rendered before drawing the frame.
+  await waitForRenderedVideoDuration(video, PHOTO_RENDER_SETTLE_MS);
 
   const canvas = document.createElement("canvas");
   canvas.width = video.videoWidth;
@@ -3450,6 +3515,11 @@ function FashionMazeRuntime({
 
   const completePhotoCapture = useCallback(
     async (pending: PendingPhoto, completedChunk: number) => {
+      appendDebugEvent(
+        "media",
+        "photo_render_settle",
+        `chunk=${completedChunk} minimumMs=${PHOTO_RENDER_SETTLE_MS}`,
+      );
       let photo: CapturedPhoto;
       try {
         photo = await captureReactorPhoto(
@@ -3527,6 +3597,7 @@ function FashionMazeRuntime({
     },
     [
       activeMaze.id,
+      appendDebugEvent,
       armPhotoWatchdog,
       mainVideoTrack,
       recoverPhoto,
@@ -3615,11 +3686,16 @@ function FashionMazeRuntime({
       if (document.pointerLockElement === stageMediaRef.current) {
         document.exitPointerLock();
       }
-      await releaseControls();
-      if (pendingPhotoRef.current !== pending || terminatingRef.current) return;
+      // Each setter and set_prompt applies on the next chunk. Queue the idle
+      // controls first, then the photo prompt in the same turn so awaiting the
+      // command sends cannot cost an extra ambient chunk boundary.
+      const controlsReleased = releaseControls();
       promptRequestIdRef.current += 1;
       lastPromptRef.current = pending.prompt;
-      await setPrompt({ prompt: pending.prompt });
+      await Promise.all([
+        controlsReleased,
+        setPrompt({ prompt: pending.prompt }),
+      ]);
     } catch (cause) {
       recoverPhoto(
         pending,
@@ -4279,7 +4355,7 @@ function FashionMazeRuntime({
   const photoButtonLabel =
     photoState === "framing"
       ? photoCue?.cue === "LOOK HERE"
-        ? "Look here…"
+        ? "Turning to camera…"
         : photoCue?.cue === "FRAME"
           ? "Frame the scene…"
         : photoCue?.cue === "HOLD" || photoCue?.cue === "SHUTTER"
@@ -4294,7 +4370,7 @@ function FashionMazeRuntime({
             : "Take photo";
   const photoCueLabel =
     photoCue?.cue === "LOOK HERE"
-      ? "Look here"
+      ? "Turning to camera"
       : photoCue?.cue === "FRAME"
         ? "Frame the scene"
         : photoCue?.cue === "HOLD"

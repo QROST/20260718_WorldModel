@@ -460,6 +460,43 @@ for (const maze of fashionMazes) {
         );
       }
     }
+    if (expectedCount !== 0 && !resolvedMaze.photoAction) {
+      const expectedHoldChunks = [2, 3, 2];
+      const actualHoldChunks = photoAction.beats.map(
+        (beat) => beat.holdChunks,
+      );
+      if (
+        JSON.stringify(actualHoldChunks) !==
+        JSON.stringify(expectedHoldChunks)
+      ) {
+        fail(
+          `${sceneLabel} variant ${variant.id}`,
+          `performer photo holds must be ${expectedHoldChunks.join(" -> ")}`,
+        );
+      }
+      for (const beat of photoAction.beats) {
+        if (
+          !/camera lens at the current first-person viewpoint/i.test(
+            beat.prompt,
+          )
+        ) {
+          fail(
+            `${sceneLabel} variant ${variant.id} ${beat.mode}`,
+            "must direct every performer to the current camera lens",
+          );
+        }
+        if (
+          !/open eyes[^.]*directly into the (?:camera )?lens/i.test(
+            beat.prompt,
+          )
+        ) {
+          fail(
+            `${sceneLabel} variant ${variant.id} ${beat.mode}`,
+            "must direct open eyes into the lens in every photo beat",
+          );
+        }
+      }
+    }
     positiveInteger(
       `${sceneLabel} variant ${variant.id} photo release hold`,
       photoAction.releaseHoldChunks,

@@ -182,23 +182,23 @@ export function resolvePhotoAction(
       {
         mode: "photo-ready",
         cue: "LOOK HERE",
-        holdChunks: 1,
+        holdChunks: 2,
         prompt:
-          `${performers} turn eyes and heads toward the observer viewpoint; a backward-facing performer adds a slight shoulder turn. Established roots, supports, hands, limb poses and spacing remain fixed. Their gaze settles.`,
+          `${performers} make the smallest head-and-neck turn needed for every face and both open eyes to look directly into the camera lens at the current first-person viewpoint. Only a backward-facing performer adds a slight upper-shoulder turn. Roots, supports, hands, limbs, props and spacing stay fixed. The portrait settles.`,
       },
       {
         mode: "photo-pose",
         cue: "HOLD",
-        holdChunks: 1,
+        holdChunks: 3,
         prompt:
-          `${performers} hold their poses and observer-directed gaze. Support contacts, spacing, hands, costumes and seed-visible props stay steady; an occasional blink preserves a living portrait.`,
+          `${performers} hold every face visible and front-facing to the camera lens at the current first-person viewpoint, with open eyes looking directly into the lens. Head, neck and upper shoulders stay steady; roots, supports, hands, limbs, props, costumes and spacing stay fixed.`,
       },
       {
         mode: "photo-shutter",
         cue: "SHUTTER",
-        holdChunks: 1,
+        holdChunks: 2,
         prompt:
-          `The finished portrait pose of ${performers} remains motionless for this beat with stable gaze, supports, costumes, depth and spacing.`,
+          `${performers} remain in one motionless portrait: every face is visible and front-facing to the camera lens at the current first-person viewpoint, with open eyes looking directly into the lens. Head and shoulder orientation, roots, supports, hands, limbs, props, costumes, depth and spacing stay stable.`,
       },
     ],
     release:
