@@ -11,6 +11,7 @@ import {
   type ResolvedGrandPalaisReference,
 } from "@/lib/grand-palais-references";
 import { getOpenAIApiKey } from "@/lib/openai-server";
+import { isAllowedRequestOrigin } from "@/lib/request-origin";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -101,8 +102,23 @@ async function resolveReferenceFiles(
 }
 
 export async function POST(request: Request) {
-  const requestOrigin = request.headers.get("origin");
-  if (requestOrigin !== new URL(request.url).origin) {
+  if (
+    !isAllowedRequestOrigin(
+      {
+        requestUrl: request.url,
+        origin: request.headers.get("origin"),
+        host: request.headers.get("host"),
+        forwardedHost: request.headers.get("x-forwarded-host"),
+        forwardedProto: request.headers.get("x-forwarded-proto"),
+        secFetchSite: request.headers.get("sec-fetch-site"),
+      },
+      {
+        publicOrigin: process.env.FASHION_MAZE_PUBLIC_ORIGIN,
+        trustProxyHeaders:
+          process.env.FASHION_MAZE_TRUST_PROXY_HEADERS === "1",
+      },
+    )
+  ) {
     return jsonError("Cross-origin generation is not allowed.", 403);
   }
 
@@ -163,10 +179,16 @@ export async function POST(request: Request) {
       signal: AbortSignal.timeout(OPENAI_TIMEOUT_MS),
     });
     if (!upstream.ok) {
+      const upstreamError =
+        upstream.status === 401
+          ? "The configured OpenAI API key was rejected. Replace the local key and restart the app."
+          : upstream.status === 403
+            ? "OpenAI denied GPT Image access. Confirm project access and organization verification."
+            : upstream.status === 429
+              ? "The finale atelier is busy or out of quota. Please try again shortly."
+              : `The finale image could not be generated (${upstream.status}).`;
       return jsonError(
-        upstream.status === 429
-          ? "The finale atelier is busy. Please try again shortly."
-          : `The finale image could not be generated (${upstream.status}).`,
+        upstreamError,
         upstream.status === 429 ? 503 : 502,
       );
     }

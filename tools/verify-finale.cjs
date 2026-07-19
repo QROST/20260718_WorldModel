@@ -34,6 +34,9 @@ const root = path.join(__dirname, "..");
 const fashion = require(path.join(root, "lib/fashion-maze.ts"));
 const finale = require(path.join(root, "lib/grand-palais.ts"));
 const references = require(path.join(root, "lib/grand-palais-references.ts"));
+const { isAllowedRequestOrigin } = require(
+  path.join(root, "lib/request-origin.ts"),
+);
 const errors = [];
 
 function check(condition, message) {
@@ -128,6 +131,10 @@ const routeSource = fs.readFileSync(
   path.join(root, "app/api/grand-palais/generate/route.ts"),
   "utf8",
 );
+const openaiServerSource = fs.readFileSync(
+  path.join(root, "lib/openai-server.ts"),
+  "utf8",
+);
 check(/form\.append\(\s*"image\[\]"/.test(routeSource), "route must attach multiple image[] references");
 check(routeSource.includes("https://api.openai.com/v1/images/edits"), "route must use the fixed OpenAI image edits endpoint");
 check(!routeSource.includes("input_fidelity"), "gpt-image-2 route must omit input_fidelity");
@@ -135,6 +142,103 @@ check(
   routeSource.includes("generationInFlight") &&
     routeSource.includes("MIN_GENERATION_INTERVAL_MS"),
   "route must guard duplicate paid generations",
+);
+check(
+  routeSource.includes("isAllowedRequestOrigin") &&
+    routeSource.includes('request.headers.get("host")') &&
+    !routeSource.includes("requestOrigin !== new URL(request.url).origin"),
+  "route must validate the browser-facing Host instead of raw request.url equality",
+);
+check(
+  openaiServerSource.includes("process.env.OPENAI_API_KEY") &&
+    openaiServerSource.includes("path.join(process.cwd(), LOCAL_KEY_FILE)"),
+  "OpenAI credentials must resolve server-side from env or the repository-local key file",
+);
+
+const originInput = (overrides = {}) => ({
+  requestUrl: "http://127.0.0.1:3000/api/grand-palais/generate",
+  origin: "http://127.0.0.1:3000",
+  host: "127.0.0.1:3000",
+  forwardedHost: null,
+  forwardedProto: null,
+  secFetchSite: "same-origin",
+  ...overrides,
+});
+
+check(
+  isAllowedRequestOrigin(originInput()),
+  "exact local same-origin requests must pass",
+);
+check(
+  isAllowedRequestOrigin(
+    originInput({
+      origin: "http://localhost:3000",
+      host: "localhost:3000",
+    }),
+  ),
+  "browser Host must survive a localhost/request.url bind-address mismatch",
+);
+check(
+  isAllowedRequestOrigin(originInput({ origin: "http://localhost:3000" })) ===
+    false,
+  "localhost and 127.0.0.1 must not be treated as interchangeable origins",
+);
+check(
+  isAllowedRequestOrigin(
+    originInput({ origin: "https://show.example", host: "127.0.0.1:3000" }),
+    { publicOrigin: "https://show.example" },
+  ),
+  "an explicitly configured public origin must pass",
+);
+check(
+  isAllowedRequestOrigin(
+    originInput({
+      origin: "https://show.example",
+      forwardedHost: "show.example",
+      forwardedProto: "https",
+    }),
+    { trustProxyHeaders: true },
+  ),
+  "explicit proxy trust must accept one exact forwarded origin",
+);
+check(
+  isAllowedRequestOrigin(
+    originInput({
+      origin: "https://show.example",
+      forwardedHost: "show.example",
+      forwardedProto: "https",
+    }),
+  ) === false,
+  "forwarded headers must be ignored unless proxy trust is explicit",
+);
+
+for (const [label, overrides] of [
+  ["missing Origin", { origin: null }],
+  ["null Origin", { origin: "null" }],
+  ["malformed Origin", { origin: "not an origin" }],
+  ["Origin path", { origin: "http://127.0.0.1:3000/path" }],
+  ["Origin userinfo", { origin: "http://user@127.0.0.1:3000" }],
+  ["wrong scheme", { origin: "https://127.0.0.1:3000" }],
+  ["wrong port", { origin: "http://127.0.0.1:3001" }],
+  ["host suffix attack", { origin: "http://127.0.0.1:3000.evil.test" }],
+  ["cross-site fetch", { secFetchSite: "cross-site" }],
+]) {
+  check(
+    isAllowedRequestOrigin(originInput(overrides)) === false,
+    `${label} must fail closed`,
+  );
+}
+check(
+  isAllowedRequestOrigin(
+    originInput({
+      origin: "https://show.example",
+      forwardedHost: "show.example, attacker.example",
+      forwardedProto: "https",
+      secFetchSite: null,
+    }),
+    { trustProxyHeaders: true },
+  ) === false,
+  "multi-value forwarded headers must fail closed",
 );
 
 const experienceSource = fs.readFileSync(
