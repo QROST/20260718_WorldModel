@@ -73,17 +73,7 @@ export function createGrandPalaisMaze(
       movement:
         "The primary runway model continues a poised slow presentation while the seed-visible audience remains seated and attentive. Rare blinks, faint breathing, restrained fabric motion and subtle event-light movement keep the show alive without changing identities, positions or architecture.",
     },
-    ensemble: {
-      count: "all",
-      members: [
-        {
-          id: "GP01_PRIMARY_LOOK",
-          name: "The Finale Look",
-          identityPrompt:
-            "the primary seed-visible runway model in the generated finale couture look",
-        },
-      ],
-    },
+    ensemble: { count: "all" },
     routes: [],
   };
 }

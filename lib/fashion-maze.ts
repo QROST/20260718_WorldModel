@@ -49,13 +49,6 @@ export type FashionMazeActionMode =
   | FashionMazePhotoBeatMode
   | "photo-release";
 
-export interface FashionMazeEnsembleMember {
-  id: string;
-  name: string;
-  referenceImage?: string;
-  identityPrompt: string;
-}
-
 export type FashionMazeEnsembleCount = number | "all";
 
 export interface FashionMazeEntranceVariant {
@@ -69,8 +62,6 @@ export interface FashionMazeEntranceVariant {
 
 export interface FashionMazeEnsemble {
   count: FashionMazeEnsembleCount;
-  /** Reusable identity archetypes; variants may contain more instances. */
-  members: FashionMazeEnsembleMember[];
 }
 
 export interface FashionMazePhotoBeat {
@@ -115,8 +106,6 @@ export interface FashionMaze {
   openingPrompt: string;
   entranceVariants: FashionMazeEntranceVariant[];
   entranceVariantId?: string;
-  characterImage?: string;
-  characterName?: string;
   seed: number;
   accent: string;
   entrance: NarrativeBeat;
@@ -318,7 +307,6 @@ const authoredFashionMazes: FashionMaze[] = [
     openingPrompt: roseGardenEntrances[0].openingPrompt,
     entranceVariants: roseGardenEntrances,
     entranceVariantId: roseGardenEntrances[0].id,
-    characterName: "THE TAILORED HOST",
     accent: "#efa6d6",
     entrance: {
       eyebrow: "THE INVITATION",
@@ -334,41 +322,7 @@ const authoredFashionMazes: FashionMaze[] = [
       movement:
         "All five sustain the completed seed limb arrangements, world roots, settled balance and support contacts. Rare asynchronous blinks, faint breathing, tiny eye or chin changes and gentle fabric settling keep the tableau alive.",
     },
-    ensemble: {
-      count: 5,
-      members: [
-        {
-          id: "M01_CROWNED_SCULPTOR",
-          name: "Crowned Sculptor",
-          identityPrompt:
-            "East Asian woman; blue-white geometric crown; asymmetric white-cobalt botanical gown; blue shoes",
-        },
-        {
-          id: "M02_DRAPED_MUSE",
-          name: "Draped Muse",
-          identityPrompt:
-            "dark-skinned South Asian woman; low black bun; draped white sari gown with cobalt botanical borders; blue boots",
-        },
-        {
-          id: "M03_TAILORED_HOST",
-          name: "Tailored Host",
-          identityPrompt:
-            "East Asian man; short swept black hair; tailored white-cobalt botanical suit; white shirt; blue shoes",
-        },
-        {
-          id: "M04_LACE_ROMANTIC",
-          name: "Lace Romantic",
-          identityPrompt:
-            "fair-skinned blonde woman; neat bun; white lace ballgown with cobalt botanical lines and long train; silver shoes",
-        },
-        {
-          id: "M05_PRISM_WALKER",
-          name: "Prism Walker",
-          identityPrompt:
-            "brown-skinned bearded man; close dark hair; long white coat with cobalt panels and cyan-magenta piping; white trousers; blue shoes",
-        },
-      ],
-    },
+    ensemble: { count: 5 },
     sceneTransition: {
       buttonLabel: "ENTER THE BLACK DOOR",
       portal: forwardBlackDoorPortal,
@@ -489,41 +443,7 @@ const authoredFashionMazes: FashionMaze[] = [
       movement:
         "Each performer sustains the completed pose shown in the selected seed, including every raised, extended, low or overhead arm arrangement, world root, support contact and prop position. Rare asynchronous blinks, tiny eye shifts and faint breathing keep the five silhouettes alive.",
     },
-    ensemble: {
-      count: 5,
-      members: [
-        {
-          id: "C01_OBSIDIAN_SENTINEL",
-          name: "Obsidian Sentinel",
-          identityPrompt:
-            "East Asian woman; straight black hair; long structured black coat; black gloves and heels",
-        },
-        {
-          id: "C02_RED_SIGNAL",
-          name: "Red Signal",
-          identityPrompt:
-            "fair-skinned woman; vivid red hair; angular black headpiece; fitted black sequined suit",
-        },
-        {
-          id: "C03_MIDNIGHT_COLUMN",
-          name: "Midnight Column",
-          identityPrompt:
-            "brown-skinned woman; dark hair; sculptural asymmetric black sequined gown",
-        },
-        {
-          id: "C04_CIRCUIT_GUARD",
-          name: "Circuit Guard",
-          identityPrompt:
-            "Black man; short natural hair; fitted sculpted black armour suit; black helmet prop when seed-visible",
-        },
-        {
-          id: "C05_NEON_RUNNER",
-          name: "Neon Runner",
-          identityPrompt:
-            "light olive-skinned man; short dark hair; black sequined long-sleeve top and black trousers",
-        },
-      ],
-    },
+    ensemble: { count: 5 },
     sceneTransition: {
       buttonLabel: "ENTER THE NEXT BLACK DOOR",
       portal: forwardBlackDoorPortal,
@@ -578,47 +498,7 @@ const chapterThreeAsianSculptureGarden: FashionMaze = {
     movement:
       "All six sustain the completed seed silhouettes, world roots, support contacts, limb angles and hand positions; the raised forearms belong to held poses. Rare independent blinks, tiny eye shifts, faint breathing and slight fabric settling keep the ensemble alive.",
   },
-  ensemble: {
-    count: 6,
-    members: [
-      {
-        id: "S01_FOLDED_ORACLE",
-        name: "Folded Oracle",
-        identityPrompt:
-          "fair-skinned woman; dark hair beneath a large folded silver geometric headdress; seated silver sculptural gown",
-      },
-      {
-        id: "S02_SILVER_BLOOM",
-        name: "Silver Bloom",
-        identityPrompt:
-          "Black woman; short pale-blonde curls; structured silver mini dress with angular shoulders",
-      },
-      {
-        id: "S03_GARDEN_COLUMN",
-        name: "Garden Column",
-        identityPrompt:
-          "East Asian woman; dark hair; fitted silver high-neck gown with a circular sculptural overskirt",
-      },
-      {
-        id: "S04_RAISED_SIGNAL",
-        name: "Raised Signal",
-        identityPrompt:
-          "Black man; short hair; tailored geometric silver suit; one completed raised-forearm pose",
-      },
-      {
-        id: "S05_IVORY_MONUMENT",
-        name: "Ivory Monument",
-        identityPrompt:
-          "fair-skinned woman; ornate white hood; fitted white gown with long open geometric cape sleeves",
-      },
-      {
-        id: "S06_QUIET_SENTINEL",
-        name: "Quiet Sentinel",
-        identityPrompt:
-          "olive-skinned bearded man; short dark hair; structured ivory-silver long coat and trousers",
-      },
-    ],
-  },
+  ensemble: { count: 6 },
   sceneTransition: {
     buttonLabel: "ENTER THE NEXT BLACK DOOR",
     portal: forwardBlackDoorPortal,
@@ -683,35 +563,7 @@ const chapterFourAfroFuturism: FashionMaze = {
     movement:
       "Every seed-visible performer sustains the completed platform pose, world root, support contact, limb arrangement and hand position shown in the selected seed. Rare independent blinks, tiny eye shifts, faint breathing and metallic fabric settling keep the tableau alive.",
   },
-  ensemble: {
-    count: 5,
-    members: [
-      {
-        id: "A01_PLUM_SENTINEL",
-        name: "Plum Sentinel",
-        identityPrompt:
-          "seed-visible performer in metallic plum tailored couture and geometric draped head covering",
-      },
-      {
-        id: "A02_FLORAL_VOYAGER",
-        name: "Floral Voyager",
-        identityPrompt:
-          "seed-visible performer in black-floral hot-pink tailored couture and matching head covering",
-      },
-      {
-        id: "A03_CORAL_NAVIGATOR",
-        name: "Coral Navigator",
-        identityPrompt:
-          "seed-visible performer in metallic coral tailored suit or long coat and matching head covering",
-      },
-      {
-        id: "A04_TEAL_CARTOGRAPHER",
-        name: "Teal Cartographer",
-        identityPrompt:
-          "dark-skinned seed-visible performer in metallic teal tailored couture and matching head covering",
-      },
-    ],
-  },
+  ensemble: { count: 5 },
   sceneTransition: {
     buttonLabel: "ENTER THE NEXT BLACK DOOR",
     portal: forwardBlackDoorPortal,
@@ -780,10 +632,7 @@ function createReplaceableChapter(
     basePrompt: replaceableSeedBasePrompt,
     defaultDestinationPrompt: replaceableSeedDestinationPrompt,
     promptLayers: { movement: replaceableSeedMovementPrompt },
-    ensemble: {
-      count: first.ensembleCount ?? 0,
-      members: [],
-    },
+    ensemble: { count: first.ensembleCount ?? 0 },
     sceneTransition: {
       buttonLabel: "ENTER THE NEXT BLACK DOOR",
       portal: forwardBlackDoorPortal,

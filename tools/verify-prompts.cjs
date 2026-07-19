@@ -358,10 +358,6 @@ for (const maze of fashionMazes) {
     `${sceneLabel} routes`,
     maze.routes.map((route) => route.id),
   );
-  uniqueIds(
-    `${sceneLabel} member archetypes`,
-    maze.ensemble.members.map((member) => member.id),
-  );
 
   const baseSentences = sentenceCount(maze.basePrompt);
   if (baseSentences < 1 || baseSentences > 3) {
@@ -683,7 +679,7 @@ const emptyEnvironment = {
     movement:
       "Leaves stir faintly and reflected daylight ripples gently across the settled pool.",
   },
-  ensemble: { count: 0, members: [] },
+  ensemble: { count: 0 },
   photoAction: undefined,
   routes: [],
 };

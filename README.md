@@ -69,7 +69,6 @@ interface FashionMaze {
     openingPrompt: string;
     ensembleCount?: number | "all"; // exact count, or every generated performer
   }>;
-  characterImage?: string;
   seed: number;
   entrance: NarrativeBeat;
   basePrompt: string;
@@ -78,13 +77,7 @@ interface FashionMaze {
     movement: string; // subject behavior only
   };
   ensemble: {
-    count: number;
-    members: Array<{
-      id: string;
-      name: string;
-      referenceImage?: string;
-      identityPrompt: string;
-    }>;
+    count: number | "all";
   };
   photoAction?: { // optional scene-specific override
     beats: Array<{
