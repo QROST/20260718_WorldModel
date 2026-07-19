@@ -37,6 +37,21 @@ const {
   sanitizeReactorDebugText,
 } = require(path.join(__dirname, "../lib/reactor-lifecycle.ts"));
 
+const experienceSource = fs.readFileSync(
+  path.join(__dirname, "../components/FashionMazeExperience.tsx"),
+  "utf8",
+);
+const stagePendingMazeSource = experienceSource.slice(
+  experienceSource.indexOf("const stagePendingMaze = useCallback"),
+  experienceSource.indexOf("const enterMaze = useCallback"),
+);
+const stageGateGuardIndex = stagePendingMazeSource.indexOf(
+  "if (!canStage || !maze)",
+);
+const stageGateLogIndex = stagePendingMazeSource.indexOf(
+  'appendDebugEvent(\n      "sdk",\n      "stage_gate"',
+);
+
 const assertions = [
   [
     "initial disconnected snapshot is not a disconnect edge",
@@ -65,6 +80,12 @@ const assertions = [
   [
     "staging remains once-only",
     !canStagePendingMaze("ready", true, true),
+  ],
+  [
+    "a blocked staging effect cannot log and trigger a render loop",
+    stageGateGuardIndex >= 0 &&
+      stageGateLogIndex >= 0 &&
+      stageGateGuardIndex < stageGateLogIndex,
   ],
   [
     "generation waits for both image and prompt",

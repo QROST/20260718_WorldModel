@@ -2501,15 +2501,18 @@ function FashionMazeRuntime({
       Boolean(maze),
       stagingIssuedRef.current,
     );
-    appendDebugEvent(
-      "sdk",
-      "stage_gate",
-      `eligible=${canStage} status=${status} pending=${Boolean(maze)} issued=${stagingIssuedRef.current} terminating=${terminatingRef.current}`,
-      canStage ? "success" : "info",
-    );
+    // The SDK command wrappers currently receive a new identity on every
+    // render. Keep the failed gate path side-effect free so this callback can
+    // safely be re-evaluated without creating an effect -> log -> render loop.
     if (!canStage || !maze) {
       return false;
     }
+    appendDebugEvent(
+      "sdk",
+      "stage_gate",
+      `eligible=true status=${status} pending=true issued=${stagingIssuedRef.current} terminating=${terminatingRef.current}`,
+      "success",
+    );
     stagingIssuedRef.current = true;
     const attemptId = activationAttemptIdRef.current;
     appendDebugEvent(
