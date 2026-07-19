@@ -1,4 +1,7 @@
 "use client";
+// Authored by QROST, 2026.
+// Provenance: https://github.com/QROST/20260718_WorldModel
+
 
 import type {
   LingbotWorld2ChunkCompleteMessage,

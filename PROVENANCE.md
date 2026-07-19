@@ -10,15 +10,21 @@
 
 The repository-wide [`PROVENANCE.json`](./PROVENANCE.json) records the SHA-256
 digest, byte length, content class, and provenance policy for every tracked or
-new, non-ignored file except the manifest itself. Exact copies can therefore be
+new non-ignored release file except the manifest itself. Ignored build output,
+local secrets, and operating-system metadata are not release files. Exact copies can therefore be
 matched back to a public QROST revision even when a file format cannot safely
 carry a comment. Run `pnpm verify:provenance` to verify the current tree and
-`pnpm provenance:update` after an intentional file change.
+`pnpm provenance:update` after an intentional file change. The maintainable
+source-header policy can be reapplied idempotently to tracked files with
+`pnpm authorship:update`; untracked source is checked but never rewritten.
 
-Source headers, HTML metadata, HTTP response headers, downloaded filenames,
-and runtime receipts may repeat the same declaration. The manifest remains the
+Eligible original source files carry a syntax-safe QROST header. HTML metadata,
+HTTP response headers, downloaded filenames, and runtime receipts repeat the
+same declaration. The manifest remains the
 repository-wide inventory and the canonical constants live in
 [`lib/qrost-provenance.ts`](./lib/qrost-provenance.ts).
+The HTTP value identifies the containing work and its QROST maintainer; it does
+not assert that QROST created every individual asset served by the application.
 
 ## Rights and source boundaries
 
@@ -32,7 +38,7 @@ does **not** rewrite the authorship or rights of other material:
   not claiming to be the original image generator or sole rights holder.
 - Third-party packages retain their own licenses and notices.
 - `submission/oneshot/` is a separately verified submission artifact whose
-  prompt and dry-run hashes must remain unchanged.
+  prompt and dry-run hashes are pinned against accidental change.
 
 This provenance notice is not an open-source license and does not choose one on
 the owner's behalf. Public visibility, attribution, and permission to reuse are

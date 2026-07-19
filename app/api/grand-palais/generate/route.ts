@@ -1,3 +1,6 @@
+// Authored by QROST, 2026.
+// Provenance: https://github.com/QROST/20260718_WorldModel
+
 import { readFile, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";

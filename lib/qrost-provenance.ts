@@ -6,24 +6,15 @@ export const QROST_PROVENANCE = Object.freeze({
   creator: "QROST",
   workId: "qrost.fashion-maze",
   workVersion: "0.1.0",
-  claim: "declared-authorship",
+  claim: "declared-project-authorship-and-repository-curation",
   canonicalRepository: "https://github.com/QROST/20260718_WorldModel",
   creatorUrl: "https://qrost.github.io/",
 } as const);
 
 export const QROST_PROVENANCE_HEADER = "X-QROST-Provenance";
 export const QROST_PROVENANCE_VALUE =
-  `${QROST_PROVENANCE.workId};v=1;creator=${QROST_PROVENANCE.creator}`;
+  `work=${QROST_PROVENANCE.workId};v=1;maintainer=${QROST_PROVENANCE.creator}`;
 export const QROST_OUTPUT_PREFIX = "qrost-fashion-maze";
-
-export function withQrostProvenanceHeaders(
-  headers: Readonly<Record<string, string>> = {},
-): Record<string, string> {
-  return {
-    ...headers,
-    [QROST_PROVENANCE_HEADER]: QROST_PROVENANCE_VALUE,
-  };
-}
 
 export interface QrostRunReceiptInput {
   sceneOrderSeed: number | null;

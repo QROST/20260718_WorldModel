@@ -1,4 +1,7 @@
 #!/bin/sh
+# Authored by QROST, 2026.
+# Provenance: https://github.com/QROST/20260718_WorldModel
+
 
 set -eu
 

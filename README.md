@@ -2,6 +2,10 @@
 
 一个面向 SIGGRAPH hackathon 的 HTML/React 实时世界体验：用户从真实团队 rose-garden 入口图进入由 Reactor LingBot World 2 生成的连续视频世界，并通过世界变体选择、WASD 与视角控制探索会实时变化的 fashion maze。
 
+**Authored and maintained by [QROST](https://qrost.github.io/).** 全仓文件由
+[`PROVENANCE.json`](./PROVENANCE.json) 的 SHA-256 清单覆盖；署名、团队素材与
+第三方权利边界见 [`PROVENANCE.md`](./PROVENANCE.md)。
+
 ## 当前体验
 
 - 三张来自团队 dataset 的 1376×768 rose-garden entrance；服务端在每次打开页面时随机选择一张，单次页面与 Reactor session 始终锁定同一张图片和对应 opening prompt；
@@ -187,6 +191,8 @@ interface FashionMaze {
 ### 部署安全边界
 
 当前 token broker 与 Grand Palais generation route 面向本机或受控的 hackathon operator 网络，没有登录与分布式限流。Scene 8 只有浏览器 single-flight、进程内 single-flight/短 cooldown 与 same-origin 检查，这些都不能替代身份验证。不要直接把应用暴露成公开网站；公开部署前应在 hosting / reverse proxy 层加入 operator authentication、分布式 rate limit 与 quota。根目录的 `reactor.key`、`openai.key` 虽然是 `0600` 且被 `*.key` 忽略，但手工 zip 或上传整个文件夹时仍必须显式排除。正式部署只使用平台 secrets `REACTOR_API_KEY` 与 `OPENAI_API_KEY`。
+
+公网部署还必须把唯一规范来源写入 `FASHION_MAZE_PUBLIC_ORIGIN`（例如 `https://maze.example.com`）；未配置时仅隐式允许 `localhost`、`127.0.0.1` 与 `[::1]`。`FASHION_MAZE_TRUST_PROXY_HEADERS=1` 只能用于会剥离并覆盖客户端 `Forwarded` / `X-Forwarded-*` 的可信反向代理之后，否则保持默认关闭，以免重新开放 Host header / DNS-rebinding 绕过。
 
 ## 验证
 

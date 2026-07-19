@@ -2,150 +2,152 @@
   "schema": "qrost.provenance-manifest/v1",
   "creator": "QROST",
   "workId": "qrost.fashion-maze",
-  "claim": "declared-authorship-and-repository-curation",
+  "workVersion": "0.1.0",
+  "claim": "declared-project-authorship-and-repository-curation",
   "canonicalRepository": "https://github.com/QROST/20260718_WorldModel",
+  "creatorUrl": "https://qrost.github.io/",
   "hashAlgorithm": "sha256",
   "manifestPath": "PROVENANCE.json",
   "manifestSelfExcluded": true,
-  "rightsBoundary": "QROST attribution does not replace upstream authorship, asset rights, or third-party licenses.",
+  "rightsBoundary": "QROST attribution covers project authorship, integration, curation, conversion, and publication only; upstream authorship, asset rights, contributor rights, and third-party licenses remain unchanged.",
   "files": [
     {
       "path": ".env.example",
-      "sha256": "49ad703c11de2ac00cea9bf53fee1af75f834a72c62ac0a1dbb3e55cd40ea323",
-      "bytes": 365,
+      "sha256": "8ffb7f5cc361929120a30a78d713d6a5b87b2ff957652d2c1b7da108ebd25a0e",
+      "bytes": 839,
       "contentClass": "project-metadata",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": ".gitattributes",
-      "sha256": "1a1dbe176bc233b499d35a57db7513f2941c99ab9759f177830c9149be99005b",
-      "bytes": 66,
+      "sha256": "a533df889b056d9ed6f572bf5bddf93518cb3f3eb6c625164a8fa58dc712e325",
+      "bytes": 153,
       "contentClass": "project-metadata",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": ".gitignore",
-      "sha256": "a21214485862d030fd5d4d1508aad224203b310593d881d8b65603f17f655b61",
-      "bytes": 113,
+      "sha256": "56ae57feaf3fe6c28009bdbc1c03da2d7f52803120c89c6b4b1ee7b809ee94c7",
+      "bytes": 200,
       "contentClass": "project-metadata",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "PROVENANCE.md",
-      "sha256": "7ae3c4c7f6f8719d8128c5a355f2c888fb02ad7163610ecfaea415ac2cc5ec0f",
-      "bytes": 2464,
+      "sha256": "8a460d0a17eee840a85b80796c8683100be4145e8eaa11a1ab96c2074f7242e2",
+      "bytes": 2946,
       "contentClass": "project-documentation",
       "signaturePolicy": "manifest-only"
     },
     {
       "path": "README.md",
-      "sha256": "2e105a7e6523a86a71796e500e89a1312b95d27d6411d7450e2661d110b55a1e",
-      "bytes": 21579,
+      "sha256": "8944f96f5d44cc7a06527b2e504f375fde4473709920f9a491f2b99e1dcc565c",
+      "bytes": 22332,
       "contentClass": "project-documentation",
       "signaturePolicy": "manifest-only"
     },
     {
       "path": "app/api/grand-palais/generate/route.ts",
-      "sha256": "6cb74281c1b12ba56bc73d4b6ec7d738f8f5a0f7994eb2bbceb24e4c512524be",
-      "bytes": 6189,
+      "sha256": "88e626e1c5183d6699404a455f9a9f1e91c24559cf44a56b680eff8c16d34e5c",
+      "bytes": 7132,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "app/api/reactor/token/route.ts",
-      "sha256": "94c1e6e21f85fe94a8ce48db5e7ba6d9e992ba64f257e74f4edf87b9ba35224e",
-      "bytes": 1611,
+      "sha256": "743866aa71b42bd0597ace185c49ea95f94e9c23efd6d6e3f93486653a4de58b",
+      "bytes": 1700,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "app/globals.css",
-      "sha256": "b96d1c6748cd0ff68d5d763b8ff8526c61fc1d425a8d3d17a7df63d585c74081",
-      "bytes": 46828,
+      "sha256": "70d5542e170bde9f753105bec47ff0826666254640491bbc15e567299ae760a9",
+      "bytes": 47427,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "app/layout.tsx",
-      "sha256": "ea92b49ece424b7fc813aaaa3cbe15935848e93eeef897d1fb8e6021d6cca08d",
-      "bytes": 440,
+      "sha256": "d58077583489247da61c203018267c4f1132942e3f7c1c3e7355ed6948d18858",
+      "bytes": 973,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "app/page.tsx",
-      "sha256": "f53de7bd80b568e01f4060b429734149b35a31d312eb173752e9ea48ff9fb5c8",
-      "bytes": 933,
+      "sha256": "ca6f0a310c0e78e3221e4212e90a2ef8092355892bf2258a605713211dc0b773",
+      "bytes": 1022,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "build-demo.sh",
-      "sha256": "ba90f3b44082cb92d391c8e89bf695938e6e9661ee9099f03b9f7cb2832fa3bc",
-      "bytes": 775,
+      "sha256": "7df3a427002ba4ba8c13ef311c63c6279dc7c4b72fc3ce1b12d19316a0e20a6a",
+      "bytes": 862,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "check-demo-keys.sh",
-      "sha256": "9e6beb5b57268b8831e3b42397230851c59c611cc04bee3d4789657983302df0",
-      "bytes": 3280,
+      "sha256": "711af378506616d56385eeeda00c926eaf2194b70b593d9b93302df2f5fe47e1",
+      "bytes": 3367,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "components/AmbientSoundtrack.module.css",
-      "sha256": "c594c3157f464f0c37e6a63009c2d22f6ad19a43018ad6f43dbbf47598918d07",
-      "bytes": 2342,
+      "sha256": "e38f44fa1014114492398798e293d2cf1d3d81d96f5c718c153e8ea2c74ff5b4",
+      "bytes": 2437,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "components/AmbientSoundtrack.tsx",
-      "sha256": "cec3990600702529b2447332b2208c67a60b7528e95209c6f99d685e41605bca",
-      "bytes": 6202,
+      "sha256": "67e3b83f599eedee91c6d8bf337bd13a9f45ce5ee3037b00aef449d8123d43a8",
+      "bytes": 6291,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "components/FashionMazeExperience.tsx",
-      "sha256": "02d474be18c85d08fc655f856610b3d0b93df9015836d6aac1d67d032898b957",
-      "bytes": 107042,
+      "sha256": "f46f2857849babe2977b5cbd1cd59da8982cfa47200aad3514559a601ab67efa",
+      "bytes": 108529,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "components/fashion-maze-runtime/useDoorQuestion.ts",
-      "sha256": "e87d57f923f7f037e2bf37ea5a4b727e9e9290e7c12c3e81afce3e80fc26bb24",
-      "bytes": 22271,
+      "sha256": "3c7a45ee30c124d896497454217cd9ba711e3b480e913f903943bd40a6fbe53e",
+      "bytes": 22360,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "components/fashion-maze-runtime/usePhotoCapture.ts",
-      "sha256": "2aff8ef5d63d45e2de5085430aa847ce1ebcfd736de8f1db816e95cef065126b",
-      "bytes": 30800,
+      "sha256": "9aef5d0b72faf20a5f2782ab3fca41ac6eaf814f746aaaa2417cab12fb197559",
+      "bytes": 31843,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "components/fashion-maze-runtime/useReactorControls.ts",
-      "sha256": "cd5e8ac40cb72cb71d48424095c47ff2c360b00997563dd210bca59c4a019c07",
-      "bytes": 26483,
+      "sha256": "0cf319e221af021922169750f51ee2c5909f72b51333374edc6f187af605b513",
+      "bytes": 26572,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "components/fashion-maze-runtime/useSceneTransition.ts",
-      "sha256": "6946c4422d8bfce244cfdf22d6d63aef0b8a17cd48303889a0bbcefcb2daa4b4",
-      "bytes": 27970,
+      "sha256": "6ccc8879cbe1880b43660bd9e91c604900537ab0a2a0252007d722262de993f5",
+      "bytes": 28059,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "content/README.md",
-      "sha256": "8bbd193d0c4376de092c6b63382453d74725550fb5938cbb5e464be63fe2039e",
-      "bytes": 1745,
+      "sha256": "06fc531b12163bc2d0250be279308ddd0f98b07c0e4c5fcab5f17b17f9db0216",
+      "bytes": 1897,
       "contentClass": "project-documentation",
       "signaturePolicy": "manifest-only"
     },
@@ -172,59 +174,66 @@
     },
     {
       "path": "lib/fashion-maze-prompt-policy.ts",
-      "sha256": "41bbac27a7cd3da850aefc3717cb14418cd873955febbc899e291e5e43139b5b",
-      "bytes": 4167,
+      "sha256": "23f4eac0b5934a7a30adf8d3eda391bb968cd2ddbe93ff2e18885794460f6657",
+      "bytes": 4256,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "lib/fashion-maze.ts",
-      "sha256": "4d1c7d29f58f541adc7010087d3c48e4eec3cb268be70bff7b42941d9ec3f53e",
-      "bytes": 45524,
+      "sha256": "6b27ad5178f6b0f62f52696d061b12de5cc167f136855f576aba39f31e67ad11",
+      "bytes": 45613,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "lib/grand-palais-references.ts",
-      "sha256": "399c6dce5df93058ef25f8e80935107dde59746dd15b0c1e588887bdbe9339f5",
-      "bytes": 1617,
+      "sha256": "120f43a8efd23e2e066f8a12d5fab94361af444f91883691b7f904ab638cef7b",
+      "bytes": 1706,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "lib/grand-palais.ts",
-      "sha256": "bc9019f75ad1c4e2a2b19dccbef39189138165da10a19e1e70914269b99bded7",
-      "bytes": 4517,
+      "sha256": "9d01ab8f6c7edd8a059b17ad6fc22c36120baae5e7484e69bc9f77a47a27d40d",
+      "bytes": 4606,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "lib/openai-server.ts",
-      "sha256": "dc4bc1e14d1d222c2a233b8385fc432ef41cd67c38368ed9e8c57f26064aba97",
-      "bytes": 917,
+      "sha256": "9f7ecbf8efcab5c8401828862741b8b032f24382e7d5254f465a612474a9adef",
+      "bytes": 1006,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "lib/qrost-provenance.ts",
-      "sha256": "b017e22448bbcce5b1eb0b1f0d87c038933483a6a76f9c044ab4d65a4526b2be",
-      "bytes": 2159,
+      "sha256": "7135521042d242fb86b48e4a6f7b2c9045fed072f1abbbc706c428fb018c9346",
+      "bytes": 1987,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "lib/reactor-lifecycle.ts",
-      "sha256": "ca3a1f6e31de69038730c7637f94dc2511e4369f3752e7a7e10ba01c7bc8ec1b",
-      "bytes": 4392,
+      "sha256": "6bbd59736f5ac2221b51bbd5a2ec3eec46bd13f909cd64346a35ac107ab9a370",
+      "bytes": 4481,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "lib/reactor-server.ts",
-      "sha256": "3c8c8c8e3082d87ca5f7b78f3c42a8774f93f078e3d935170dc45545d466603f",
-      "bytes": 1115,
+      "sha256": "25cb56c97ae27c34f101204d649f2b97e831b55d7e9772780b8ce954646fed4a",
+      "bytes": 1204,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
+    },
+    {
+      "path": "lib/request-origin.ts",
+      "sha256": "66421d346f990cb1f2ff9c7fc2237f403abef109b6666c1390bc6bddddcee8e4",
+      "bytes": 4345,
+      "contentClass": "project-source",
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "next-env.d.ts",
@@ -235,15 +244,15 @@
     },
     {
       "path": "next.config.ts",
-      "sha256": "6bf85ab4084ec541c5cb9b5027d13f8375b6af980f341c52525dbffef73eb6bd",
-      "bytes": 297,
+      "sha256": "dc653c084a6cf968d4f8e8cef0d089b94168d5d681cf13b9186bdec368f62a79",
+      "bytes": 710,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "package.json",
-      "sha256": "835124be11f37dd3c8ab9fa09ad121c73855bfdb081f6fe01ab5a486f94431ce",
-      "bytes": 1859,
+      "sha256": "6f5249b0b30e35ef9e98455d470abf6f38d9843fd90fc3f1bcd305457a8e2989",
+      "bytes": 1928,
       "contentClass": "project-metadata",
       "signaturePolicy": "manifest-only"
     },
@@ -256,15 +265,15 @@
     },
     {
       "path": "pnpm-workspace.yaml",
-      "sha256": "ac32da4674879516506d9c173bab34d7009615abb546713d01901e967e4d6bf5",
-      "bytes": 27,
+      "sha256": "59ce2992b9e256986eb8d7cc0725bbd5efd924a53d9f600ebdc3864dfc851695",
+      "bytes": 114,
       "contentClass": "project-metadata",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "public/audio/README.md",
-      "sha256": "ec5aac8b17a3afb9d93aa464b0cf60aec76d11d450878012eaafa1b6a5c012bd",
-      "bytes": 869,
+      "sha256": "dc72c7da2bf7e36dc97a1c7ba1b24f1c90f4af2641e14934f0da1cf8253650f2",
+      "bytes": 932,
       "contentClass": "project-documentation",
       "signaturePolicy": "manifest-only"
     },
@@ -505,31 +514,31 @@
     },
     {
       "path": "public/qrost-provenance.txt",
-      "sha256": "e6293801293e49369a85ce8060ecc1abd155e43893516694bb0f20724a0e7a20",
-      "bytes": 344,
+      "sha256": "6f89e51daabcc16fe433197d70de328d7251c1836445c7ef720138948c9b0069",
+      "bytes": 390,
       "contentClass": "project-documentation",
       "signaturePolicy": "manifest-only"
     },
     {
       "path": "setup-demo.sh",
-      "sha256": "3bd51511c4146ac06114c6176319f9daa510075e88da6021b573080185501517",
-      "bytes": 1175,
+      "sha256": "2fdd1233ebc10f281cfa6dd73ce423bc469aed6f21db63aba4a014ae82265cbd",
+      "bytes": 1262,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "start-demo.sh",
-      "sha256": "c04c6f1d79f18a6d1b5fb11abf685938c00b9b7625f222e821539eef6ff9e9f1",
-      "bytes": 1239,
+      "sha256": "fbb77e4f9658a1e3a55adc7131716ff1bbab975e7bdfca04ec50027f0d1d4586",
+      "bytes": 1326,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "start-dev.sh",
-      "sha256": "ea8cc874e5d858a5b593759a9b2ac9495ee2070be580f45e3d331c836ed6252c",
-      "bytes": 1074,
+      "sha256": "e5386bc6c1d76c5ddc59b2fe0ed2b7a2a666e2af935ad643467b2dbd1226d7c8",
+      "bytes": 1161,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "submission/oneshot/QA_RECEIPT.md",
@@ -540,8 +549,8 @@
     },
     {
       "path": "submission/oneshot/README.md",
-      "sha256": "a531320595fa16dea4d335fc2e71db73624a84255572d80068d2809c8ac2a8fa",
-      "bytes": 2863,
+      "sha256": "c04daba0ca0114810d4938d29945c3751fbbb69e8b8ed6fc8b2903f34d6b8de8",
+      "bytes": 2980,
       "contentClass": "independent-submission-artifact",
       "signaturePolicy": "manifest-only"
     },
@@ -617,87 +626,101 @@
     },
     {
       "path": "tools/convert-dataset-images.mjs",
-      "sha256": "4e573a7be1f3da6457bb2f49f8035ea7040caa66827c1440558a019f3180182c",
-      "bytes": 2500,
+      "sha256": "abc2a01664676397c7abe8140fff28055780080ba3267ee3c4625204cda0e4bd",
+      "bytes": 2589,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "tools/generate-background-music.mjs",
-      "sha256": "16d892767f65ac838b311daa379c67e3f872cb0ccc6a98201a1b27db5a4d6c4c",
-      "bytes": 10085,
+      "sha256": "450dad12736b90a46effb9cedc13104c1e35ddef79a92a803f2d037f4df4d275",
+      "bytes": 10174,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
+    },
+    {
+      "path": "tools/provenance-policy.cjs",
+      "sha256": "51a8ab0711c3a474aef51e2990a0c25352348f7ffaa392a8d213079a9d0e6245",
+      "bytes": 3238,
+      "contentClass": "project-source",
+      "signaturePolicy": "header-and-manifest"
+    },
+    {
+      "path": "tools/update-authorship-headers.mjs",
+      "sha256": "de98a33e3589ab5cad6c579ab6d1ebdd1c67f9907e89dc5b1ee94fa2df695902",
+      "bytes": 4197,
+      "contentClass": "project-source",
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "tools/update-provenance-manifest.mjs",
-      "sha256": "7efb1112b1d273bf0e918cb2e3b9c4a0d63225489b5156091ba4cf97be1fdb0e",
-      "bytes": 3378,
+      "sha256": "9fcabbb0480c32fe1af3a0bbdbefd0019362c54ed27c65bffd84366cbf837cdd",
+      "bytes": 2847,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "tools/verify-door-question.cjs",
-      "sha256": "2dcaf06bf8f993fb317503a58b9be0aea6f11b679bfc1a6aee368768c60ac4ff",
-      "bytes": 5246,
+      "sha256": "d495ab1cd0f831d5e6b83e24c42ba01dedc8f557c9af676c2f8a99969b77584e",
+      "bytes": 5335,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "tools/verify-finale.cjs",
-      "sha256": "1dbdd2d5db46ea96ac4a922a25a04f7e31e3f74a19408f7d38da84bcb47f0988",
-      "bytes": 7493,
+      "sha256": "9ef42d0067612208932b9a7b97f38f9ee61991b45ee60b598b8ca70967d48f1d",
+      "bytes": 12453,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "tools/verify-photo-capture.cjs",
-      "sha256": "3df6bb96621af42befc9f71757c59244930d7a2ed79a2eb08964b56712e55a07",
-      "bytes": 10981,
+      "sha256": "47749b329fcff9c5078cad8f5d8fb44f8e9e1d34e318b32cd5c4f13d0c190f01",
+      "bytes": 16588,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "tools/verify-prompts.cjs",
-      "sha256": "80e865b5595d10f7b5fa786f5ce2ac73f265216d4895c36c8ff23295be11a88c",
-      "bytes": 23966,
+      "sha256": "8123957f19f4635e4ed1b46a54c4bfc1216a96ee39ce919825e9d6c67ab0650c",
+      "bytes": 24055,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "tools/verify-provenance.cjs",
-      "sha256": "d006336344815357ec027cec5437d4839a49afe637511cd667145451e0224603",
-      "bytes": 5403,
+      "sha256": "ed615fcf6433e1d6d3ed11aa8d010b50eb3310945272a0ce5eaab00f3bc435e1",
+      "bytes": 11255,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "tools/verify-reactor-controls.cjs",
-      "sha256": "73cafe715e29bf430ae95ee3cd7acfad0695554f47a3e770e24e64e8238b69c1",
-      "bytes": 3742,
+      "sha256": "4bebed2fe466f100510f7d900eb2bc9b4e3c99f2d3ab35bee7b06df98544281a",
+      "bytes": 3831,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "tools/verify-reconnect.cjs",
-      "sha256": "55304d3862515d73560a4ab089fb4a3cd4dbc8b77b24ad47a4c3465b88898d07",
-      "bytes": 4608,
+      "sha256": "da7edc84d462861a016a58c67138c8f66bd2196a196a9d2e0c2937a0f0d6f625",
+      "bytes": 4697,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "tools/verify-scene-transition.cjs",
-      "sha256": "a073427291b6de425e09da7f7824b2af751a2978ad240097501c8f0b712b921d",
-      "bytes": 4943,
+      "sha256": "2d2e9e2606477638a30fb4bc612d0450ef964e56671413ca695ad17b4e87f7de",
+      "bytes": 5032,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "tools/verify-startup.cjs",
-      "sha256": "e618265083d86a212ee8803f306c12e2df9e2b9d2d6c9931acd1edfa4ffe8d7e",
-      "bytes": 5220,
+      "sha256": "414c4c53281e235c03aa54a13e56fa23474c931fdb456a6b433e35a92a5c1913",
+      "bytes": 5309,
       "contentClass": "project-source",
-      "signaturePolicy": "manifest-only"
+      "signaturePolicy": "header-and-manifest"
     },
     {
       "path": "tsconfig.json",

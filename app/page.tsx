@@ -1,3 +1,6 @@
+// Authored by QROST, 2026.
+// Provenance: https://github.com/QROST/20260718_WorldModel
+
 import { AmbientSoundtrack } from "@/components/AmbientSoundtrack";
 import { FashionMazeExperience } from "@/components/FashionMazeExperience";
 import { fashionMazes } from "@/lib/fashion-maze";

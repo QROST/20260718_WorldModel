@@ -1,3 +1,6 @@
+// Authored by QROST, 2026.
+// Provenance: https://github.com/QROST/20260718_WorldModel
+
 import type { FashionMaze } from "./fashion-maze";
 
 export const GRAND_PALAIS_SCENE_ID = "grand-palais";

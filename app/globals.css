@@ -1,3 +1,6 @@
+/* Authored by QROST, 2026. */
+/* Provenance: https://github.com/QROST/20260718_WorldModel */
+
 :root {
   color-scheme: dark;
   font-family: Arial, Helvetica, sans-serif;
@@ -448,6 +451,14 @@ summary:focus-visible {
   height: 1px;
   background: var(--maze-accent);
   box-shadow: 0 0 12px var(--maze-accent);
+}
+
+.maze-wordmark small {
+  margin-left: 2px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
 }
 
 .header-meta {
@@ -1697,6 +1708,14 @@ summary:focus-visible {
   font-size: 9px;
 }
 
+.qrost-run-receipt a {
+  width: fit-content;
+  color: var(--maze-accent);
+  font-size: 10px;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
 .operator-capture {
   display: grid;
   gap: 12px;
@@ -2181,11 +2200,22 @@ summary:focus-visible {
   }
 
   .maze-wordmark {
+    position: relative;
     font-size: 11px;
   }
 
   .maze-wordmark i {
     width: 17px;
+  }
+
+  .maze-wordmark small {
+    position: absolute;
+    top: 18px;
+    left: 0;
+    margin-left: 0;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
   }
 
   .header-meta > span:first-child,

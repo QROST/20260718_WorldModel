@@ -1,5 +1,8 @@
 # FORK THE BLOCK — One Shot Challenge package
 
+Package prepared and maintained by **QROST**. The sealed prompt and dry-run
+artifact hashes below remain unchanged.
+
 Submission title: **FORK THE BLOCK**
 
 Tagline: **DON’T PICK A FUTURE. STEER IT.**

@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// Authored by QROST, 2026.
+// Provenance: https://github.com/QROST/20260718_WorldModel
+
 
 import { readdir, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";

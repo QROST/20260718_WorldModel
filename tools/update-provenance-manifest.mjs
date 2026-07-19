@@ -5,25 +5,28 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { lstatSync, readFileSync, readlinkSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const manifestPath = "PROVENANCE.json";
-const binaryExtensions = new Set([".m4a", ".ogg", ".webp"]);
-const sourceExtensions = new Set([
-  ".cjs",
-  ".css",
-  ".mjs",
-  ".sh",
-  ".ts",
-  ".tsx",
-]);
+const require = createRequire(import.meta.url);
+const {
+  PROJECT_PROVENANCE,
+  contentClass,
+  isAssetClass,
+  signaturePolicy,
+} = require("./provenance-policy.cjs");
+const manifestPath = PROJECT_PROVENANCE.manifestPath;
+const fromIndex = process.argv.includes("--index");
 
 function repositoryFiles() {
+  const args = fromIndex
+    ? ["ls-files", "--cached", "-z"]
+    : ["ls-files", "--cached", "--others", "--exclude-standard", "-z"];
   const output = execFileSync(
     "git",
-    ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+    args,
     { cwd: root },
   );
   return output
@@ -34,39 +37,16 @@ function repositoryFiles() {
 }
 
 function fileBytes(relativePath) {
+  if (fromIndex) {
+    return execFileSync("git", ["show", `:${relativePath}`], {
+      cwd: root,
+      maxBuffer: 64 * 1024 * 1024,
+    });
+  }
   const absolutePath = path.join(root, relativePath);
   return lstatSync(absolutePath).isSymbolicLink()
     ? Buffer.from(readlinkSync(absolutePath), "utf8")
     : readFileSync(absolutePath);
-}
-
-function contentClass(relativePath) {
-  const extension = path.extname(relativePath).toLowerCase();
-  if (relativePath.startsWith("content/authoring/")) {
-    return "imported-authoring-reference";
-  }
-  if (relativePath.startsWith("submission/oneshot/")) {
-    return "independent-submission-artifact";
-  }
-  if (relativePath.startsWith("public/dataset/")) {
-    return "curated-source-asset";
-  }
-  if (relativePath.startsWith("public/audio/") && binaryExtensions.has(extension)) {
-    return "project-audio-asset";
-  }
-  if (relativePath === "next-env.d.ts" || relativePath === "pnpm-lock.yaml") {
-    return "generated-project-metadata";
-  }
-  if (binaryExtensions.has(extension)) return "binary-asset";
-  if (sourceExtensions.has(extension)) return "project-source";
-  if (extension === ".md" || extension === ".txt") {
-    return "project-documentation";
-  }
-  return "project-metadata";
-}
-
-function signaturePolicy() {
-  return "manifest-only";
 }
 
 const entries = repositoryFiles().map((relativePath) => {
@@ -77,29 +57,30 @@ const entries = repositoryFiles().map((relativePath) => {
     sha256: createHash("sha256").update(bytes).digest("hex"),
     bytes: bytes.length,
     contentClass: kind,
-    signaturePolicy: signaturePolicy(relativePath, kind),
+    signaturePolicy: signaturePolicy(relativePath),
   };
 });
 
 const firstBinaryByHash = new Map();
 for (const entry of entries) {
-  if (!entry.contentClass.endsWith("asset")) continue;
+  if (!isAssetClass(entry.contentClass)) continue;
   const original = firstBinaryByHash.get(entry.sha256);
   if (original) entry.aliasOf = original;
   else firstBinaryByHash.set(entry.sha256, entry.path);
 }
 
 const manifest = {
-  schema: "qrost.provenance-manifest/v1",
-  creator: "QROST",
-  workId: "qrost.fashion-maze",
-  claim: "declared-authorship-and-repository-curation",
-  canonicalRepository: "https://github.com/QROST/20260718_WorldModel",
-  hashAlgorithm: "sha256",
+  schema: PROJECT_PROVENANCE.manifestSchema,
+  creator: PROJECT_PROVENANCE.creator,
+  workId: PROJECT_PROVENANCE.workId,
+  workVersion: PROJECT_PROVENANCE.workVersion,
+  claim: PROJECT_PROVENANCE.claim,
+  canonicalRepository: PROJECT_PROVENANCE.canonicalRepository,
+  creatorUrl: PROJECT_PROVENANCE.creatorUrl,
+  hashAlgorithm: PROJECT_PROVENANCE.hashAlgorithm,
   manifestPath,
   manifestSelfExcluded: true,
-  rightsBoundary:
-    "QROST attribution does not replace upstream authorship, asset rights, or third-party licenses.",
+  rightsBoundary: PROJECT_PROVENANCE.rightsBoundary,
   files: entries,
 };
 
@@ -108,4 +89,6 @@ writeFileSync(
   `${JSON.stringify(manifest, null, 2)}\n`,
   "utf8",
 );
-console.log(`Wrote ${manifestPath} with ${entries.length} file records.`);
+console.log(
+  `Wrote ${manifestPath} with ${entries.length} ${fromIndex ? "index" : "working-tree"} file records.`,
+);

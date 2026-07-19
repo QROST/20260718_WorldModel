@@ -1,4 +1,7 @@
 "use client";
+// Authored by QROST, 2026.
+// Provenance: https://github.com/QROST/20260718_WorldModel
+
 
 import type { LingbotWorld2Message } from "@reactor-models/lingbot-world-2";
 import {
@@ -14,6 +17,7 @@ import {
   type FashionMaze,
   type MazeRoute,
 } from "@/lib/fashion-maze";
+import { QROST_OUTPUT_PREFIX } from "@/lib/qrost-provenance";
 
 const PHOTO_WATCHDOG_MS = 30_000;
 const PHOTO_RENDER_SETTLE_MS = 1_200;
@@ -605,7 +609,7 @@ export async function captureReactorPhoto(
   const extension = photoExtensionForMimeType(blob.type);
   return {
     url: URL.createObjectURL(blob),
-    filename: `fashion-maze-${mazeId}-chunk-${paddedChunk}-${timestamp}.${extension}`,
+    filename: `${QROST_OUTPUT_PREFIX}-${mazeId}-chunk-${paddedChunk}-${timestamp}.${extension}`,
     width: canvas.width,
     height: canvas.height,
     chunkIndex,

@@ -1,3 +1,6 @@
+// Authored by QROST, 2026.
+// Provenance: https://github.com/QROST/20260718_WorldModel
+
 import type { ReactorStatus } from "@reactor-team/js-sdk";
 
 export interface ReactorStartGate {

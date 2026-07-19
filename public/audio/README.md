@@ -1,5 +1,7 @@
 # The Fashion Maze soundtrack
 
+Created for and published with The Fashion Maze by **QROST**.
+
 `Velvet Threshold` is an original, deterministic 72-second ambient loop made
 for The Fashion Maze. It uses synthesized tones and noise only: no recordings,
 samples, third-party music, or Reactor credits.

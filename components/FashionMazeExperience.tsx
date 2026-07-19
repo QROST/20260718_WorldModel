@@ -1,4 +1,7 @@
 "use client";
+// Authored by QROST, 2026.
+// Provenance: https://github.com/QROST/20260718_WorldModel
+
 
 import {
   LingbotWorld2MainVideoView,
@@ -49,6 +52,12 @@ import {
   sanitizeReactorDebugText,
   shouldConfirmReactorReconnect,
 } from "@/lib/reactor-lifecycle";
+import {
+  createQrostRunReceipt,
+  QROST_OUTPUT_PREFIX,
+  QROST_PROVENANCE,
+  serializeQrostRunReceipt,
+} from "@/lib/qrost-provenance";
 import {
   useReactorControls,
   type ReactorControlCode,
@@ -215,7 +224,11 @@ async function seedAssetToFile(maze: FashionMaze): Promise<File> {
     if (!extension) {
       throw new Error(`Unsupported seed image type: ${source.type || "unknown"}`);
     }
-    return new File([source], `${seedName}.${extension}`, { type: source.type });
+    return new File(
+      [source],
+      `${seedName}.${extension}`,
+      { type: source.type },
+    );
   }
 
   const objectUrl = URL.createObjectURL(source);
@@ -239,7 +252,11 @@ async function seedAssetToFile(maze: FashionMaze): Promise<File> {
         0.94,
       );
     });
-    return new File([png], `${seedName}.png`, { type: "image/png" });
+    return new File(
+      [png],
+      `${seedName}.png`,
+      { type: "image/png" },
+    );
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
@@ -412,7 +429,7 @@ function FashionMazeRuntime({
   const [sceneOrderIds, setSceneOrderIds] = useState(() =>
     fashionMazes.map((maze) => maze.id),
   );
-  const [sceneOrderSeed, setSceneOrderSeed] = useState(0);
+  const [sceneOrderSeed, setSceneOrderSeed] = useState<number | null>(null);
   const [selectedMazeId, setSelectedMazeId] = useState(fashionMazes[0].id);
   const [activeMazeId, setActiveMazeId] = useState<string | null>(null);
   const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
@@ -562,6 +579,28 @@ function FashionMazeRuntime({
   const inspectedPromptSegments = useMemo(
     () => explainFashionMazePrompt(activeMaze, inspectedPrompt),
     [activeMaze, inspectedPrompt],
+  );
+  const qrostRunReceipt = useMemo(
+    () =>
+      createQrostRunReceipt({
+        sceneOrderSeed,
+        sceneOrderIds,
+        entranceVariantIds: sceneOrderIds.map(
+          (sceneId) => `${sceneId}:${entranceVariantIds[sceneId] ?? ""}`,
+        ),
+      }),
+    [entranceVariantIds, sceneOrderIds, sceneOrderSeed],
+  );
+  const qrostRunReceiptJson = useMemo(
+    () => serializeQrostRunReceipt(qrostRunReceipt),
+    [qrostRunReceipt],
+  );
+  const qrostRunReceiptHref = useMemo(
+    () =>
+      `data:application/json;charset=utf-8,${encodeURIComponent(
+        `${qrostRunReceiptJson}\n`,
+      )}`,
+    [qrostRunReceiptJson],
   );
   const narrative = activeRoute?.narrative ?? activeMaze.entrance;
   const selectableMazes = fashionMazes.filter(
@@ -2429,6 +2468,8 @@ function FashionMazeRuntime({
     const snapshot = {
       type: "fashion-maze-debug-snapshot",
       exportedAt: new Date().toISOString(),
+      provenance: QROST_PROVENANCE,
+      runReceipt: qrostRunReceipt,
       status,
       phase,
       scene:
@@ -2504,6 +2545,7 @@ function FashionMazeRuntime({
     modelState?.has_prompt,
     modelState?.running,
     phase,
+    qrostRunReceipt,
     revealVideo,
     sceneTransitionStage,
     sessionId,
@@ -2614,6 +2656,7 @@ function FashionMazeRuntime({
           <span>FASHION</span>
           <i />
           <span>MAZE</span>
+          <small>BY QROST</small>
         </a>
         <div className="header-meta">
           <span className={`connection-state state-${statusTone}`}>
@@ -3107,7 +3150,7 @@ function FashionMazeRuntime({
             <div><dt>CAST</dt><dd>{activeMaze.ensemble.count === "all" ? "all seed-visible performers" : activeMaze.ensemble.count > 0 ? `${activeMaze.ensemble.count} · poised runway holds` : "0 · empty environment"}</dd></div>
             <div><dt>PHOTO</dt><dd>{photoState}</dd></div>
             <div><dt>DECISIONS</dt><dd>{doorAnswers.length} / {fashionDoorQuestions.length}</dd></div>
-            <div><dt>RUN ORDER</dt><dd>{sceneOrderSeed || "not drawn"} · {activeSceneIndex >= 0 ? `${activeSceneIndex + 1}/${sceneOrderIds.length}` : "finale"}</dd></div>
+            <div><dt>RUN ORDER</dt><dd>{sceneOrderSeed ?? "not drawn"} · {activeSceneIndex >= 0 ? `${activeSceneIndex + 1}/${sceneOrderIds.length}` : "finale"}</dd></div>
             <div><dt>CHUNK</dt><dd>{chunkIndex}</dd></div>
             <div><dt>ACTION</dt><dd>{modelState?.current_action ?? "—"}</dd></div>
             <div><dt>CAMERA POSE</dt><dd>{mouseLook || modelState?.camera_pose_active ? "active" : "idle"}</dd></div>
@@ -3121,6 +3164,17 @@ function FashionMazeRuntime({
           <div className="operator-session">
             <span>SESSION</span>
             <code>{sessionId ?? "not allocated"}</code>
+          </div>
+
+          <div className="operator-session qrost-run-receipt">
+            <span>QROST PROVENANCE</span>
+            <code>{QROST_PROVENANCE.workId} · {QROST_PROVENANCE.schema}</code>
+            <a
+              href={qrostRunReceiptHref}
+              download={`${QROST_OUTPUT_PREFIX}-run-${sceneOrderSeed ?? "not-drawn"}.json`}
+            >
+              Download run receipt
+            </a>
           </div>
 
           <div className="operator-capture">
@@ -3206,7 +3260,7 @@ function FashionMazeRuntime({
       {clip && (
         <FashionMazeClipModal
           clip={clip}
-          filename={`fashion-maze-${activeMaze.id}-${sessionId?.slice(0, 8) ?? "clip"}.mp4`}
+          filename={`${QROST_OUTPUT_PREFIX}-${activeMaze.id}-${sessionId?.slice(0, 8) ?? "clip"}.mp4`}
           onClose={() => setClip(null)}
           onError={(cause) => setClipError(cause.message)}
           onDownloaded={() => setClipError(null)}

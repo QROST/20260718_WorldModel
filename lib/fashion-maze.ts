@@ -1,3 +1,6 @@
+// Authored by QROST, 2026.
+// Provenance: https://github.com/QROST/20260718_WorldModel
+
 export interface NarrativeBeat {
   eyebrow: string;
   title: string;

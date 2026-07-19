@@ -1,5 +1,8 @@
 # Fashion Maze content packet
 
+Repository integration and conversion provenance: **QROST**. The underlying
+team authoring and asset rights remain with their respective contributors.
+
 This folder is a portable snapshot of the team's original Fashion Maze
 authoring repository.
 
