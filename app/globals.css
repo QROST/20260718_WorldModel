@@ -2054,10 +2054,15 @@ summary:focus-visible {
   backdrop-filter: blur(18px);
 }
 
-.photo-receipt img {
+.photo-receipt-image {
+  position: relative;
   width: 76px;
   aspect-ratio: 16 / 9;
+  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.photo-receipt-image img {
   object-fit: cover;
 }
 

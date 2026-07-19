@@ -15,6 +15,7 @@ import {
   type Clip,
   type FileRef,
 } from "@reactor-team/js-sdk";
+import NextImage from "next/image";
 import {
   useCallback,
   useEffect,
@@ -628,7 +629,8 @@ async function captureReactorPhoto(
             reject(new Error("The browser could not encode the photo."));
           }
         },
-        "image/png",
+        "image/webp",
+        0.9,
       );
     } catch (cause) {
       window.clearTimeout(timeout);
@@ -640,10 +642,11 @@ async function captureReactorPhoto(
     .replace(/\.\d{3}Z$/, "Z")
     .replace(/:/g, "-");
   const paddedChunk = chunkIndex.toString().padStart(3, "0");
+  const extension = blob.type === "image/webp" ? "webp" : "png";
 
   return {
     url: URL.createObjectURL(blob),
-    filename: `fashion-maze-${mazeId}-chunk-${paddedChunk}-${timestamp}.png`,
+    filename: `fashion-maze-${mazeId}-chunk-${paddedChunk}-${timestamp}.${extension}`,
     width: canvas.width,
     height: canvas.height,
     chunkIndex,
@@ -4435,10 +4438,13 @@ function FashionMazeRuntime({
 
       <section className={`maze-stage phase-${phase}`} id="top">
         <div className="stage-media" ref={stageMediaRef}>
-          <img
+          <NextImage
             className={`seed-preview ${revealVideo ? "is-hidden" : ""}`}
             src={activeMaze.seedImage}
             alt={`Entrance frame for ${activeMaze.title}`}
+            fill
+            sizes="100vw"
+            priority={phase === "preview"}
           />
           <LingbotWorld2MainVideoView
             className={`reactor-video ${revealVideo ? "has-track" : ""} ${
@@ -4740,10 +4746,13 @@ function FashionMazeRuntime({
           aria-busy={finalePhase === "generating" || finalePhase === "starting"}
         >
           {finaleMaze && (
-            <img
+            <NextImage
               className="grand-palais-backdrop"
               src={finaleMaze.seedImage}
               alt="This run’s generated Grand Palais fashion show"
+              fill
+              sizes="100vw"
+              unoptimized
             />
           )}
           <div className="grand-palais-shade" />
@@ -4842,7 +4851,15 @@ function FashionMazeRuntime({
 
       {capturedPhoto && (
         <aside className="photo-receipt" aria-live="polite">
-          <img src={capturedPhoto.url} alt="Latest Fashion Maze photo" />
+          <div className="photo-receipt-image">
+            <NextImage
+              src={capturedPhoto.url}
+              alt="Latest Fashion Maze photo"
+              fill
+              sizes="76px"
+              unoptimized
+            />
+          </div>
           <div>
             <span>Photo saved</span>
           </div>
