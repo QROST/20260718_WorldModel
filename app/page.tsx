@@ -1,3 +1,4 @@
+import { AmbientSoundtrack } from "@/components/AmbientSoundtrack";
 import { FashionMazeExperience } from "@/components/FashionMazeExperience";
 import { fashionMazes } from "@/lib/fashion-maze";
 import { hasOpenAIApiKey } from "@/lib/openai-server";
@@ -16,10 +17,13 @@ export default function Page() {
   );
 
   return (
-    <FashionMazeExperience
-      reactorConfigured={hasReactorApiKey()}
-      openaiConfigured={hasOpenAIApiKey()}
-      initialEntranceVariantIds={initialEntranceVariantIds}
-    />
+    <>
+      <FashionMazeExperience
+        reactorConfigured={hasReactorApiKey()}
+        openaiConfigured={hasOpenAIApiKey()}
+        initialEntranceVariantIds={initialEntranceVariantIds}
+      />
+      <AmbientSoundtrack />
+    </>
   );
 }
