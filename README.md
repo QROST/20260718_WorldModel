@@ -90,12 +90,7 @@ interface FashionMaze {
     releaseHoldChunks: number;
   };
   sceneTransition?: {
-    targetSceneId: string;
     buttonLabel: string;
-    question: {
-      prompt: string;
-      choices: [{ id: string; label: string }, { id: string; label: string }];
-    };
     portal: { summon: string; enter: string };
   };
   routes: MazeRoute[];
@@ -124,7 +119,7 @@ interface FashionMaze {
 - portal event 保持为一条描述环境的现在进行时句子；镜头 framing、chunk 数与无 lens zoom 的穿门动作只属于 camera layer，使文字始终与真实 `forward` 状态同步；
 - 默认描述画面中存在的正面事实；camera contract 和一个具体歧义 guard 才使用必要的否定语言；
 - action 必须短暂、可构图并落在稳定状态；fresh session 至少确认一个 `active_prompt` 匹配且 `active_action === "still"` 的完整 ambient chunk，才开放控制与拍照；
-- 总 Prompt 以 1800 characters 为安全目标、2000 为 hard cap；`base ≤ 600`、`camera ≤ 300`、`movement ≤ 350`、单个 `event ≤ 500`。Operator 会展示每个 segment 的来源与长度。
+- 总 Prompt 以 1800 characters 为安全目标、2000 为 hard cap；`base ≤ 600`、`anchor ≤ 450`、`camera ≤ 300`、`movement ≤ 350`、`destination ≤ 300`、单个 `event ≤ 500`、`continuity ≤ 180`。Operator 会展示每个 segment 的来源与长度。
 
 ## Reactor 架构
 
@@ -149,14 +144,19 @@ interface FashionMaze {
 pnpm typecheck
 pnpm verify:prompts
 pnpm verify:startup
+pnpm verify:reconnect
 pnpm verify:finale
+pnpm verify:controls
+pnpm verify:photo
+pnpm verify:scene
+pnpm verify:door
 pnpm build
 ```
 
-三个 `verify:*` 都不连接 Reactor 或 OpenAI，也不花费 credits；`prebuild` 会自动运行全部验证。Prompt suite 穷举 authored scene × entrance variant × route × photo beat × portal stage，检查随机顺序、七道门问答、seed 文件、ID、anchor、layer ownership、photo shutter 语义与字符预算；当前矩阵覆盖 7 个 authored scenes、24 个入口变体、240 个完整 Prompt packets，最长组合为 1797 / 2000 characters。Startup suite 覆盖 disconnect edge、once-only gate 与 debug redaction；finale suite 覆盖七张 allowlisted references、十条等待文案、single-flight guard 与 runtime Scene 8，不发真实 API 请求。
+八个 `verify:*` 都不连接 Reactor 或 OpenAI，也不花费 credits；`prebuild` 会自动运行全部验证。Prompt suite 穷举 authored scene × entrance variant × route × photo beat × portal stage，检查随机顺序、七道门问答、seed 文件、ID、anchor、layer ownership、photo shutter 语义与字符预算；当前矩阵覆盖 7 个 authored scenes、24 个入口变体、240 个完整 Prompt packets，最长组合为 1776 / 2000 characters。Startup 与 reconnect suite 覆盖 disconnect edge、once-only gate、debug redaction 和重连决策；controls、photo、scene 与 door suite 分别验证输入仲裁、拍照恢复、换幕状态机和门问答/重连门禁；finale suite 覆盖七张 allowlisted references、十条等待文案、single-flight guard 与 runtime Scene 8，不发真实 API 请求。
 
 不要在自动测试中点击 live 入口；真实连接测试应作为显式的 credit-spending canary 单独执行。Prompt 或 seed 修订必须从 fresh session 评估，旧坏帧进入自回归历史后继续 hot-swap 不能证明修复有效。
 
-七次 authored-scene 黑门决策与生成 Scene 8 的静态状态机已通过类型检查和离线矩阵；实际门距、三段 forward 的步行速度、网页推进观感、连续 Reactor generations 与一次 OpenAI Images Edit 的真实时序仍需要显式的 credit-spending canary 才能确认。
+七次 authored-scene 黑门决策与生成 Scene 8 的静态状态机已通过类型检查和离线矩阵；实际门距、8 个 forward 确认 chunks 的步行速度、网页推进观感、连续 Reactor generations 与一次 OpenAI Images Edit 的真实时序仍需要显式的 credit-spending canary 才能确认。
 
 `submission/oneshot/` 是独立交付包，本应用不会读取其中内容；本地 Scene 8 route 会读取根目录的 `openai.key` 作为 `OPENAI_API_KEY` 的 fallback。
