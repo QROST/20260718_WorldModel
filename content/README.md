@@ -1,8 +1,7 @@
 # Fashion Maze content packet
 
-This folder is a portable snapshot of the team's authoring material from:
-
-`/Users/addincui/Github/2026TheFashionMaze-Hack`
+This folder is a portable snapshot of the team's original Fashion Maze
+authoring repository.
 
 Imported on 2026-07-18 without modifying the source repository.
 
