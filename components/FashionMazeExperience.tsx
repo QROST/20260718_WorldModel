@@ -33,7 +33,6 @@ import {
   fashionMazes,
   findMaze,
   PORTAL_CHOREOGRAPHY,
-  resolvePhotoAction,
   resolveMazeEntrance,
   type FashionMazeDoorChoice,
   type FashionMazeDoorQuestion,
@@ -56,6 +55,7 @@ import {
   useReactorControls,
   type ReactorControlCode,
 } from "./fashion-maze-runtime/useReactorControls";
+import { usePhotoCapture } from "./fashion-maze-runtime/usePhotoCapture";
 
 type ExperiencePhase =
   | "preview"
@@ -68,19 +68,6 @@ type ExperiencePhase =
   | "paused"
   | "ending"
   | "error";
-
-interface PhotoPromptStep {
-  cue: string;
-  prompt: string;
-  holdChunks: number;
-}
-
-type PhotoActionState =
-  | "idle"
-  | "framing"
-  | "capturing"
-  | "returning"
-  | "saved";
 
 type SceneTransitionStage =
   | "idle"
@@ -139,36 +126,6 @@ interface DoorAnswerRecord {
   choiceLabel: string;
 }
 
-interface PendingPhoto {
-  stage: "capture" | "capturing" | "release" | "restore";
-  prompt: string;
-  cue: string;
-  holdChunks: number;
-  matchedChunks: number;
-  remaining: PhotoPromptStep[];
-  beatIndex: number;
-  beatCount: number;
-  releasePrompt: string;
-  releaseHoldChunks: number;
-  ambientPrompt: string;
-  issuedAfterSerial: number;
-  photoSaved: boolean;
-}
-
-interface PhotoCueDisplay {
-  cue: string;
-  beatIndex: number;
-  beatCount: number;
-}
-
-interface CapturedPhoto {
-  url: string;
-  filename: string;
-  width: number;
-  height: number;
-  chunkIndex: number;
-}
-
 type DebugLogLevel = "info" | "success" | "warning" | "error";
 type DebugLogSource = "ui" | "sdk" | "model" | "media" | "timer";
 
@@ -201,10 +158,6 @@ const CONNECTION_READY_WATCHDOG_MS = 60_000;
 const ARMING_WATCHDOG_MS = 30_000;
 const START_WATCHDOG_MS = 20_000;
 const VISIBLE_VIDEO_WATCHDOG_MS = 20_000;
-const PHOTO_WATCHDOG_MS = 30_000;
-const PHOTO_RENDER_SETTLE_MS = 1_200;
-const PHOTO_FRAME_TIMEOUT_MS = 5_000;
-const PHOTO_ENCODE_TIMEOUT_MS = 2_000;
 const VIDEO_FRAME_PROBE_TIMEOUT_MS = 1_000;
 const CONTROL_RELEASE_TIMEOUT_MS = 750;
 const DISCONNECT_CONFIRM_TIMEOUT_MS = 10_000;
@@ -347,15 +300,6 @@ async function seedAssetToFile(maze: FashionMaze): Promise<File> {
   }
 }
 
-function isTypingTarget(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement ||
-    (target instanceof HTMLElement && target.isContentEditable)
-  );
-}
-
 function errorMessage(cause: unknown): string {
   if (cause instanceof Error) return cause.message;
   if (
@@ -466,176 +410,6 @@ function scheduleCreditProtectionTimeout(
   if (!CREDIT_PROTECTION_TIMEOUTS_ENABLED) return null;
   return window.setTimeout(callback, timeoutMs);
 }
-
-async function waitForRenderedVideoDuration(
-  video: HTMLVideoElement,
-  minimumDurationMs: number,
-): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    let frameRequest: number | null = null;
-    let fallbackTimer: number | null = null;
-    let timeout: number | null = null;
-    let firstMediaTime: number | null = null;
-    let settled = false;
-    const initialCurrentTime = video.currentTime;
-    const initialPresentedFrames =
-      typeof video.getVideoPlaybackQuality === "function"
-        ? video.getVideoPlaybackQuality().totalVideoFrames
-        : null;
-    const cleanup = () => {
-      if (timeout !== null) {
-        window.clearTimeout(timeout);
-        timeout = null;
-      }
-      if (fallbackTimer !== null) {
-        window.clearTimeout(fallbackTimer);
-        fallbackTimer = null;
-      }
-      if (
-        frameRequest !== null &&
-        typeof video.cancelVideoFrameCallback === "function"
-      ) {
-        video.cancelVideoFrameCallback(frameRequest);
-      }
-      frameRequest = null;
-    };
-    const finish = (error?: Error) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      if (error) {
-        reject(error);
-      } else {
-        resolve();
-      }
-    };
-    const requestNextFrame = () => {
-      if (settled) return;
-      frameRequest = video.requestVideoFrameCallback((_now, metadata) => {
-        frameRequest = null;
-        if (settled) return;
-        if (firstMediaTime === null) firstMediaTime = metadata.mediaTime;
-        if (
-          (metadata.mediaTime - firstMediaTime) * 1_000 >= minimumDurationMs
-        ) {
-          finish();
-        } else {
-          requestNextFrame();
-        }
-      });
-    };
-    const pollFallback = () => {
-      if (settled) return;
-      const mediaAdvanced =
-        (video.currentTime - initialCurrentTime) * 1_000 >= minimumDurationMs;
-      const framesAdvanced =
-        initialPresentedFrames === null ||
-        (typeof video.getVideoPlaybackQuality === "function" &&
-          video.getVideoPlaybackQuality().totalVideoFrames >
-            initialPresentedFrames);
-      if (mediaAdvanced && framesAdvanced) {
-        finish();
-      } else {
-        fallbackTimer = window.setTimeout(pollFallback, 50);
-      }
-    };
-    timeout = window.setTimeout(() => {
-      finish(
-        new Error(
-          "The Reactor view did not render enough settled video for the photo.",
-        ),
-      );
-    }, PHOTO_FRAME_TIMEOUT_MS);
-
-    if (typeof video.requestVideoFrameCallback === "function") {
-      requestNextFrame();
-    } else {
-      pollFallback();
-    }
-  });
-}
-
-async function captureReactorPhoto(
-  stage: HTMLDivElement | null,
-  track: MediaStreamTrack | undefined,
-  mazeId: string,
-  chunkIndex: number,
-): Promise<CapturedPhoto> {
-  const video = stage?.querySelector<HTMLVideoElement>(".reactor-video video");
-  if (
-    !video ||
-    !track ||
-    track.readyState !== "live" ||
-    track.muted ||
-    video.ended ||
-    video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
-    video.videoWidth <= 0 ||
-    video.videoHeight <= 0
-  ) {
-    throw new Error("The Reactor view is not ready to take a photo yet.");
-  }
-
-  // chunk_complete confirms generation/emission, not that the browser has
-  // presented the tail of that chunk. Keep the shutter prompt active while a
-  // bounded span of fresh media is visibly rendered before drawing the frame.
-  await waitForRenderedVideoDuration(video, PHOTO_RENDER_SETTLE_MS);
-
-  const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const context = canvas.getContext("2d", { alpha: false });
-  if (!context) throw new Error("Canvas is unavailable for photo capture.");
-  context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    const timeout = window.setTimeout(
-      () => reject(new Error("The browser took too long to encode the photo.")),
-      PHOTO_ENCODE_TIMEOUT_MS,
-    );
-    try {
-      canvas.toBlob(
-        (result) => {
-          window.clearTimeout(timeout);
-          if (result) {
-            resolve(result);
-          } else {
-            reject(new Error("The browser could not encode the photo."));
-          }
-        },
-        "image/webp",
-        0.9,
-      );
-    } catch (cause) {
-      window.clearTimeout(timeout);
-      reject(cause);
-    }
-  });
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/\.\d{3}Z$/, "Z")
-    .replace(/:/g, "-");
-  const paddedChunk = chunkIndex.toString().padStart(3, "0");
-  const extension = blob.type === "image/webp" ? "webp" : "png";
-
-  return {
-    url: URL.createObjectURL(blob),
-    filename: `fashion-maze-${mazeId}-chunk-${paddedChunk}-${timestamp}.${extension}`,
-    width: canvas.width,
-    height: canvas.height,
-    chunkIndex,
-  };
-}
-
-function downloadCapturedPhoto(photo: CapturedPhoto): void {
-  const anchor = document.createElement("a");
-  anchor.href = photo.url;
-  anchor.download = photo.filename;
-  anchor.hidden = true;
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-}
-
 export function FashionMazeExperience({
   reactorConfigured,
   openaiConfigured,
@@ -715,10 +489,6 @@ function FashionMazeRuntime({
   const [finaleMaze, setFinaleMaze] = useState<FashionMaze | null>(null);
   const [finaleStoryIndex, setFinaleStoryIndex] = useState(0);
   const [finaleError, setFinaleError] = useState<string | null>(null);
-  const [photoState, setPhotoState] = useState<PhotoActionState>("idle");
-  const [photoCue, setPhotoCue] = useState<PhotoCueDisplay | null>(null);
-  const [capturedPhoto, setCapturedPhoto] = useState<CapturedPhoto | null>(null);
-  const [photoFlash, setPhotoFlash] = useState(false);
   const [operatorOpen, setOperatorOpen] = useState(false);
   const [debugLog, setDebugLog] = useState<DebugLogEntry[]>([]);
   const [debugCopyStatus, setDebugCopyStatus] = useState<string | null>(null);
@@ -731,7 +501,6 @@ function FashionMazeRuntime({
   const pendingMazeRef = useRef<FashionMaze | null>(null);
   const stagingIssuedRef = useRef(false);
   const autoAdvanceIssuedRef = useRef(false);
-  const pendingPhotoRef = useRef<PendingPhoto | null>(null);
   const pendingSceneTransitionRef =
     useRef<PendingSceneTransition | null>(null);
   const pendingDoorQuestionRef = useRef<DoorQuestionDialogState | null>(null);
@@ -746,18 +515,11 @@ function FashionMazeRuntime({
   const finaleGenerationAbortRef = useRef<AbortController | null>(null);
   const finaleGenerationTimeoutRef = useRef<number | null>(null);
   const finaleCancelInFlightRef = useRef(false);
-  const photoBusyRef = useRef(false);
-  const chunkSerialRef = useRef(0);
   const lastPromptRef = useRef("");
   const promptRequestIdRef = useRef(0);
   const stageMediaRef = useRef<HTMLDivElement>(null);
   const doorQuestionCardRef = useRef<HTMLElement>(null);
-  const completePhotoCaptureRef = useRef<
-    (pending: PendingPhoto, completedChunk: number) => void
-  >(() => undefined);
   const activationWatchdogRef = useRef<number | null>(null);
-  const photoWatchdogRef = useRef<number | null>(null);
-  const photoFlashTimerRef = useRef<number | null>(null);
   const sceneTransitionWatchdogRef = useRef<number | null>(null);
   const reconnectWatchdogRef = useRef<number | null>(null);
   const doorQuestionWatchdogRef = useRef<number | null>(null);
@@ -778,6 +540,13 @@ function FashionMazeRuntime({
   const failedReconnectSessionIdRef = useRef<string | null>(null);
   const reconnectAttemptRef = useRef(0);
   const controlsResetRef = useRef<() => void>(() => undefined);
+  const photoFlowRef = useRef<{
+    hasPending: () => boolean;
+    reset: () => void;
+  }>({
+    hasPending: () => false,
+    reset: () => undefined,
+  });
 
   const appendDebugEvent = useCallback(
     (
@@ -881,14 +650,10 @@ function FashionMazeRuntime({
     isLive &&
     !isPaused &&
     !terminatingRef.current &&
-    !pendingPhotoRef.current &&
+    !photoFlowRef.current.hasPending() &&
     !pendingSceneTransitionRef.current &&
     !pendingDoorQuestionRef.current &&
     phase === "live";
-  const photoBusy =
-    photoState === "framing" ||
-    photoState === "capturing" ||
-    photoState === "returning";
   const busy = [
     "connecting",
     "uploading",
@@ -924,12 +689,6 @@ function FashionMazeRuntime({
     if (activationWatchdogRef.current === null) return;
     window.clearTimeout(activationWatchdogRef.current);
     activationWatchdogRef.current = null;
-  }, []);
-
-  const clearPhotoWatchdog = useCallback(() => {
-    if (photoWatchdogRef.current === null) return;
-    window.clearTimeout(photoWatchdogRef.current);
-    photoWatchdogRef.current = null;
   }, []);
 
   const clearReconnectWatchdog = useCallback(() => {
@@ -1026,7 +785,7 @@ function FashionMazeRuntime({
       );
       clearActivationWatchdog();
       controlsResetRef.current();
-      clearPhotoWatchdog();
+      photoFlowRef.current.reset();
       clearReconnectWatchdog();
       clearSceneTransitionTimers();
       reconnectAttemptRef.current += 1;
@@ -1047,14 +806,9 @@ function FashionMazeRuntime({
       startIssuedRef.current = false;
       pendingMazeRef.current = null;
       stagingIssuedRef.current = false;
-      pendingPhotoRef.current = null;
       pendingSceneTransitionRef.current = null;
       pendingDoorQuestionRef.current = null;
       preparedSceneTransitionRef.current = null;
-      photoBusyRef.current = false;
-      setPhotoState("idle");
-      setPhotoCue(null);
-      setPhotoFlash(false);
       setDoorQuestionDialog(null);
       setTargetSceneChunkReady(false);
       setSceneTransitionStage(passedBlackThreshold ? "failed" : "idle");
@@ -1073,7 +827,6 @@ function FashionMazeRuntime({
     [
       appendDebugEvent,
       clearActivationWatchdog,
-      clearPhotoWatchdog,
       clearReconnectWatchdog,
       clearSceneTransitionTimers,
       disconnect,
@@ -1085,7 +838,7 @@ function FashionMazeRuntime({
   const isTerminating = useCallback(() => terminatingRef.current, []);
   const isAmbientFlowClear = useCallback(
     () =>
-      !pendingPhotoRef.current &&
+      !photoFlowRef.current.hasPending() &&
       !pendingSceneTransitionRef.current &&
       !pendingDoorQuestionRef.current,
     [],
@@ -1162,17 +915,63 @@ function FashionMazeRuntime({
     getExpectedPrompt,
     handleChunk: handleControlsChunk,
     handleCommandError: handleControlsCommandError,
+    hasPendingRoute,
     mouseLook,
+    noteExternalAxes,
     pendingRouteId,
     pressedControlCodes,
     chooseRoute,
     handleGenerationReset: resetControls,
     releaseControls,
+    setAmbientChunkReady,
     setControl,
     toggleMouseLook,
   } = controls;
   controlsResetRef.current = resetControls;
   const canExplore = canControl;
+  const reportPhotoMediaEvent = useCallback(
+    (event: string, detail: string) =>
+      appendDebugEvent("media", event, detail),
+    [appendDebugEvent],
+  );
+  const photo = usePhotoCapture({
+    activeMaze,
+    activeRoute,
+    canTakePhoto: canControl,
+    revealVideo,
+    stageMediaRef,
+    mainVideoTrack,
+    hasPendingRoute,
+    isTerminating,
+    releaseControls,
+    setPrompt,
+    lastPrompt: lastPromptRef,
+    promptRequestId: promptRequestIdRef,
+    scheduleWatchdog: scheduleCreditProtectionTimeout,
+    onPhaseChange: setPhase,
+    onError: setError,
+    onAmbientChunkReadyChange: setAmbientChunkReady,
+    onFatalError: abortActivation,
+    onMediaEvent: reportPhotoMediaEvent,
+  });
+  const {
+    photoState,
+    cue: photoCue,
+    capturedPhoto,
+    flash: photoFlash,
+    busy: photoBusy,
+    dismissCapturedPhoto,
+    hasPending: hasPendingPhoto,
+    handleChunk: handlePhotoChunk,
+    handleCommandError: handlePhotoCommandError,
+    handleLastError: handlePhotoLastError,
+    reset: resetPhoto,
+    takePhoto,
+  } = photo;
+  photoFlowRef.current = {
+    hasPending: hasPendingPhoto,
+    reset: resetPhoto,
+  };
 
   const repauseDoorQuestion = useCallback((): boolean => {
     const pending = pendingDoorQuestionRef.current;
@@ -1368,7 +1167,7 @@ function FashionMazeRuntime({
       window.clearTimeout(portalZoomTimerRef.current);
       portalZoomTimerRef.current = null;
     }
-    controls.noteExternalAxes({ longitudinal: "idle" });
+    noteExternalAxes({ longitudinal: "idle" });
     void Promise.all([
       setMoveLongitudinal({ move_longitudinal: "idle" }),
       setCameraPose({ camera_pose: [] }),
@@ -1406,6 +1205,7 @@ function FashionMazeRuntime({
   }, [
     abortActivation,
     armSceneTransitionWatchdog,
+    noteExternalAxes,
     reset,
     setCameraPose,
     setMoveLongitudinal,
@@ -1454,89 +1254,6 @@ function FashionMazeRuntime({
       }
     };
   }, [coverPortal, sceneTransitionStage]);
-
-  const restorePhotoAmbient = useCallback(
-    (pending: PendingPhoto, reason: string | null) => {
-      if (pendingPhotoRef.current !== pending || terminatingRef.current) return;
-
-      clearPhotoWatchdog();
-      const restoring: PendingPhoto = {
-        ...pending,
-        stage: "restore",
-        prompt: pending.ambientPrompt,
-        cue: pending.photoSaved ? "NICE!" : "RESET",
-        holdChunks: 1,
-        matchedChunks: 0,
-        remaining: [],
-        issuedAfterSerial: chunkSerialRef.current,
-      };
-      pendingPhotoRef.current = restoring;
-      photoBusyRef.current = true;
-      setPhotoState("returning");
-      setPhotoCue({
-        cue: restoring.cue,
-        beatIndex: restoring.beatCount,
-        beatCount: restoring.beatCount,
-      });
-      setPhase("switching");
-      setError(reason);
-
-      const requestId = ++promptRequestIdRef.current;
-      lastPromptRef.current = restoring.prompt;
-      photoWatchdogRef.current = scheduleCreditProtectionTimeout(() => {
-        photoWatchdogRef.current = null;
-        if (
-          pendingPhotoRef.current === restoring &&
-          !terminatingRef.current
-        ) {
-          abortActivation(
-            new Error(
-              "The photo action could not restore the ambient world in time.",
-            ),
-          );
-        }
-      }, PHOTO_WATCHDOG_MS);
-
-      void setPrompt({ prompt: restoring.prompt }).catch((cause) => {
-        if (
-          pendingPhotoRef.current === restoring &&
-          promptRequestIdRef.current === requestId &&
-          !terminatingRef.current
-        ) {
-          abortActivation(
-            new Error(
-              `The photo action could not restore the ambient world: ${errorMessage(cause)}`,
-            ),
-          );
-        }
-      });
-    },
-    [abortActivation, clearPhotoWatchdog, setPrompt],
-  );
-
-  const recoverPhoto = useCallback(
-    (pending: PendingPhoto, reason: string) => {
-      if (pendingPhotoRef.current !== pending || terminatingRef.current) return;
-
-      if (pending.stage === "restore") {
-        abortActivation(new Error(reason));
-        return;
-      }
-      restorePhotoAmbient(pending, reason);
-    },
-    [abortActivation, restorePhotoAmbient],
-  );
-
-  const armPhotoWatchdog = useCallback(
-    (pending: PendingPhoto, message: string) => {
-      clearPhotoWatchdog();
-      photoWatchdogRef.current = scheduleCreditProtectionTimeout(() => {
-        photoWatchdogRef.current = null;
-        recoverPhoto(pending, message);
-      }, PHOTO_WATCHDOG_MS);
-    },
-    [clearPhotoWatchdog, recoverPhoto],
-  );
 
   useEffect(() => {
     if (
@@ -1629,7 +1346,7 @@ function FashionMazeRuntime({
     clearReconnectWatchdog();
     clearActivationWatchdog();
     resetControls();
-    clearPhotoWatchdog();
+    resetPhoto();
     clearSceneTransitionTimers();
     reconnectAttemptRef.current += 1;
     reconnectingSessionIdRef.current = null;
@@ -1642,17 +1359,11 @@ function FashionMazeRuntime({
     pendingMazeRef.current = null;
     stagingIssuedRef.current = false;
     autoAdvanceIssuedRef.current = false;
-    pendingPhotoRef.current = null;
     pendingSceneTransitionRef.current = null;
     pendingDoorQuestionRef.current = null;
     preparedSceneTransitionRef.current = null;
-    photoBusyRef.current = false;
-    chunkSerialRef.current = 0;
     setSessionStartedAt(null);
     setElapsedSeconds(0);
-    setPhotoState("idle");
-    setPhotoCue(null);
-    setPhotoFlash(false);
     setDoorQuestionDialog(null);
     setSceneTransitionStage("idle");
     setTargetSceneChunkReady(false);
@@ -1667,10 +1378,10 @@ function FashionMazeRuntime({
     setPhase("preview");
   }, [
     clearActivationWatchdog,
-    clearPhotoWatchdog,
     clearReconnectWatchdog,
     clearSceneTransitionTimers,
     resetControls,
+    resetPhoto,
   ]);
 
   const failReconnectAttempt = useCallback(
@@ -1801,29 +1512,17 @@ function FashionMazeRuntime({
   useEffect(
     () => () => {
       clearActivationWatchdog();
-      clearPhotoWatchdog();
       clearReconnectWatchdog();
       reconnectAttemptRef.current += 1;
       reconnectingSessionIdRef.current = null;
       failedReconnectSessionIdRef.current = null;
       clearSceneTransitionTimers();
-      if (photoFlashTimerRef.current !== null) {
-        window.clearTimeout(photoFlashTimerRef.current);
-      }
     },
     [
       clearActivationWatchdog,
-      clearPhotoWatchdog,
       clearReconnectWatchdog,
       clearSceneTransitionTimers,
     ],
-  );
-
-  useEffect(
-    () => () => {
-      if (capturedPhoto) URL.revokeObjectURL(capturedPhoto.url);
-    },
-    [capturedPhoto],
   );
 
   useEffect(
@@ -2210,14 +1909,7 @@ function FashionMazeRuntime({
       abortActivation(lastError);
       return;
     }
-    const pendingPhoto = pendingPhotoRef.current;
-    if (pendingPhoto) {
-      recoverPhoto(
-        pendingPhoto,
-        `The photo action failed. ${errorMessage(lastError)} The live scene was restored.`,
-      );
-      return;
-    }
+    if (handlePhotoLastError(lastError)) return;
     if (getAwaitingAmbientPrompt()) {
       abortActivation(lastError);
       return;
@@ -2228,8 +1920,8 @@ function FashionMazeRuntime({
     appendDebugEvent,
     failReconnectAttempt,
     getAwaitingAmbientPrompt,
+    handlePhotoLastError,
     lastError,
-    recoverPhoto,
   ]);
 
   useLingbotWorld2Message((message) => {
@@ -2274,8 +1966,8 @@ function FashionMazeRuntime({
         if (finishDoorQuestionResume()) break;
         if (repauseDoorQuestion()) break;
         setPhase(
-          pendingPhotoRef.current ||
-            controls.hasPendingRoute() ||
+          hasPendingPhoto() ||
+            hasPendingRoute() ||
             pendingSceneTransitionRef.current
             ? "switching"
             : "live",
@@ -2283,7 +1975,6 @@ function FashionMazeRuntime({
         break;
       case "chunk_complete": {
         if (terminatingRef.current) break;
-        const chunkSerial = ++chunkSerialRef.current;
         setChunkIndex(message.chunk_index);
         const pendingSceneTransition = pendingSceneTransitionRef.current;
         if (pendingSceneTransition) {
@@ -2312,7 +2003,7 @@ function FashionMazeRuntime({
               );
               promptRequestIdRef.current += 1;
               lastPromptRef.current = pendingSceneTransition.enterPrompt;
-              controls.noteExternalAxes({ longitudinal: "forward" });
+              noteExternalAxes({ longitudinal: "forward" });
               void Promise.all([
                 setCameraPose({ camera_pose: [] }),
                 setPrompt({ prompt: pendingSceneTransition.enterPrompt }),
@@ -2327,7 +2018,7 @@ function FashionMazeRuntime({
               .split("+")
               .includes("w");
             if (!isForwardChunk) {
-              controls.noteExternalAxes({ longitudinal: "forward" });
+              noteExternalAxes({ longitudinal: "forward" });
               armSceneTransitionWatchdog(
                 pendingSceneTransition,
                 "The camera did not continue its straight approach to the black doorway.",
@@ -2348,7 +2039,7 @@ function FashionMazeRuntime({
                 window.clearTimeout(sceneTransitionWatchdogRef.current);
                 sceneTransitionWatchdogRef.current = null;
               }
-              controls.noteExternalAxes({ longitudinal: "idle" });
+              noteExternalAxes({ longitudinal: "idle" });
               void Promise.all([
                 setMoveLongitudinal({ move_longitudinal: "idle" }),
                 setCameraPose({ camera_pose: [] }),
@@ -2365,91 +2056,19 @@ function FashionMazeRuntime({
             activePrompt === pendingSceneTransition.targetPrompt.trim() &&
             message.active_action === "still"
           ) {
-            controls.setAmbientChunkReady(true);
+            setAmbientChunkReady(true);
             setTargetSceneChunkReady(true);
           }
           break;
         }
-        const pendingPhoto = pendingPhotoRef.current;
-        if (
-          pendingPhoto &&
-          chunkSerial > pendingPhoto.issuedAfterSerial &&
-          message.active_prompt.trim() === pendingPhoto.prompt.trim() &&
-          message.active_action === "still"
-        ) {
-          pendingPhoto.matchedChunks += 1;
-          pendingPhoto.issuedAfterSerial = chunkSerial;
-
-          if (pendingPhoto.matchedChunks < pendingPhoto.holdChunks) {
-            armPhotoWatchdog(
-              pendingPhoto,
-              `The ${pendingPhoto.cue} photo beat stopped generating. The ambient scene was restored.`,
-            );
-          } else if (pendingPhoto.stage === "capture") {
-            const [nextStep, ...remaining] = pendingPhoto.remaining;
-            if (nextStep) {
-              const advancing: PendingPhoto = {
-                ...pendingPhoto,
-                ...nextStep,
-                remaining,
-                matchedChunks: 0,
-                beatIndex: pendingPhoto.beatIndex + 1,
-                issuedAfterSerial: chunkSerial,
-              };
-              pendingPhotoRef.current = advancing;
-              setPhotoCue({
-                cue: advancing.cue,
-                beatIndex: advancing.beatIndex,
-                beatCount: advancing.beatCount,
-              });
-              promptRequestIdRef.current += 1;
-              lastPromptRef.current = advancing.prompt;
-              armPhotoWatchdog(
-                advancing,
-                `The ${advancing.cue} photo beat did not begin in time. The ambient scene was restored.`,
-              );
-              void setPrompt({ prompt: advancing.prompt }).catch((cause) => {
-                recoverPhoto(
-                  advancing,
-                  `The ${advancing.cue} photo beat failed: ${errorMessage(cause)}`,
-                );
-              });
-            } else {
-              pendingPhoto.stage = "capturing";
-              setPhotoState("capturing");
-              armPhotoWatchdog(
-                pendingPhoto,
-                "The shutter frame could not be saved in time. The ambient scene is being restored.",
-              );
-              completePhotoCaptureRef.current(
-                pendingPhoto,
-                message.chunk_index,
-              );
-            }
-          } else if (pendingPhoto.stage === "release") {
-            restorePhotoAmbient(pendingPhoto, null);
-          } else if (pendingPhoto.stage === "restore") {
-            clearPhotoWatchdog();
-            pendingPhotoRef.current = null;
-            photoBusyRef.current = false;
-            setPhotoState(pendingPhoto.photoSaved ? "saved" : "idle");
-            setPhotoCue(null);
-            setPhase("live");
-          }
-        }
+        handlePhotoChunk(message);
         handleControlsChunk(message);
         break;
       }
       case "generation_reset":
         clearActivationWatchdog();
         resetControls();
-        clearPhotoWatchdog();
-        pendingPhotoRef.current = null;
-        photoBusyRef.current = false;
-        chunkSerialRef.current = 0;
-        setPhotoState("idle");
-        setPhotoCue(null);
-        setPhotoFlash(false);
+        resetPhoto();
         setVideoReady(false);
         setModelState(null);
         setChunkIndex(0);
@@ -2556,18 +2175,14 @@ function FashionMazeRuntime({
         }
         const wasActivating =
           pendingStartRef.current || startIssuedRef.current;
-        const pendingPhoto = pendingPhotoRef.current;
         pendingStartRef.current = false;
         startIssuedRef.current = false;
         if (wasActivating) {
           abortActivation(
             new Error(`${message.command}: ${message.reason}`),
           );
-        } else if (pendingPhoto) {
-          recoverPhoto(
-            pendingPhoto,
-            `The photo action failed: ${message.command}: ${message.reason}. The live scene was restored.`,
-          );
+        } else if (handlePhotoCommandError(message)) {
+          break;
         } else if (handleControlsCommandError(message)) {
           break;
         } else if (["pause", "resume"].includes(message.command)) {
@@ -2598,12 +2213,8 @@ function FashionMazeRuntime({
       setActiveMazeId(maze.id);
       setActiveRouteId(null);
       resetControls();
-      setPhotoState("idle");
-      setPhotoCue(null);
+      resetPhoto();
       setVideoReady(false);
-      pendingPhotoRef.current = null;
-      photoBusyRef.current = false;
-      chunkSerialRef.current = 0;
       pendingStartRef.current = true;
       startIssuedRef.current = false;
       setPhase("uploading");
@@ -2660,6 +2271,7 @@ function FashionMazeRuntime({
       appendDebugEvent,
       armActivationWatchdog,
       resetControls,
+      resetPhoto,
       setImage,
       setPrompt,
       setSeed,
@@ -2801,8 +2413,8 @@ function FashionMazeRuntime({
       !revealVideo ||
       terminatingRef.current ||
       pendingSceneTransitionRef.current ||
-      controls.hasPendingRoute() ||
-      pendingPhotoRef.current
+      hasPendingRoute() ||
+      hasPendingPhoto()
     ) {
       return null;
     }
@@ -2861,6 +2473,8 @@ function FashionMazeRuntime({
     activeMaze,
     activeRoute,
     entranceVariantIds,
+    hasPendingPhoto,
+    hasPendingRoute,
     isFinaleDoor,
     nextScene,
     releaseControls,
@@ -3080,222 +2694,6 @@ function FashionMazeRuntime({
     ],
   );
 
-  const completePhotoCapture = useCallback(
-    async (pending: PendingPhoto, completedChunk: number) => {
-      appendDebugEvent(
-        "media",
-        "photo_render_settle",
-        `chunk=${completedChunk} minimumMs=${PHOTO_RENDER_SETTLE_MS}`,
-      );
-      let photo: CapturedPhoto;
-      try {
-        photo = await captureReactorPhoto(
-          stageMediaRef.current,
-          mainVideoTrack,
-          activeMaze.id,
-          completedChunk,
-        );
-      } catch (cause) {
-        recoverPhoto(
-          pending,
-          `The shutter action completed, but the frame could not be saved: ${errorMessage(cause)}`,
-        );
-        return;
-      }
-
-      if (
-        pendingPhotoRef.current !== pending ||
-        terminatingRef.current
-      ) {
-        URL.revokeObjectURL(photo.url);
-        return;
-      }
-
-      setCapturedPhoto(photo);
-      try {
-        downloadCapturedPhoto(photo);
-      } catch (cause) {
-        setError(
-          `The photo was saved, but automatic download could not start: ${errorMessage(cause)}`,
-        );
-      }
-      setPhotoFlash(true);
-      if (photoFlashTimerRef.current !== null) {
-        window.clearTimeout(photoFlashTimerRef.current);
-      }
-      photoFlashTimerRef.current = window.setTimeout(() => {
-        photoFlashTimerRef.current = null;
-        setPhotoFlash(false);
-      }, 420);
-
-      const releasePending: PendingPhoto = {
-        ...pending,
-        stage: "release",
-        prompt: pending.releasePrompt,
-        cue: "NICE!",
-        holdChunks: pending.releaseHoldChunks,
-        matchedChunks: 0,
-        remaining: [],
-        issuedAfterSerial: chunkSerialRef.current,
-        photoSaved: true,
-      };
-      pendingPhotoRef.current = releasePending;
-      setPhotoState("returning");
-      setPhotoCue({
-        cue: releasePending.cue,
-        beatIndex: releasePending.beatCount,
-        beatCount: releasePending.beatCount,
-      });
-      promptRequestIdRef.current += 1;
-      lastPromptRef.current = releasePending.prompt;
-      armPhotoWatchdog(
-        releasePending,
-        "The photo was saved, but the scene did not finish returning to its ambient state. The ambient prompt was restored.",
-      );
-
-      try {
-        await setPrompt({ prompt: releasePending.prompt });
-      } catch (cause) {
-        recoverPhoto(
-          releasePending,
-          `The photo was saved, but the return action failed: ${errorMessage(cause)}`,
-        );
-      }
-    },
-    [
-      activeMaze.id,
-      appendDebugEvent,
-      armPhotoWatchdog,
-      mainVideoTrack,
-      recoverPhoto,
-      setPrompt,
-    ],
-  );
-
-  useEffect(() => {
-    completePhotoCaptureRef.current = (pending, completedChunk) => {
-      void completePhotoCapture(pending, completedChunk);
-    };
-  }, [completePhotoCapture]);
-
-  const takePhoto = useCallback(async () => {
-    if (
-      !canControl ||
-      !revealVideo ||
-      photoBusyRef.current ||
-      controls.hasPendingRoute() ||
-      pendingPhotoRef.current
-    ) {
-      return;
-    }
-
-    const photoAction = resolvePhotoAction(activeMaze);
-
-    photoBusyRef.current = true;
-    const ambientPrompt = composeWorldPrompt(activeMaze, activeRoute, {
-      actionMode: "ambient",
-    });
-    const steps: PhotoPromptStep[] = photoAction.beats.map(
-      (beat) => ({
-        cue: beat.cue,
-        holdChunks: beat.holdChunks,
-        prompt: composeWorldPrompt(activeMaze, activeRoute, {
-          actionMode: beat.mode,
-        }),
-      }),
-    );
-    const [firstStep, ...remaining] = steps;
-    if (!firstStep) {
-      photoBusyRef.current = false;
-      setError("The shared photo sequence is unavailable.");
-      return;
-    }
-    controls.setAmbientChunkReady(false);
-    const pending: PendingPhoto = {
-      stage: "capture",
-      ...firstStep,
-      matchedChunks: 0,
-      remaining,
-      beatIndex: 1,
-      beatCount: steps.length,
-      releasePrompt: composeWorldPrompt(activeMaze, activeRoute, {
-        actionMode: "photo-release",
-      }),
-      releaseHoldChunks: photoAction.releaseHoldChunks,
-      ambientPrompt,
-      issuedAfterSerial: chunkSerialRef.current,
-      photoSaved: false,
-    };
-    pendingPhotoRef.current = pending;
-    setPhotoState("framing");
-    setPhotoCue({
-      cue: pending.cue,
-      beatIndex: pending.beatIndex,
-      beatCount: pending.beatCount,
-    });
-    setPhase("switching");
-    setError(null);
-    armPhotoWatchdog(
-      pending,
-      "The photo sequence did not begin in time. The ambient scene was restored.",
-    );
-
-    try {
-      if (window.matchMedia("(max-width: 820px)").matches) {
-        const reducedMotion = window.matchMedia(
-          "(prefers-reduced-motion: reduce)",
-        ).matches;
-        stageMediaRef.current?.scrollIntoView({
-          behavior: reducedMotion ? "auto" : "smooth",
-          block: "start",
-        });
-      }
-      if (document.pointerLockElement === stageMediaRef.current) {
-        document.exitPointerLock();
-      }
-      // Each setter and set_prompt applies on the next chunk. Queue the idle
-      // controls first, then the photo prompt in the same turn so awaiting the
-      // command sends cannot cost an extra ambient chunk boundary.
-      const controlsReleased = releaseControls();
-      promptRequestIdRef.current += 1;
-      lastPromptRef.current = pending.prompt;
-      await Promise.all([
-        controlsReleased,
-        setPrompt({ prompt: pending.prompt }),
-      ]);
-    } catch (cause) {
-      recoverPhoto(
-        pending,
-        `The photo action could not start: ${errorMessage(cause)}`,
-      );
-    }
-  }, [
-    activeMaze,
-    activeRoute,
-    armPhotoWatchdog,
-    canControl,
-    recoverPhoto,
-    releaseControls,
-    revealVideo,
-    setPrompt,
-  ]);
-
-  useEffect(() => {
-    const keydown = (event: KeyboardEvent) => {
-      if (
-        event.code !== "KeyC" ||
-        event.repeat ||
-        isTypingTarget(event.target)
-      ) {
-        return;
-      }
-      event.preventDefault();
-      void takePhoto();
-    };
-    window.addEventListener("keydown", keydown);
-    return () => window.removeEventListener("keydown", keydown);
-  }, [takePhoto]);
-
   const togglePause = useCallback(async () => {
     if (pendingDoorQuestionRef.current) return;
     try {
@@ -3305,8 +2703,8 @@ function FashionMazeRuntime({
         await releaseControls();
         if (
           terminatingRef.current ||
-          pendingPhotoRef.current ||
-          controls.hasPendingRoute()
+          hasPendingPhoto() ||
+          hasPendingRoute()
         ) {
           return;
         }
@@ -3315,7 +2713,7 @@ function FashionMazeRuntime({
     } catch (cause) {
       fail(cause);
     }
-  }, [fail, isPaused, pause, releaseControls, resume]);
+  }, [fail, hasPendingPhoto, hasPendingRoute, isPaused, pause, releaseControls, resume]);
 
   const captureClip = useCallback(async () => {
     if (
@@ -3354,7 +2752,7 @@ function FashionMazeRuntime({
     activationAttemptIdRef.current += 1;
     clearActivationWatchdog();
     resetControls();
-    clearPhotoWatchdog();
+    resetPhoto();
     clearSceneTransitionTimers();
     pendingDoorQuestionRef.current = null;
     preparedSceneTransitionRef.current = null;
@@ -3410,18 +2808,12 @@ function FashionMazeRuntime({
     startIssuedRef.current = false;
     pendingMazeRef.current = null;
     stagingIssuedRef.current = false;
-    pendingPhotoRef.current = null;
     pendingSceneTransitionRef.current = null;
     pendingDoorQuestionRef.current = null;
     preparedSceneTransitionRef.current = null;
-    photoBusyRef.current = false;
-    chunkSerialRef.current = 0;
     setModelState(null);
     setActiveMazeId(null);
     setActiveRouteId(null);
-    setPhotoState("idle");
-    setPhotoCue(null);
-    setPhotoFlash(false);
     setDoorQuestionDialog(null);
     setVideoReady(false);
     setSceneTransitionStage("idle");
@@ -3434,13 +2826,13 @@ function FashionMazeRuntime({
     return true;
   }, [
     clearActivationWatchdog,
-    clearPhotoWatchdog,
     clearReconnectWatchdog,
     clearSceneTransitionTimers,
     disconnect,
     fail,
     releaseControls,
     resetControls,
+    resetPhoto,
     status,
   ]);
 
@@ -4359,7 +3751,7 @@ function FashionMazeRuntime({
             Download photo
           </a>
           <button
-            onClick={() => setCapturedPhoto(null)}
+            onClick={dismissCapturedPhoto}
             aria-label="Close saved photo"
           >
             ×
