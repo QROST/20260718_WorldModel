@@ -9,30 +9,26 @@
 - 入口只保留 `THE INVITATION`、小字 narrative 和单一 `Start live maze` 主操作，不显示抢占画面的 entrance 大标题；
 - Neon Canopy、Living Runway、Golden Circuit 的 route / Prompt 定义继续保留为内部素材，但公共体验不再显示 `Worlds Ahead` 三按钮；
 - 第一幕提供 `ENTER THE BLACK DOOR`：模型先在当前镜头正前方的中远距离生成带微弱冷色轮廓光的实体黑色 door-gate，并用两个完整 chunks 让门稳定保持；镜头不再转向，而是沿当前 forward axis 用三个已确认的真实 `forward` chunks 缓慢直走。随后网页用 2.6 秒居中推进把同一扇门的黑色内部扩展到全屏，固定黑幕完全覆盖后才 reset；
-- 黑幕完全覆盖后，应用在同一 Reactor 连接中执行 `reset → setSeed → setImage → setPrompt → start`，启动 `CHAPTER 02 · The Cyberpunk Garden`。服务端会从 `/dataset/cyberpunk-garden/scene2.png`、`scene3b.png`、`scene5.png` 中随机锁定一张；转场中不会再次跳图；
-- 第二幕保留三张 seed 共同的五位黑色 couture 人物与赛博 portal atrium，每个 variant 用独立 opening anchor 忠实描述原图中的站位、支撑腿、悬空脚、跪姿以及举起、外展或低垂的手臂。Prompt 不再用“全员低手位”与现有图片对抗；如需统一低手位，必须先更换对应 seed。新 Prompt chunk 与连续可见帧都确认后，黑幕才用 1.1 秒渐隐；
-- 第二幕提供 `ENTER THE NEXT BLACK DOOR`，复用相同的正前方远门、缓慢直行、完整入门与黑场 reset 流程，目标是独立注册的 `CHAPTER 03`；第二幕没有 route，但会自动使用共享拍照流程，WASD 与视角控制仍可使用；
-- 第三幕是 `The Asian Sculpture Garden`，使用 `/dataset/asian-sculpture-garden/grand-finale.png`：六位银白 couture 人物保持各自固定站位与 seed 姿势；S04 的举臂和 S05 的展开双臂被定义为已经完成的静止轮廓，禁止挥动、重复或引发模仿。共享拍照流程会按 `ensemble.count = 6` 指挥全部六人；
-- 第三幕提供第三个 `ENTER THE NEXT BLACK DOOR`，目标是独立注册的 `CHAPTER 04 · The Afro-Futurist Prism`；
-- 第四幕从 `/dataset/afro-futurism/scene-01.png`、`scene-02.png`、`scene-03.png` 中独立随机锁定一张。三张 seed 分别保留 5 / 7 / 5 位 metallic couture performers；每个 variant 的人数会覆盖场景默认人数，因此共享拍照流程会准确指挥当前图中的全部人物；
-- 第四幕同样提供拍照和 `ENTER THE NEXT BLACK DOOR`，经相同黑门流程进入 `CHAPTER 05 · The Afro-Futurist Continuum`；第五幕从独立的 `/dataset/scenes/chapter-05/scene-01..03.png` 随机选择，人数同样为 5 / 7 / 5。文件目前与第四幕素材一致，但路径和 seed 独立，之后可以单独覆盖；
-- 第六幕从 `/dataset/scenes/chapter-06/scene-01..06.png` 随机选择银色雕塑花园，人数为 6 / 6 / 5 / 6 / 6 / 6；第七幕从 `/dataset/scenes/chapter-07/scene-01..05.png` 随机选择铜橙色圆环工厂，人数为 6 / 6 / 5 / 5 / 6；
-- 第五至七幕由同一个 `createReplaceableChapter()` 生成，并共享完全相同的 `base / anchor / destination / movement` Prompt。单张素材配置只有 `id / path / seed / ensembleCount`，换图时无需重写场景描述；第七幕是当前终幕；
+- 每次点击 Start 都抽取一个 32 位 run-order seed：rose garden 始终是 Scene 1，其余六个 authored scene 使用无重复 Fisher–Yates 顺序固定本局 Scene 2–7；断线重开才会重新抽取；
+- authored scene 包括 Cyberpunk Garden、两组 Asian Sculpture Garden、两组 Afro-Futurism 与 Asian Fusion；各 scene 仍从自己的入口素材中随机锁定一张，并以 per-image `ensembleCount` 指挥 seed-visible performers；
+- 本局七个 authored scene 各使用一道与目标场景无关、互不重复的位置型门问答，因此随机顺序不会把问题文案与下一张图错误绑定；所有场景复用同一套正前方远门、缓慢直行、完整入门与黑场 reset 流程；
+- 第七个 authored scene 的黑门完成后先释放 Reactor session，再把本局实际使用的七张 allowlisted seed 图提交给服务端；服务端以 `gpt-image-2` Images Edit 生成 runtime-only `SCENE 08 · The Grand Palais`，等待期间轮播故事文案；
+- Scene 8 显示生成图与 `Attend the show`，点击后用该图重新启动 Reactor，并继续共享通用拍照、WASD、视角、倒计时与 session tools；
 - 静态预览不再承担 world selector 功能，用户从邀请故事直接进入 live maze；
 - Prompt 以可检查的 `base / anchor / camera / movement / destination / event / continuity` segments 组织；普通探索使用一条 input-gated observer-invariant camera contract，WASD、方向键与鼠标不会因按下或松开而制造延迟一个 chunk 的 Prompt 竞态；拍照与黑门分别选择 compact `locked / forward` layer versions；
 - 用户点击 `ENTER LIVE MAZE` 后才连接 Reactor；
 - 首次连接只在 observable `status === ready` 后上传参考图；`conditions_ready` 与权威 `state.has_image / has_prompt` 任一路径确认双条件后，以 once-only gate 触发 generation；
-- seed 不会在黑色占位 track 刚出现时消失；generation 启动后，只有 track live/unmuted、视频播放中且连续两帧通过非黑像素检查才交叉淡出。20 秒仍无可见帧会自动断开保护 credits；
+- seed 不会在黑色占位 track 刚出现时消失；generation 启动后，只有 track live/unmuted、视频播放中且连续两帧通过非黑像素检查才交叉淡出。当前 hackathon 模式不会因可见帧等待过久而自动断开；
 - 变体选择同时发送 hot-swapped prompt 与一段单-chunk 前进指令；确认生效后自动回到 idle 与 settled prompt；入口 seed 没有虚构的三岔口；
 - 每一幕默认都有 `TAKE PHOTO` 与快捷键 `C`，并共享同一段短暂通用流程：`LOOK HERE → HOLD → SHUTTER`，三个 beat 各保持一个已确认的 Prompt chunk。流程根据当前 scene 的 `ensemble.count` 描述全部 seed-visible performers，不包含 `M01–M05`、固定人数、服装或场景名称；第二幕及其后所有当前与未来 Chapter 都无需复制拍照配置。人物只做最小幅度的眼神、头部和必要时的肩部转动；无人物场景则固定环境构图；
-- `SHUTTER` Prompt 只描述完成姿势的稳定可见状态，真正的截帧完全由网页完成。确认后应用从原始 Reactor video frame 保存 PNG，自动尝试下载，并保留带缩略图的 `PHOTO SAVED / DOWNLOAD` 回执；随后一个 release chunk 让当前 subjects 放松目光，再等待一个真实 ambient Prompt chunk 才解锁控制。每一拍有独立的 30 秒 watchdog，恢复失败会自动断开保护 credits；
+- `SHUTTER` Prompt 只描述完成姿势的稳定可见状态，真正的截帧完全由网页完成。确认后应用从原始 Reactor video frame 保存 PNG，自动尝试下载，并保留带缩略图的 `PHOTO SAVED / DOWNLOAD` 回执；随后一个 release chunk 让当前 subjects 放松目光，再等待一个真实 ambient Prompt chunk 才解锁控制。Reactor Prompt/chunk 确认没有应用层等待上限；
 - WASD 只控制观察者镜头的前后与横移，方向键只控制镜头视角；没有任何人物会跟随输入移动、转身或追踪镜头。`MOUSE LOOK` 使用原生 `setCameraPose()` 与 video chunk 时钟；
-- `OPERATOR` 抽屉显示 session、chunk、action、track、camera pose、首个稳定 ambient chunk，以及最终 Prompt 的逐 segment 文本和字符预算；
+- `Session tools` 抽屉显示 session、chunk、action、track、camera pose、计时器 gate 与最终 Prompt 预算；其中默认折叠的 `Debug event log` 保留最近 250 条 lifecycle 事件，可复制 JSONL 或手动清空；实现会遮蔽常见 JWT、Bearer、API-key、blob URL 与本机路径格式，但仍应在对外分享前人工检查；
 - 录制可用时，operator 可截取最近 10 秒，预览并下载 MP4；
 - `keyup`、窗口失焦和页面隐藏都会归零控制状态；
-- `END SESSION` 使用 non-recoverable disconnect；输入归零只会等待最多 750ms，不能阻塞释放 session；
-- 每个可见场景使用醒目的 `30 → 0` 剩余秒数倒计时；最后 10 秒进入警示色、最后 5 秒加快脉冲。前六幕到时会在当前拍照、route 或暂停动作结束且控制恢复后打开黑门问答，切换完成后重置为 `30`；没有下一幕的第七幕到时会直接断开并释放 session；
-- connection-ready、入口 arming 与 start 各有独立 watchdog；事件迟迟未确认时会断开 session 保护 credits；
+- `END SESSION` 使用 non-recoverable disconnect；输入归零最多等待 750ms，disconnect confirmation 最多等待 10 秒；若 SDK 未确认断线，界面会明确警告 session 可能仍在运行，并阻止 Scene 8 付费请求继续；
+- 每个可见场景使用醒目的 `30 → 0` 剩余秒数倒计时；最后 10 秒进入警示色、最后 5 秒加快脉冲。本局七个 authored scene 到时会在当前拍照、route 或暂停动作结束且控制恢复后打开黑门问答；第七次问答进入生成 finale。没有下一幕的 Scene 8 到达 `0` 后继续保持 live，直到用户主动 `END SESSION`；
+- 当前为 unbounded-wait hackathon policy：connection-ready、入口 arming、start、route、拍照、门问答与跨幕生成都可以无限等待，不会因应用层 watchdog 自动断开；黑幕等待下一幕时仍提供可见的 `END SESSION`；明确的 SDK/API command error 仍会结束无法可靠恢复的 session；
 - 群像的“暂停”是 prompt-held pose，live generation 与计费仍继续；SDK `pause()` 在界面中明确写作 `FREEZE STREAM · STILL BILLED`；
 - 页面明确区分 `STATIC PREVIEW`、`LIVE` 和 `PAUSED · STILL BILLED`。
 
@@ -49,9 +45,10 @@ npm run dev
 
 ```bash
 REACTOR_API_KEY=<your-reactor-api-key>
+OPENAI_API_KEY=<your-openai-api-key>
 ```
 
-本地 hackathon 开发也可使用根目录的 `reactor.key`。所有 `*.key` 文件均被 Git 忽略，API key 不会进入浏览器；浏览器只从 `POST /api/reactor/token` 获得十分钟有效的短期 JWT。
+本地 hackathon 开发也可分别使用根目录的 `reactor.key` 与 `openai.key`。所有 `*.key` 文件均被 Git 忽略；Reactor key 不会进入浏览器，浏览器只从 `POST /api/reactor/token` 获得十分钟有效的短期 JWT；OpenAI key 只由 Scene 8 服务端 route 读取。
 
 ## 内容包与 narrative
 
@@ -70,7 +67,7 @@ interface FashionMaze {
     seedImage: string;
     seed: number;
     openingPrompt: string;
-    ensembleCount?: number; // optional per-image performer count
+    ensembleCount?: number | "all"; // exact count, or every generated performer
   }>;
   characterImage?: string;
   seed: number;
@@ -150,20 +147,22 @@ interface FashionMaze {
 
 ### 部署安全边界
 
-当前 token broker 面向本机或受控的 hackathon operator 网络，没有登录与分布式限流。不要直接把它暴露成公开网站；公开部署前应在 hosting / reverse proxy 层加入 operator authentication 和 rate limit。根目录的 `reactor.key`、`openai.key` 虽然是 `0600` 且被 `*.key` 忽略，但手工 zip 或上传整个文件夹时仍必须显式排除。正式部署只使用平台 secret `REACTOR_API_KEY`。
+当前 token broker 与 Grand Palais generation route 面向本机或受控的 hackathon operator 网络，没有登录与分布式限流。Scene 8 只有浏览器 single-flight、进程内 single-flight/短 cooldown 与 same-origin 检查，这些都不能替代身份验证。不要直接把应用暴露成公开网站；公开部署前应在 hosting / reverse proxy 层加入 operator authentication、分布式 rate limit 与 quota。根目录的 `reactor.key`、`openai.key` 虽然是 `0600` 且被 `*.key` 忽略，但手工 zip 或上传整个文件夹时仍必须显式排除。正式部署只使用平台 secrets `REACTOR_API_KEY` 与 `OPENAI_API_KEY`。
 
 ## 验证
 
 ```bash
 npm run typecheck
 npm run verify:prompts
+npm run verify:startup
+npm run verify:finale
 npm run build
 ```
 
-`verify:prompts` 不连接 Reactor，也不花费 credits；`prebuild` 会自动先运行它。它穷举所有 scene × entrance variant × route × photo beat × portal stage，检查七幕链无环且全部可达、唯一终幕、seed 文件存在、问题/选项/choice ID 全局不重复、ID/transition 完整性、seed anchor、layer ownership、photo shutter 语义、分层字符预算与最终拼接一致性。当前矩阵覆盖 7 幕、24 个入口变体、230 个完整 Prompt packets；最长组合为 1797 / 2000 characters。
+三个 `verify:*` 都不连接 Reactor 或 OpenAI，也不花费 credits；`prebuild` 会自动运行全部验证。Prompt suite 穷举 authored scene × entrance variant × route × photo beat × portal stage，检查随机顺序、七道门问答、seed 文件、ID、anchor、layer ownership、photo shutter 语义与字符预算；当前矩阵覆盖 7 个 authored scenes、24 个入口变体、240 个完整 Prompt packets，最长组合为 1797 / 2000 characters。Startup suite 覆盖 disconnect edge、once-only gate 与 debug redaction；finale suite 覆盖七张 allowlisted references、十条等待文案、single-flight guard 与 runtime Scene 8，不发真实 API 请求。
 
 不要在自动测试中点击 live 入口；真实连接测试应作为显式的 credit-spending canary 单独执行。Prompt 或 seed 修订必须从 fresh session 评估，旧坏帧进入自回归历史后继续 hot-swap 不能证明修复有效。
 
-六段黑门换幕目前已通过类型检查与全量 Prompt 预算矩阵；实际门距、三段 forward 的步行速度、网页推进观感以及连续七次 generation 的真实时序仍需要一次显式的 credit-spending canary 才能确认。
+七次 authored-scene 黑门决策与生成 Scene 8 的静态状态机已通过类型检查和离线矩阵；实际门距、三段 forward 的步行速度、网页推进观感、连续 Reactor generations 与一次 OpenAI Images Edit 的真实时序仍需要显式的 credit-spending canary 才能确认。
 
-`submission/oneshot/` 是独立交付包，本应用不会读取其中内容或根目录的 `openai.key`。
+`submission/oneshot/` 是独立交付包，本应用不会读取其中内容；本地 Scene 8 route 会读取根目录的 `openai.key` 作为 `OPENAI_API_KEY` 的 fallback。

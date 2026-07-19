@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getReactorApiKey } from "@/lib/reactor-server";
 
-// The product enforces a five-minute session cap, so ten minutes covers queue,
-// generation, and clip download without issuing an unnecessarily long JWT.
+// This bounds browser credential exposure only; it does not cap the duration
+// of an already connected Reactor session.
 const TOKEN_LIFETIME_SECONDS = 10 * 60;
 
 /** Exchange the private Reactor API key for a short-lived browser JWT. */
