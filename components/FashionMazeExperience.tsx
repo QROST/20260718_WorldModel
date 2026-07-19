@@ -47,8 +47,9 @@ import {
 } from "@/lib/grand-palais";
 import {
   canIssueGenerationStart,
-  canStagePendingMaze,
   classifyReactorDisconnect,
+  planFrameProbeRecovery,
+  planPendingMazeStage,
   sanitizeReactorDebugText,
 } from "@/lib/reactor-lifecycle";
 
@@ -2050,14 +2051,15 @@ function FashionMazeRuntime({
         frameRequest = requestedFrame;
         frameWatchdogTimer = window.setTimeout(() => {
           if (frameRequest !== requestedFrame) return;
-          cancelPendingFrameProbe();
-          visibleFrameCount = 0;
+          const recovery = planFrameProbeRecovery("watchdog");
+          if (recovery.cancelPending) cancelPendingFrameProbe();
+          if (recovery.resetVisibleFrames) visibleFrameCount = 0;
           reportProbe(
             "frame_callback_stalled",
             `timeoutMs=${VIDEO_FRAME_PROBE_TIMEOUT_MS}`,
             "warning",
           );
-          scheduleFrameRetry();
+          if (recovery.scheduleRetry) scheduleFrameRetry();
         }, VIDEO_FRAME_PROBE_TIMEOUT_MS);
       } else if (hasVisiblePixels()) {
         appendDebugEvent(
@@ -2097,15 +2099,16 @@ function FashionMazeRuntime({
     }
 
     const hideUnavailableStream = (event: Event) => {
-      cancelPendingFrameProbe();
-      visibleFrameCount = 0;
+      const recovery = planFrameProbeRecovery("stream-unavailable");
+      if (recovery.cancelPending) cancelPendingFrameProbe();
+      if (recovery.resetVisibleFrames) visibleFrameCount = 0;
       appendDebugEvent(
         "media",
         `track_${event.type}`,
         `readyState=${mainVideoTrack.readyState} muted=${mainVideoTrack.muted}`,
         event.type === "ended" ? "error" : "warning",
       );
-      setVideoReady(false);
+      if (recovery.markVideoNotReady) setVideoReady(false);
     };
 
     video.addEventListener("loadeddata", ensurePlaybackAndCheck);
@@ -2127,7 +2130,8 @@ function FashionMazeRuntime({
       if (frameRetryTimer !== null) {
         window.clearTimeout(frameRetryTimer);
       }
-      cancelPendingFrameProbe();
+      const recovery = planFrameProbeRecovery("cleanup");
+      if (recovery.cancelPending) cancelPendingFrameProbe();
     };
   }, [appendDebugEvent, generationStarted, mainVideoTrack]);
 
@@ -2784,23 +2788,26 @@ function FashionMazeRuntime({
 
   const stagePendingMaze = useCallback(() => {
     const maze = pendingMazeRef.current;
-    const canStage = canStagePendingMaze(
+    const plan = planPendingMazeStage({
       status,
-      Boolean(maze),
-      stagingIssuedRef.current,
-    );
+      hasPendingMaze: Boolean(maze),
+      stagingIssued: stagingIssuedRef.current,
+      terminating: terminatingRef.current,
+    });
     // The SDK command wrappers currently receive a new identity on every
     // render. Keep the failed gate path side-effect free so this callback can
     // safely be re-evaluated without creating an effect -> log -> render loop.
-    if (!canStage || !maze) {
+    if (plan.action === "wait" || !maze) {
       return false;
     }
-    appendDebugEvent(
-      "sdk",
-      "stage_gate",
-      `eligible=true status=${status} pending=true issued=${stagingIssuedRef.current} terminating=${terminatingRef.current}`,
-      "success",
-    );
+    if (plan.emitStageGate) {
+      appendDebugEvent(
+        "sdk",
+        "stage_gate",
+        `eligible=true status=${status} pending=true issued=${stagingIssuedRef.current} terminating=${terminatingRef.current}`,
+        "success",
+      );
+    }
     stagingIssuedRef.current = true;
     const attemptId = activationAttemptIdRef.current;
     appendDebugEvent(

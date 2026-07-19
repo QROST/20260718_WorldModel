@@ -32,44 +32,20 @@ require.extensions[".ts"] = (module, filename) => {
 
 const {
   canIssueGenerationStart,
-  canStagePendingMaze,
   isReactorDisconnectEdge,
+  planFrameProbeRecovery,
+  planPendingMazeStage,
   sanitizeReactorDebugText,
 } = require(path.join(__dirname, "../lib/reactor-lifecycle.ts"));
 
-const experienceSource = fs.readFileSync(
-  path.join(__dirname, "../components/FashionMazeExperience.tsx"),
-  "utf8",
-);
-const stagePendingMazeSource = experienceSource.slice(
-  experienceSource.indexOf("const stagePendingMaze = useCallback"),
-  experienceSource.indexOf("const enterMaze = useCallback"),
-);
-const stageGateGuardIndex = stagePendingMazeSource.indexOf(
-  "if (!canStage || !maze)",
-);
-const stageGateLogIndex = stagePendingMazeSource.indexOf(
-  'appendDebugEvent(\n      "sdk",\n      "stage_gate"',
-);
-const mediaProbeStartIndex = experienceSource.indexOf(
-  "let frameWatchdogTimer: number | null = null;",
-);
-const mediaProbeEndIndex = experienceSource.indexOf(
-  "}, [appendDebugEvent, generationStarted, mainVideoTrack]);",
-  mediaProbeStartIndex,
-);
-const mediaProbeSource = experienceSource.slice(
-  mediaProbeStartIndex,
-  mediaProbeEndIndex,
-);
-const stalledFrameProbeSource = mediaProbeSource.slice(
-  mediaProbeSource.indexOf("frameWatchdogTimer = window.setTimeout"),
-  mediaProbeSource.indexOf("}, VIDEO_FRAME_PROBE_TIMEOUT_MS)"),
-);
-const unavailableStreamSource = mediaProbeSource.slice(
-  mediaProbeSource.indexOf("const hideUnavailableStream"),
-  mediaProbeSource.indexOf('video.addEventListener("loadeddata"'),
-);
+const stagePlan = (overrides = {}) =>
+  planPendingMazeStage({
+    status: "ready",
+    hasPendingMaze: true,
+    stagingIssued: false,
+    terminating: false,
+    ...overrides,
+  });
 
 const assertions = [
   [
@@ -90,33 +66,48 @@ const assertions = [
   ],
   [
     "staging waits for command-ready status",
-    !canStagePendingMaze("waiting", true, false),
+    stagePlan({ status: "waiting" }).action === "wait" &&
+      !stagePlan({ status: "waiting" }).emitStageGate,
   ],
   [
     "an already-ready warm connection stages its pending maze",
-    canStagePendingMaze("ready", true, false),
+    stagePlan().action === "stage" && stagePlan().emitStageGate,
   ],
   [
     "staging remains once-only",
-    !canStagePendingMaze("ready", true, true),
+    stagePlan({ stagingIssued: true }).action === "wait" &&
+      !stagePlan({ stagingIssued: true }).emitStageGate,
   ],
   [
-    "a blocked staging effect cannot log and trigger a render loop",
-    stageGateGuardIndex >= 0 &&
-      stageGateLogIndex >= 0 &&
-      stageGateGuardIndex < stageGateLogIndex,
+    "staging cannot start while the runtime is terminating",
+    stagePlan({ terminating: true }).action === "wait" &&
+      !stagePlan({ terminating: true }).emitStageGate,
   ],
   [
-    "a stalled video frame callback is canceled before the next probe",
-    stalledFrameProbeSource.indexOf("cancelPendingFrameProbe();") >= 0 &&
-      stalledFrameProbeSource.indexOf("frame_callback_stalled") >
-        stalledFrameProbeSource.indexOf("cancelPendingFrameProbe();") &&
-      stalledFrameProbeSource.indexOf("scheduleFrameRetry();") >
-        stalledFrameProbeSource.indexOf("frame_callback_stalled"),
+    "staging without a pending maze remains side-effect free",
+    stagePlan({ hasPendingMaze: false }).action === "wait" &&
+      !stagePlan({ hasPendingMaze: false }).emitStageGate,
   ],
   [
-    "a muted or ended track releases its pending frame callback",
-    unavailableStreamSource.includes("cancelPendingFrameProbe();"),
+    "a stalled frame callback is canceled, reset, and retried",
+    planFrameProbeRecovery("watchdog").cancelPending &&
+      planFrameProbeRecovery("watchdog").resetVisibleFrames &&
+      planFrameProbeRecovery("watchdog").scheduleRetry &&
+      !planFrameProbeRecovery("watchdog").markVideoNotReady,
+  ],
+  [
+    "a muted or ended stream cancels the probe and hides stale video",
+    planFrameProbeRecovery("stream-unavailable").cancelPending &&
+      planFrameProbeRecovery("stream-unavailable").resetVisibleFrames &&
+      !planFrameProbeRecovery("stream-unavailable").scheduleRetry &&
+      planFrameProbeRecovery("stream-unavailable").markVideoNotReady,
+  ],
+  [
+    "probe cleanup cancels pending work without scheduling new work",
+    planFrameProbeRecovery("cleanup").cancelPending &&
+      !planFrameProbeRecovery("cleanup").resetVisibleFrames &&
+      !planFrameProbeRecovery("cleanup").scheduleRetry &&
+      !planFrameProbeRecovery("cleanup").markVideoNotReady,
   ],
   [
     "generation waits for both image and prompt",

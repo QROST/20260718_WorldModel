@@ -8,6 +8,29 @@ export interface ReactorStartGate {
   hasPrompt: boolean;
 }
 
+export interface PendingMazeStageContext {
+  status: ReactorStatus;
+  hasPendingMaze: boolean;
+  stagingIssued: boolean;
+  terminating: boolean;
+}
+
+export type PendingMazeStagePlan =
+  | { action: "wait"; emitStageGate: false }
+  | { action: "stage"; emitStageGate: true };
+
+export type ReactorFrameProbeRecoveryReason =
+  | "watchdog"
+  | "stream-unavailable"
+  | "cleanup";
+
+export interface ReactorFrameProbeRecoveryPlan {
+  cancelPending: true;
+  resetVisibleFrames: boolean;
+  scheduleRetry: boolean;
+  markVideoNotReady: boolean;
+}
+
 export type ReactorDisconnectAction =
   | "ignore"
   | "reset"
@@ -54,12 +77,29 @@ export function classifyReactorDisconnect({
     : "reconnect";
 }
 
-export function canStagePendingMaze(
-  status: ReactorStatus,
-  hasPendingMaze: boolean,
-  stagingIssued: boolean,
-): boolean {
-  return status === "ready" && hasPendingMaze && !stagingIssued;
+export function planPendingMazeStage({
+  status,
+  hasPendingMaze,
+  stagingIssued,
+  terminating,
+}: PendingMazeStageContext): PendingMazeStagePlan {
+  return status === "ready" &&
+    hasPendingMaze &&
+    !stagingIssued &&
+    !terminating
+    ? { action: "stage", emitStageGate: true }
+    : { action: "wait", emitStageGate: false };
+}
+
+export function planFrameProbeRecovery(
+  reason: ReactorFrameProbeRecoveryReason,
+): ReactorFrameProbeRecoveryPlan {
+  return {
+    cancelPending: true,
+    resetVisibleFrames: reason !== "cleanup",
+    scheduleRetry: reason === "watchdog",
+    markVideoNotReady: reason === "stream-unavailable",
+  };
 }
 
 export function canIssueGenerationStart(gate: ReactorStartGate): boolean {
