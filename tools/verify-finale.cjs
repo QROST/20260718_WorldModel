@@ -1,0 +1,176 @@
+#!/usr/bin/env node
+
+const fs = require("node:fs");
+const path = require("node:path");
+const ts = require("typescript");
+
+require.extensions[".ts"] = (module, filename) => {
+  const source = fs.readFileSync(filename, "utf8");
+  const result = ts.transpileModule(source, {
+    fileName: filename,
+    reportDiagnostics: true,
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2020,
+      esModuleInterop: true,
+    },
+  });
+  const diagnostics = (result.diagnostics ?? []).filter(
+    (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error,
+  );
+  if (diagnostics.length > 0) {
+    throw new Error(
+      ts.formatDiagnosticsWithColorAndContext(diagnostics, {
+        getCanonicalFileName: (value) => value,
+        getCurrentDirectory: () => process.cwd(),
+        getNewLine: () => "\n",
+      }),
+    );
+  }
+  module._compile(result.outputText, filename);
+};
+
+const root = path.join(__dirname, "..");
+const fashion = require(path.join(root, "lib/fashion-maze.ts"));
+const finale = require(path.join(root, "lib/grand-palais.ts"));
+const references = require(path.join(root, "lib/grand-palais-references.ts"));
+const errors = [];
+
+function check(condition, message) {
+  if (!condition) errors.push(message);
+}
+
+function expectThrow(label, operation) {
+  try {
+    operation();
+    errors.push(`${label}: expected failure`);
+  } catch {
+    // Expected.
+  }
+}
+
+const order = fashion.createFashionMazeSceneOrder(0x8badf00d);
+const request = {
+  scenes: order.map((sceneId) => {
+    const maze = fashion.findMaze(sceneId);
+    return {
+      sceneId,
+      entranceVariantId: maze.entranceVariants[0].id,
+    };
+  }),
+};
+const resolved = references.resolveGrandPalaisReferences(request);
+check(resolved.length === 7, "finale must resolve exactly seven references");
+check(resolved[0].sceneId === fashion.fashionMazes[0].id, "Scene 1 must remain first");
+check(new Set(resolved.map((item) => item.sceneId)).size === 7, "scene references must be unique");
+for (const item of resolved) {
+  const asset = path.join(root, "public", item.seedImage.replace(/^\//, ""));
+  check(fs.statSync(asset).isFile(), `missing finale reference asset ${item.seedImage}`);
+}
+
+expectThrow("missing scene", () =>
+  references.resolveGrandPalaisReferences({ scenes: request.scenes.slice(0, -1) }),
+);
+expectThrow("duplicate scene", () =>
+  references.resolveGrandPalaisReferences({
+    scenes: [...request.scenes.slice(0, -1), request.scenes[1]],
+  }),
+);
+expectThrow("unknown scene", () =>
+  references.resolveGrandPalaisReferences({
+    scenes: request.scenes.map((item, index) =>
+      index === 1 ? { ...item, sceneId: "unknown-scene" } : item,
+    ),
+  }),
+);
+expectThrow("cross-scene variant", () =>
+  references.resolveGrandPalaisReferences({
+    scenes: request.scenes.map((item, index) =>
+      index === 1
+        ? { ...item, entranceVariantId: request.scenes[0].entranceVariantId }
+        : item,
+    ),
+  }),
+);
+
+check(finale.GRAND_PALAIS_IMAGE_MODEL === "gpt-image-2", "finale model must be gpt-image-2");
+check(
+  finale.GRAND_PALAIS_IMAGE_PROMPT.toLowerCase().includes("grand palais fashion show"),
+  "finale prompt must keep the core keyword",
+);
+check(
+  new Set(finale.GRAND_PALAIS_STORY_LINES).size === finale.GRAND_PALAIS_STORY_LINES.length,
+  "waiting story lines must be unique",
+);
+check(finale.GRAND_PALAIS_STORY_LINES.length >= 8, "waiting story needs enough lines for a long generation");
+
+const syntheticImage = "blob:https://example.test/finale";
+const runtimeMaze = finale.createGrandPalaisMaze(syntheticImage, 12345);
+check(runtimeMaze.id === finale.GRAND_PALAIS_SCENE_ID, "runtime Scene 8 id mismatch");
+check(runtimeMaze.seedImage === syntheticImage, "runtime Scene 8 must use the generated image");
+check(!runtimeMaze.sceneTransition, "Scene 8 must not open another black door");
+check(
+  runtimeMaze.ensemble.count === "all",
+  "Scene 8 must address every seed-visible performer without guessing a count",
+);
+check(
+  fashion
+    .resolvePhotoAction(runtimeMaze)
+    .beats.every((beat) => beat.prompt.includes("all seed-visible performers")),
+  "Scene 8 photo beats must cover every generated performer",
+);
+check(
+  fashion.composeWorldPrompt(runtimeMaze).length <= fashion.FASHION_MAZE_PROMPT_BUDGET.hard,
+  "Scene 8 ambient prompt exceeds the hard budget",
+);
+
+const routeSource = fs.readFileSync(
+  path.join(root, "app/api/grand-palais/generate/route.ts"),
+  "utf8",
+);
+check(/form\.append\(\s*"image\[\]"/.test(routeSource), "route must attach multiple image[] references");
+check(routeSource.includes("https://api.openai.com/v1/images/edits"), "route must use the fixed OpenAI image edits endpoint");
+check(!routeSource.includes("input_fidelity"), "gpt-image-2 route must omit input_fidelity");
+check(
+  routeSource.includes("generationInFlight") &&
+    routeSource.includes("MIN_GENERATION_INTERVAL_MS"),
+  "route must guard duplicate paid generations",
+);
+
+const experienceSource = fs.readFileSync(
+  path.join(root, "components/FashionMazeExperience.tsx"),
+  "utf8",
+);
+check(
+  experienceSource.includes("finaleGenerationInFlightRef.current"),
+  "client must guard duplicate finale requests",
+);
+check(
+  experienceSource.includes("DISCONNECT_CONFIRM_TIMEOUT_MS"),
+  "finale handoff must bound disconnect confirmation",
+);
+check(
+  experienceSource.includes('finalePhase === "starting"') &&
+    experienceSource.includes("pendingMazeRef.current?.id === GRAND_PALAIS_SCENE_ID"),
+  "Scene 8 activation failures must retain a retryable finale state",
+);
+check(
+  experienceSource.includes("sourceScene: activeMaze.id") &&
+    experienceSource.includes("imageReady: Boolean(finaleMaze)"),
+  "debug snapshots must expose finale state separately from the authored scene",
+);
+
+const localKey = path.join(root, "openai.key");
+if (fs.existsSync(localKey)) {
+  check((fs.statSync(localKey).mode & 0o777) === 0o600, "openai.key must remain chmod 600");
+}
+
+if (errors.length > 0) {
+  console.error(`Finale verification failed (${errors.length}):`);
+  for (const error of errors) console.error(`  ERROR ${error}`);
+  process.exitCode = 1;
+} else {
+  console.log(
+    `Finale verification passed: ${resolved.length} allowlisted references, ${finale.GRAND_PALAIS_STORY_LINES.length} story lines, no API request issued.`,
+  );
+}

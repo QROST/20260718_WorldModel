@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "npm run verify:prompts",
+    "prebuild": "npm run verify:prompts && npm run verify:startup && npm run verify:finale",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "verify:prompts": "node tools/verify-prompts.cjs"
+    "verify:prompts": "node tools/verify-prompts.cjs",
+    "verify:startup": "node tools/verify-startup.cjs",
+    "verify:finale": "node tools/verify-finale.cjs"
   },
   "dependencies": {
     "@reactor-models/lingbot-world-2": "0.3.3",
