@@ -41,6 +41,19 @@ pnpm dev
 
 打开 `http://localhost:3000`。静态预览不会请求 JWT，也不会创建 Reactor session。
 
+### 演示脚本
+
+仓库根目录提供四个无需记忆参数的入口：
+
+```bash
+./setup-demo.sh  # 安装 lockfile 固定的依赖
+./build-demo.sh  # 同步依赖、类型检查、全部离线验证与 production build
+./start-demo.sh  # 启动 loopback-only production 演示
+./start-dev.sh   # 启动 loopback-only development server
+```
+
+从干净 clone 直接运行 `./start-demo.sh` 也可以；缺少依赖或 production build 时，它会自动准备。正式演示建议提前运行 `./setup-demo.sh` 与 `./build-demo.sh`，现场只运行 `./start-demo.sh`。首次安装需要访问 package registry；构建与启动均使用 lockfile 固定的依赖。所有脚本都不会输出、创建或复制 API key，也不会在安装或构建阶段连接 Reactor / OpenAI。若已开始 live Reactor session，停止本地服务器前仍应先在页面点击 `End Session`。
+
 应用优先读取服务端环境变量：
 
 ```bash
