@@ -38,7 +38,6 @@ import {
   type FashionMazeDoorChoice,
   type FashionMazeDoorQuestion,
   type FashionMaze,
-  type MazeRoute,
 } from "@/lib/fashion-maze";
 import {
   createGrandPalaisMaze,
@@ -53,6 +52,10 @@ import {
   planPendingMazeStage,
   sanitizeReactorDebugText,
 } from "@/lib/reactor-lifecycle";
+import {
+  useReactorControls,
+  type ReactorControlCode,
+} from "./fashion-maze-runtime/useReactorControls";
 
 type ExperiencePhase =
   | "preview"
@@ -65,22 +68,6 @@ type ExperiencePhase =
   | "paused"
   | "ending"
   | "error";
-
-type ControlCode =
-  | "KeyW"
-  | "KeyA"
-  | "KeyS"
-  | "KeyD"
-  | "ArrowLeft"
-  | "ArrowRight"
-  | "ArrowUp"
-  | "ArrowDown";
-
-interface PendingRoute {
-  id: string;
-  prompt: string;
-  navigation: MazeRoute["navigation"];
-}
 
 interface PhotoPromptStep {
   cue: string;
@@ -205,8 +192,6 @@ interface FashionMazeExperienceProps {
 const SCENE_AUTO_ADVANCE_SECONDS = 30;
 const TOKEN_EXPIRY_SKEW_SECONDS = 60;
 const SNAP_CLIP_SECONDS = 10;
-const MOUSE_LOOK_SENSITIVITY = 0.0003;
-const MOUSE_LOOK_MAX_ROTATION = 0.2;
 const DEBUG_LOG_LIMIT = 250;
 // Hackathon sessions intentionally wait indefinitely for Reactor state changes.
 // Keep the former bounds documented below, but never arm a timer unless this
@@ -216,7 +201,6 @@ const CONNECTION_READY_WATCHDOG_MS = 60_000;
 const ARMING_WATCHDOG_MS = 30_000;
 const START_WATCHDOG_MS = 20_000;
 const VISIBLE_VIDEO_WATCHDOG_MS = 20_000;
-const ROUTE_WATCHDOG_MS = 15_000;
 const PHOTO_WATCHDOG_MS = 30_000;
 const PHOTO_RENDER_SETTLE_MS = 1_200;
 const PHOTO_FRAME_TIMEOUT_MS = 5_000;
@@ -241,19 +225,8 @@ const CONNECTION_RECOVERY_FAILED_WARNING =
 let cachedToken: { jwt: string; expiresAt: number } | null = null;
 let tokenRequest: Promise<string> | null = null;
 
-const CONTROL_CODES = new Set<ControlCode>([
-  "KeyW",
-  "KeyA",
-  "KeyS",
-  "KeyD",
-  "ArrowLeft",
-  "ArrowRight",
-  "ArrowUp",
-  "ArrowDown",
-]);
-
 const CONTROL_BUTTONS: Array<{
-  code: ControlCode;
+  code: ReactorControlCode;
   label: string;
   hint: string;
 }> = [
@@ -724,7 +697,6 @@ function FashionMazeRuntime({
   const [selectedMazeId, setSelectedMazeId] = useState(fashionMazes[0].id);
   const [activeMazeId, setActiveMazeId] = useState<string | null>(null);
   const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
-  const [pendingRouteId, setPendingRouteId] = useState<string | null>(null);
   const [phase, setPhase] = useState<ExperiencePhase>("preview");
   const [modelState, setModelState] =
     useState<LingbotWorld2StateMessage | null>(null);
@@ -732,12 +704,10 @@ function FashionMazeRuntime({
   const [error, setError] = useState<string | null>(null);
   const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [mouseLook, setMouseLook] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [sceneTransitionStage, setSceneTransitionStage] =
     useState<SceneTransitionStage>("idle");
   const [targetSceneChunkReady, setTargetSceneChunkReady] = useState(false);
-  const [ambientChunkReady, setAmbientChunkReady] = useState(false);
   const [doorQuestionDialog, setDoorQuestionDialog] =
     useState<DoorQuestionDialogState | null>(null);
   const [doorAnswers, setDoorAnswers] = useState<DoorAnswerRecord[]>([]);
@@ -755,14 +725,12 @@ function FashionMazeRuntime({
   const [clip, setClip] = useState<Clip | null>(null);
   const [clipBusy, setClipBusy] = useState(false);
   const [clipError, setClipError] = useState<string | null>(null);
-  const [pressedControlCodes, setPressedControlCodes] = useState<ControlCode[]>([]);
 
   const pendingStartRef = useRef(false);
   const startIssuedRef = useRef(false);
   const pendingMazeRef = useRef<FashionMaze | null>(null);
   const stagingIssuedRef = useRef(false);
   const autoAdvanceIssuedRef = useRef(false);
-  const pendingRouteRef = useRef<PendingRoute | null>(null);
   const pendingPhotoRef = useRef<PendingPhoto | null>(null);
   const pendingSceneTransitionRef =
     useRef<PendingSceneTransition | null>(null);
@@ -780,21 +748,14 @@ function FashionMazeRuntime({
   const finaleCancelInFlightRef = useRef(false);
   const photoBusyRef = useRef(false);
   const chunkSerialRef = useRef(0);
-  const heldControlsRef = useRef<ControlCode[]>([]);
   const lastPromptRef = useRef("");
-  const awaitingAmbientPromptRef = useRef<string | null>(null);
   const promptRequestIdRef = useRef(0);
   const stageMediaRef = useRef<HTMLDivElement>(null);
   const doorQuestionCardRef = useRef<HTMLElement>(null);
-  const mouseLookRef = useRef(false);
-  const pendingMouseYawRef = useRef(0);
-  const pendingMousePitchRef = useRef(0);
-  const sendCameraPoseChunkRef = useRef<() => void>(() => undefined);
   const completePhotoCaptureRef = useRef<
     (pending: PendingPhoto, completedChunk: number) => void
   >(() => undefined);
   const activationWatchdogRef = useRef<number | null>(null);
-  const routeWatchdogRef = useRef<number | null>(null);
   const photoWatchdogRef = useRef<number | null>(null);
   const photoFlashTimerRef = useRef<number | null>(null);
   const sceneTransitionWatchdogRef = useRef<number | null>(null);
@@ -816,12 +777,7 @@ function FashionMazeRuntime({
   const reconnectingSessionIdRef = useRef<string | null>(null);
   const failedReconnectSessionIdRef = useRef<string | null>(null);
   const reconnectAttemptRef = useRef(0);
-  const lastAxesRef = useRef({
-    longitudinal: "idle",
-    lateral: "idle",
-    lookHorizontal: "idle",
-    lookVertical: "idle",
-  });
+  const controlsResetRef = useRef<() => void>(() => undefined);
 
   const appendDebugEvent = useCallback(
     (
@@ -920,18 +876,15 @@ function FashionMazeRuntime({
   const hasVideo = Boolean(mainVideoTrack);
   const generationStarted = Boolean(modelState?.started);
   const revealVideo = generationStarted && videoReady;
-  const canSyncAmbient =
+  const ambientSyncEligible =
     status === "ready" &&
     isLive &&
     !isPaused &&
     !terminatingRef.current &&
-    !pendingRouteRef.current &&
     !pendingPhotoRef.current &&
     !pendingSceneTransitionRef.current &&
     !pendingDoorQuestionRef.current &&
     phase === "live";
-  const canControl = canSyncAmbient && ambientChunkReady;
-  const canExplore = canControl;
   const photoBusy =
     photoState === "framing" ||
     photoState === "capturing" ||
@@ -971,12 +924,6 @@ function FashionMazeRuntime({
     if (activationWatchdogRef.current === null) return;
     window.clearTimeout(activationWatchdogRef.current);
     activationWatchdogRef.current = null;
-  }, []);
-
-  const clearRouteWatchdog = useCallback(() => {
-    if (routeWatchdogRef.current === null) return;
-    window.clearTimeout(routeWatchdogRef.current);
-    routeWatchdogRef.current = null;
   }, []);
 
   const clearPhotoWatchdog = useCallback(() => {
@@ -1078,7 +1025,7 @@ function FashionMazeRuntime({
         "error",
       );
       clearActivationWatchdog();
-      clearRouteWatchdog();
+      controlsResetRef.current();
       clearPhotoWatchdog();
       clearReconnectWatchdog();
       clearSceneTransitionTimers();
@@ -1100,20 +1047,16 @@ function FashionMazeRuntime({
       startIssuedRef.current = false;
       pendingMazeRef.current = null;
       stagingIssuedRef.current = false;
-      pendingRouteRef.current = null;
-      awaitingAmbientPromptRef.current = null;
       pendingPhotoRef.current = null;
       pendingSceneTransitionRef.current = null;
       pendingDoorQuestionRef.current = null;
       preparedSceneTransitionRef.current = null;
       photoBusyRef.current = false;
-      setPendingRouteId(null);
       setPhotoState("idle");
       setPhotoCue(null);
       setPhotoFlash(false);
       setDoorQuestionDialog(null);
       setTargetSceneChunkReady(false);
-      setAmbientChunkReady(false);
       setSceneTransitionStage(passedBlackThreshold ? "failed" : "idle");
       setError(
         `${errorMessage(cause)} The live session closed after an unrecoverable Reactor error.`,
@@ -1132,7 +1075,6 @@ function FashionMazeRuntime({
       clearActivationWatchdog,
       clearPhotoWatchdog,
       clearReconnectWatchdog,
-      clearRouteWatchdog,
       clearSceneTransitionTimers,
       disconnect,
       fail,
@@ -1140,23 +1082,97 @@ function FashionMazeRuntime({
     ],
   );
 
-  const armAmbientPromptWatchdog = useCallback(
-    (expectedPrompt: string, message: string) => {
-      clearRouteWatchdog();
-      awaitingAmbientPromptRef.current = expectedPrompt;
-      routeWatchdogRef.current = scheduleCreditProtectionTimeout(() => {
-        routeWatchdogRef.current = null;
-        if (
-          awaitingAmbientPromptRef.current !== expectedPrompt ||
-          terminatingRef.current
-        ) {
-          return;
-        }
-        abortActivation(new Error(message));
-      }, ROUTE_WATCHDOG_MS);
-    },
-    [abortActivation, clearRouteWatchdog],
+  const isTerminating = useCallback(() => terminatingRef.current, []);
+  const isAmbientFlowClear = useCallback(
+    () =>
+      !pendingPhotoRef.current &&
+      !pendingSceneTransitionRef.current &&
+      !pendingDoorQuestionRef.current,
+    [],
   );
+  const composeRoutePrompts = useCallback(
+    (route: FashionMaze["routes"][number]) => ({
+      transition: composeWorldPrompt(activeMaze, route, {
+        isRouteTransition: true,
+        actionMode: "ambient",
+      }),
+      settled: composeWorldPrompt(activeMaze, route, {
+        actionMode: "ambient",
+      }),
+    }),
+    [activeMaze],
+  );
+  const isRouteAvailable = useCallback(
+    (routeId: string) =>
+      activeMaze.routes.some((route) => route.id === routeId),
+    [activeMaze.routes],
+  );
+  const reportAmbientChunk = useCallback(
+    (
+      match: {
+        confirmed: boolean;
+        actionStill: boolean;
+        promptMatched: boolean;
+      },
+      message: Extract<LingbotWorld2Message, { type: "chunk_complete" }>,
+      expectedPrompt: string,
+    ) => {
+      appendDebugEvent(
+        "timer",
+        match.confirmed ? "ambient_chunk_confirmed" : "ambient_chunk_blocked",
+        match.confirmed
+          ? `chunk=${message.chunk_index} promptId=${promptFingerprint(expectedPrompt)}`
+          : `chunk=${message.chunk_index} still=${match.actionStill} exactMatch=${match.promptMatched} activePromptId=${promptFingerprint(message.active_prompt)} expectedPromptId=${promptFingerprint(expectedPrompt)}`,
+        match.confirmed ? "success" : "warning",
+      );
+    },
+    [appendDebugEvent],
+  );
+  const controls = useReactorControls({
+    ambientSyncEligible,
+    status,
+    currentAmbientPrompt: composedPrompt,
+    stageMediaRef,
+    lastPromptRef,
+    promptRequestIdRef,
+    isTerminating,
+    isAmbientFlowClear,
+    isRouteAvailable,
+    composeRoutePrompts,
+    scheduleWatchdog: scheduleCreditProtectionTimeout,
+    routeWatchdogMs: 15_000,
+    setPrompt,
+    setCameraPose,
+    setMoveLongitudinal,
+    setMoveLateral,
+    setLookHorizontal,
+    setLookVertical,
+    onRouteSettled: setActiveRouteId,
+    onPhaseChange: (nextPhase) => setPhase(nextPhase),
+    onClearError: () => setError(null),
+    onUserError: setError,
+    onRuntimeError: fail,
+    onActivationError: abortActivation,
+    onAmbientChunk: reportAmbientChunk,
+  });
+  const {
+    ambientChunkReady,
+    canControl,
+    getAwaitingAmbientPrompt,
+    getExpectedPrompt,
+    handleChunk: handleControlsChunk,
+    handleCommandError: handleControlsCommandError,
+    mouseLook,
+    pendingRouteId,
+    pressedControlCodes,
+    chooseRoute,
+    handleGenerationReset: resetControls,
+    releaseControls,
+    setControl,
+    toggleMouseLook,
+  } = controls;
+  controlsResetRef.current = resetControls;
+  const canExplore = canControl;
 
   const repauseDoorQuestion = useCallback((): boolean => {
     const pending = pendingDoorQuestionRef.current;
@@ -1352,7 +1368,7 @@ function FashionMazeRuntime({
       window.clearTimeout(portalZoomTimerRef.current);
       portalZoomTimerRef.current = null;
     }
-    lastAxesRef.current.longitudinal = "idle";
+    controls.noteExternalAxes({ longitudinal: "idle" });
     void Promise.all([
       setMoveLongitudinal({ move_longitudinal: "idle" }),
       setCameraPose({ camera_pose: [] }),
@@ -1612,7 +1628,7 @@ function FashionMazeRuntime({
   const resetRuntimeAfterDisconnect = useCallback(() => {
     clearReconnectWatchdog();
     clearActivationWatchdog();
-    clearRouteWatchdog();
+    resetControls();
     clearPhotoWatchdog();
     clearSceneTransitionTimers();
     reconnectAttemptRef.current += 1;
@@ -1626,22 +1642,12 @@ function FashionMazeRuntime({
     pendingMazeRef.current = null;
     stagingIssuedRef.current = false;
     autoAdvanceIssuedRef.current = false;
-    pendingRouteRef.current = null;
-    awaitingAmbientPromptRef.current = null;
     pendingPhotoRef.current = null;
     pendingSceneTransitionRef.current = null;
     pendingDoorQuestionRef.current = null;
     preparedSceneTransitionRef.current = null;
     photoBusyRef.current = false;
     chunkSerialRef.current = 0;
-    heldControlsRef.current = [];
-    setPressedControlCodes([]);
-    lastAxesRef.current = {
-      longitudinal: "idle",
-      lateral: "idle",
-      lookHorizontal: "idle",
-      lookVertical: "idle",
-    };
     setSessionStartedAt(null);
     setElapsedSeconds(0);
     setPhotoState("idle");
@@ -1650,18 +1656,10 @@ function FashionMazeRuntime({
     setDoorQuestionDialog(null);
     setSceneTransitionStage("idle");
     setTargetSceneChunkReady(false);
-    setAmbientChunkReady(false);
-    setMouseLook(false);
     setVideoReady(false);
-    mouseLookRef.current = false;
-    pendingMouseYawRef.current = 0;
-    pendingMousePitchRef.current = 0;
-    lastPromptRef.current = "";
-    promptRequestIdRef.current += 1;
     setModelState(null);
     setActiveMazeId(null);
     setActiveRouteId(null);
-    setPendingRouteId(null);
     setChunkIndex(0);
     setClip(null);
     setClipBusy(false);
@@ -1671,8 +1669,8 @@ function FashionMazeRuntime({
     clearActivationWatchdog,
     clearPhotoWatchdog,
     clearReconnectWatchdog,
-    clearRouteWatchdog,
     clearSceneTransitionTimers,
+    resetControls,
   ]);
 
   const failReconnectAttempt = useCallback(
@@ -1718,21 +1716,7 @@ function FashionMazeRuntime({
       reconnectingSessionIdRef.current = null;
       failedReconnectSessionIdRef.current = null;
       reconnectAttemptRef.current += 1;
-      heldControlsRef.current = [];
-      setPressedControlCodes([]);
-      lastAxesRef.current = {
-        longitudinal: "idle",
-        lateral: "idle",
-        lookHorizontal: "idle",
-        lookVertical: "idle",
-      };
-      void Promise.all([
-        setMoveLongitudinal({ move_longitudinal: "idle" }),
-        setMoveLateral({ move_lateral: "idle" }),
-        setLookHorizontal({ look_horizontal: "idle" }),
-        setLookVertical({ look_vertical: "idle" }),
-        setCameraPose({ camera_pose: [] }),
-      ]).catch((cause) => {
+      void releaseControls().catch((cause) => {
         appendDebugEvent(
           "sdk",
           "reconnect_idle_rejected",
@@ -1808,20 +1792,15 @@ function FashionMazeRuntime({
     clearReconnectWatchdog,
     failReconnectAttempt,
     reconnect,
+    releaseControls,
     resetRuntimeAfterDisconnect,
     sessionId,
-    setCameraPose,
-    setLookHorizontal,
-    setLookVertical,
-    setMoveLateral,
-    setMoveLongitudinal,
     status,
   ]);
 
   useEffect(
     () => () => {
       clearActivationWatchdog();
-      clearRouteWatchdog();
       clearPhotoWatchdog();
       clearReconnectWatchdog();
       reconnectAttemptRef.current += 1;
@@ -1836,7 +1815,6 @@ function FashionMazeRuntime({
       clearActivationWatchdog,
       clearPhotoWatchdog,
       clearReconnectWatchdog,
-      clearRouteWatchdog,
       clearSceneTransitionTimers,
     ],
   );
@@ -2240,7 +2218,7 @@ function FashionMazeRuntime({
       );
       return;
     }
-    if (awaitingAmbientPromptRef.current) {
+    if (getAwaitingAmbientPrompt()) {
       abortActivation(lastError);
       return;
     }
@@ -2249,13 +2227,14 @@ function FashionMazeRuntime({
     abortActivation,
     appendDebugEvent,
     failReconnectAttempt,
+    getAwaitingAmbientPrompt,
     lastError,
     recoverPhoto,
   ]);
 
   useLingbotWorld2Message((message) => {
     const summary = summarizeLingbotMessage(message);
-    const expectedPrompt = lastPromptRef.current.trim();
+    const expectedPrompt = getExpectedPrompt().trim();
     const detail =
       message.type === "chunk_complete"
         ? `${summary.detail} expectedPromptId=${promptFingerprint(expectedPrompt)} exactMatch=${message.active_prompt.trim() === expectedPrompt} still=${message.active_action === "still"}`
@@ -2296,7 +2275,7 @@ function FashionMazeRuntime({
         if (repauseDoorQuestion()) break;
         setPhase(
           pendingPhotoRef.current ||
-            pendingRouteRef.current ||
+            controls.hasPendingRoute() ||
             pendingSceneTransitionRef.current
             ? "switching"
             : "live",
@@ -2333,7 +2312,7 @@ function FashionMazeRuntime({
               );
               promptRequestIdRef.current += 1;
               lastPromptRef.current = pendingSceneTransition.enterPrompt;
-              lastAxesRef.current.longitudinal = "forward";
+              controls.noteExternalAxes({ longitudinal: "forward" });
               void Promise.all([
                 setCameraPose({ camera_pose: [] }),
                 setPrompt({ prompt: pendingSceneTransition.enterPrompt }),
@@ -2348,7 +2327,7 @@ function FashionMazeRuntime({
               .split("+")
               .includes("w");
             if (!isForwardChunk) {
-              lastAxesRef.current.longitudinal = "forward";
+              controls.noteExternalAxes({ longitudinal: "forward" });
               armSceneTransitionWatchdog(
                 pendingSceneTransition,
                 "The camera did not continue its straight approach to the black doorway.",
@@ -2369,7 +2348,7 @@ function FashionMazeRuntime({
                 window.clearTimeout(sceneTransitionWatchdogRef.current);
                 sceneTransitionWatchdogRef.current = null;
               }
-              lastAxesRef.current.longitudinal = "idle";
+              controls.noteExternalAxes({ longitudinal: "idle" });
               void Promise.all([
                 setMoveLongitudinal({ move_longitudinal: "idle" }),
                 setCameraPose({ camera_pose: [] }),
@@ -2386,60 +2365,10 @@ function FashionMazeRuntime({
             activePrompt === pendingSceneTransition.targetPrompt.trim() &&
             message.active_action === "still"
           ) {
-            setAmbientChunkReady(true);
+            controls.setAmbientChunkReady(true);
             setTargetSceneChunkReady(true);
           }
           break;
-        }
-        const pendingRoute = pendingRouteRef.current;
-        if (
-          pendingRoute &&
-          message.active_prompt.trim() === pendingRoute.prompt.trim()
-        ) {
-          const expectedAction =
-            pendingRoute.navigation === "forward"
-              ? "w"
-              : pendingRoute.navigation;
-          const routeActionConfirmed = message.active_action
-            .split("+")
-            .includes(expectedAction);
-          if (routeActionConfirmed) {
-            const settledRoute = activeMaze.routes.find(
-              (route) => route.id === pendingRoute.id,
-            );
-            if (!settledRoute) {
-              abortActivation(
-                new Error(
-                  `The confirmed route ${pendingRoute.id} is no longer available in ${activeMaze.id}.`,
-                ),
-              );
-              break;
-            }
-            const settledPrompt = composeWorldPrompt(
-              activeMaze,
-              settledRoute,
-              { actionMode: "ambient" },
-            );
-            if (pendingRoute.navigation === "forward") {
-              lastAxesRef.current.longitudinal = "idle";
-              void setMoveLongitudinal({ move_longitudinal: "idle" }).catch(
-                abortActivation,
-              );
-            } else {
-              lastAxesRef.current.lookHorizontal = "idle";
-              void setLookHorizontal({ look_horizontal: "idle" }).catch(
-                abortActivation,
-              );
-            }
-            armAmbientPromptWatchdog(
-              settledPrompt,
-              `Route ${pendingRoute.id} moved, but Reactor did not confirm the settled scene prompt in time.`,
-            );
-            setActiveRouteId(pendingRoute.id);
-            setPendingRouteId(null);
-            pendingRouteRef.current = null;
-            setPhase("live");
-          }
         }
         const pendingPhoto = pendingPhotoRef.current;
         if (
@@ -2508,61 +2437,22 @@ function FashionMazeRuntime({
             setPhase("live");
           }
         }
-        const expectedAmbientPrompt =
-          awaitingAmbientPromptRef.current ?? lastPromptRef.current;
-        const ambientFlowClear =
-          !pendingSceneTransitionRef.current &&
-          !pendingRouteRef.current &&
-          !pendingPhotoRef.current;
-        const ambientActionStill = message.active_action === "still";
-        const ambientPromptMatches =
-          message.active_prompt.trim() === expectedAmbientPrompt.trim();
-        if (
-          ambientFlowClear &&
-          ambientActionStill &&
-          ambientPromptMatches
-        ) {
-          if (awaitingAmbientPromptRef.current) {
-            awaitingAmbientPromptRef.current = null;
-            clearRouteWatchdog();
-          }
-          setAmbientChunkReady(true);
-          appendDebugEvent(
-            "timer",
-            "ambient_chunk_confirmed",
-            `chunk=${message.chunk_index} promptId=${promptFingerprint(expectedAmbientPrompt)}`,
-            "success",
-          );
-        } else if (ambientFlowClear && !ambientChunkReady) {
-          appendDebugEvent(
-            "timer",
-            "ambient_chunk_blocked",
-            `chunk=${message.chunk_index} still=${ambientActionStill} exactMatch=${ambientPromptMatches} activePromptId=${promptFingerprint(message.active_prompt)} expectedPromptId=${promptFingerprint(expectedAmbientPrompt)}`,
-            "warning",
-          );
-        }
-        sendCameraPoseChunkRef.current();
+        handleControlsChunk(message);
         break;
       }
       case "generation_reset":
         clearActivationWatchdog();
-        clearRouteWatchdog();
+        resetControls();
         clearPhotoWatchdog();
-        pendingRouteRef.current = null;
-        awaitingAmbientPromptRef.current = null;
         pendingPhotoRef.current = null;
         photoBusyRef.current = false;
         chunkSerialRef.current = 0;
-        setPendingRouteId(null);
         setPhotoState("idle");
         setPhotoCue(null);
         setPhotoFlash(false);
         setVideoReady(false);
-        setAmbientChunkReady(false);
         setModelState(null);
         setChunkIndex(0);
-        lastPromptRef.current = "";
-        promptRequestIdRef.current += 1;
         if (pendingSceneTransitionRef.current?.stage === "resetting") {
           const sceneTransition = pendingSceneTransitionRef.current;
           if (
@@ -2666,21 +2556,9 @@ function FashionMazeRuntime({
         }
         const wasActivating =
           pendingStartRef.current || startIssuedRef.current;
-        const wasRouting = pendingRouteRef.current !== null;
         const pendingPhoto = pendingPhotoRef.current;
-        clearRouteWatchdog();
         pendingStartRef.current = false;
         startIssuedRef.current = false;
-        pendingRouteRef.current = null;
-        setPendingRouteId(null);
-        if (wasRouting) {
-          lastAxesRef.current.longitudinal = "idle";
-          lastAxesRef.current.lookHorizontal = "idle";
-          void Promise.all([
-            setMoveLongitudinal({ move_longitudinal: "idle" }),
-            setLookHorizontal({ look_horizontal: "idle" }),
-          ]).catch(() => undefined);
-        }
         if (wasActivating) {
           abortActivation(
             new Error(`${message.command}: ${message.reason}`),
@@ -2690,12 +2568,8 @@ function FashionMazeRuntime({
             pendingPhoto,
             `The photo action failed: ${message.command}: ${message.reason}. The live scene was restored.`,
           );
-        } else if (wasRouting || awaitingAmbientPromptRef.current) {
-          abortActivation(
-            new Error(
-              `Route transition ${message.command}: ${message.reason}`,
-            ),
-          );
+        } else if (handleControlsCommandError(message)) {
+          break;
         } else if (["pause", "resume"].includes(message.command)) {
           setError(`${message.command}: ${message.reason}`);
           setPhase(isPaused ? "paused" : "live");
@@ -2723,18 +2597,13 @@ function FashionMazeRuntime({
       setError(null);
       setActiveMazeId(maze.id);
       setActiveRouteId(null);
-      setPendingRouteId(null);
+      resetControls();
       setPhotoState("idle");
       setPhotoCue(null);
       setVideoReady(false);
-      setAmbientChunkReady(false);
-      clearRouteWatchdog();
-      pendingRouteRef.current = null;
-      awaitingAmbientPromptRef.current = null;
       pendingPhotoRef.current = null;
       photoBusyRef.current = false;
       chunkSerialRef.current = 0;
-      promptRequestIdRef.current += 1;
       pendingStartRef.current = true;
       startIssuedRef.current = false;
       setPhase("uploading");
@@ -2790,7 +2659,7 @@ function FashionMazeRuntime({
     [
       appendDebugEvent,
       armActivationWatchdog,
-      clearRouteWatchdog,
+      resetControls,
       setImage,
       setPrompt,
       setSeed,
@@ -2923,237 +2792,6 @@ function FashionMazeRuntime({
     status,
   ]);
 
-  const sendAxes = useCallback(() => {
-    if (!canExplore) return;
-    const held = heldControlsRef.current;
-    const latest = (codes: ControlCode[]) =>
-      [...held].reverse().find((code) => codes.includes(code));
-
-    const longitudinal =
-      latest(["KeyW", "KeyS"]) === "KeyW"
-        ? "forward"
-        : latest(["KeyW", "KeyS"]) === "KeyS"
-          ? "back"
-          : "idle";
-    const lateral =
-      latest(["KeyA", "KeyD"]) === "KeyA"
-        ? "strafe_left"
-        : latest(["KeyA", "KeyD"]) === "KeyD"
-          ? "strafe_right"
-          : "idle";
-    const lookHorizontal =
-      latest(["ArrowLeft", "ArrowRight"]) === "ArrowLeft"
-        ? "left"
-        : latest(["ArrowLeft", "ArrowRight"]) === "ArrowRight"
-          ? "right"
-          : "idle";
-    const lookVertical =
-      latest(["ArrowUp", "ArrowDown"]) === "ArrowUp"
-        ? "up"
-        : latest(["ArrowUp", "ArrowDown"]) === "ArrowDown"
-          ? "down"
-          : "idle";
-    const previous = lastAxesRef.current;
-    const commands: Promise<void>[] = [];
-    if (longitudinal !== previous.longitudinal) {
-      commands.push(setMoveLongitudinal({ move_longitudinal: longitudinal }));
-    }
-    if (lateral !== previous.lateral) {
-      commands.push(setMoveLateral({ move_lateral: lateral }));
-    }
-    if (lookHorizontal !== previous.lookHorizontal) {
-      commands.push(setLookHorizontal({ look_horizontal: lookHorizontal }));
-    }
-    if (lookVertical !== previous.lookVertical) {
-      commands.push(setLookVertical({ look_vertical: lookVertical }));
-    }
-    lastAxesRef.current = {
-      longitudinal,
-      lateral,
-      lookHorizontal,
-      lookVertical,
-    };
-    if (commands.length) void Promise.all(commands).catch(fail);
-  }, [
-    canExplore,
-    fail,
-    setLookHorizontal,
-    setLookVertical,
-    setMoveLateral,
-    setMoveLongitudinal,
-  ]);
-
-  const setControl = useCallback(
-    (code: ControlCode, pressed: boolean) => {
-      const held = heldControlsRef.current;
-      if (pressed) {
-        if (!held.includes(code)) heldControlsRef.current = [...held, code];
-      } else {
-        heldControlsRef.current = held.filter((item) => item !== code);
-      }
-      setPressedControlCodes(heldControlsRef.current);
-      sendAxes();
-    },
-    [sendAxes],
-  );
-
-  const releaseControls = useCallback(async () => {
-    heldControlsRef.current = [];
-    setPressedControlCodes([]);
-    mouseLookRef.current = false;
-    setMouseLook(false);
-    pendingMouseYawRef.current = 0;
-    pendingMousePitchRef.current = 0;
-    if (
-      typeof document !== "undefined" &&
-      document.pointerLockElement === stageMediaRef.current
-    ) {
-      document.exitPointerLock();
-    }
-    lastAxesRef.current = {
-      longitudinal: "idle",
-      lateral: "idle",
-      lookHorizontal: "idle",
-      lookVertical: "idle",
-    };
-    if (status !== "ready") return;
-    await Promise.all([
-      setMoveLongitudinal({ move_longitudinal: "idle" }),
-      setMoveLateral({ move_lateral: "idle" }),
-      setLookHorizontal({ look_horizontal: "idle" }),
-      setLookVertical({ look_vertical: "idle" }),
-      setCameraPose({ camera_pose: [] }),
-    ]);
-  }, [
-    setCameraPose,
-    setLookHorizontal,
-    setLookVertical,
-    setMoveLateral,
-    setMoveLongitudinal,
-    status,
-  ]);
-
-  useEffect(() => {
-    const keydown = (event: KeyboardEvent) => {
-      if (
-        event.repeat ||
-        isTypingTarget(event.target) ||
-        !canExplore ||
-        !CONTROL_CODES.has(event.code as ControlCode)
-      ) {
-        return;
-      }
-      event.preventDefault();
-      setControl(event.code as ControlCode, true);
-    };
-    const keyup = (event: KeyboardEvent) => {
-      if (!CONTROL_CODES.has(event.code as ControlCode)) return;
-      if (!canExplore) {
-        heldControlsRef.current = heldControlsRef.current.filter(
-          (item) => item !== event.code,
-        );
-        setPressedControlCodes(heldControlsRef.current);
-        return;
-      }
-      event.preventDefault();
-      setControl(event.code as ControlCode, false);
-    };
-    const blur = () => void releaseControls().catch(fail);
-    const visibility = () => {
-      if (document.hidden) blur();
-    };
-
-    window.addEventListener("keydown", keydown);
-    window.addEventListener("keyup", keyup);
-    window.addEventListener("blur", blur);
-    document.addEventListener("visibilitychange", visibility);
-    return () => {
-      window.removeEventListener("keydown", keydown);
-      window.removeEventListener("keyup", keyup);
-      window.removeEventListener("blur", blur);
-      document.removeEventListener("visibilitychange", visibility);
-    };
-  }, [canExplore, fail, releaseControls, setControl]);
-
-  const sendMouseCameraPose = useCallback(() => {
-    if (!canControl || !mouseLookRef.current) return;
-    const clamp = (value: number) =>
-      Math.max(
-        -MOUSE_LOOK_MAX_ROTATION,
-        Math.min(MOUSE_LOOK_MAX_ROTATION, value),
-      );
-    const yaw = clamp(
-      pendingMouseYawRef.current * MOUSE_LOOK_SENSITIVITY,
-    );
-    const pitch = clamp(
-      -pendingMousePitchRef.current * MOUSE_LOOK_SENSITIVITY,
-    );
-    pendingMouseYawRef.current = 0;
-    pendingMousePitchRef.current = 0;
-    void setCameraPose({
-      camera_pose: [pitch, yaw, 0, 0, 0, 0],
-    }).catch(fail);
-  }, [canControl, fail, setCameraPose]);
-
-  useEffect(() => {
-    sendCameraPoseChunkRef.current = sendMouseCameraPose;
-  }, [sendMouseCameraPose]);
-
-  useEffect(() => {
-    if (
-      !canControl &&
-      typeof document !== "undefined" &&
-      document.pointerLockElement === stageMediaRef.current
-    ) {
-      document.exitPointerLock();
-    }
-  }, [canControl]);
-
-  useEffect(() => {
-    const onMouseMove = (event: MouseEvent) => {
-      if (!mouseLookRef.current) return;
-      pendingMouseYawRef.current += event.movementX;
-      pendingMousePitchRef.current += event.movementY;
-    };
-    const onPointerLockChange = () => {
-      const locked = document.pointerLockElement === stageMediaRef.current;
-      mouseLookRef.current = locked;
-      setMouseLook(locked);
-      if (locked) {
-        sendMouseCameraPose();
-        return;
-      }
-
-      pendingMouseYawRef.current = 0;
-      pendingMousePitchRef.current = 0;
-      if (status === "ready" && !terminatingRef.current) {
-        void setCameraPose({ camera_pose: [] }).catch(fail);
-      }
-    };
-
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("pointerlockchange", onPointerLockChange);
-    return () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("pointerlockchange", onPointerLockChange);
-    };
-  }, [fail, sendMouseCameraPose, setCameraPose, status]);
-
-  const toggleMouseLook = useCallback(() => {
-    if (!canControl) return;
-    if (document.pointerLockElement === stageMediaRef.current) {
-      document.exitPointerLock();
-      return;
-    }
-
-    const stage = stageMediaRef.current;
-    if (!stage || typeof stage.requestPointerLock !== "function") {
-      setError("Pointer-lock mouse look is unavailable in this browser.");
-      return;
-    }
-    void stage.requestPointerLock().catch(fail);
-  }, [canControl, fail]);
-
   const prepareSceneTransition = useCallback(async () => {
     const transition = activeMaze.sceneTransition;
     if (
@@ -3163,7 +2801,7 @@ function FashionMazeRuntime({
       !revealVideo ||
       terminatingRef.current ||
       pendingSceneTransitionRef.current ||
-      pendingRouteRef.current ||
+      controls.hasPendingRoute() ||
       pendingPhotoRef.current
     ) {
       return null;
@@ -3442,96 +3080,6 @@ function FashionMazeRuntime({
     ],
   );
 
-  const chooseRoute = useCallback(
-    async (route: MazeRoute) => {
-      if (
-        !canControl ||
-        pendingRouteRef.current ||
-        pendingPhotoRef.current
-      ) {
-        return;
-      }
-      const prompt = composeWorldPrompt(activeMaze, route, {
-        isRouteTransition: true,
-        actionMode: "ambient",
-      });
-      setAmbientChunkReady(false);
-      awaitingAmbientPromptRef.current = null;
-      promptRequestIdRef.current += 1;
-      const pendingRoute: PendingRoute = {
-        id: route.id,
-        prompt,
-        navigation: route.navigation,
-      };
-      pendingRouteRef.current = pendingRoute;
-      setPendingRouteId(route.id);
-      setPhase("switching");
-      setError(null);
-      clearRouteWatchdog();
-      routeWatchdogRef.current = scheduleCreditProtectionTimeout(() => {
-        routeWatchdogRef.current = null;
-        if (
-          pendingRouteRef.current !== pendingRoute ||
-          terminatingRef.current
-        ) {
-          return;
-        }
-        abortActivation(
-          new Error(
-            `Route ${route.id} did not produce a prompt-and-action matched chunk in time.`,
-          ),
-        );
-      }, ROUTE_WATCHDOG_MS);
-      try {
-        await releaseControls();
-        if (
-          pendingRouteRef.current !== pendingRoute ||
-          terminatingRef.current
-        ) {
-          return;
-        }
-        if (route.navigation === "forward") {
-          lastAxesRef.current.longitudinal = "forward";
-          await Promise.all([
-            setPrompt({ prompt }),
-            setMoveLongitudinal({ move_longitudinal: "forward" }),
-          ]);
-        } else {
-          lastAxesRef.current.lookHorizontal = route.navigation;
-          await Promise.all([
-            setPrompt({ prompt }),
-            setLookHorizontal({ look_horizontal: route.navigation }),
-          ]);
-        }
-        if (
-          pendingRouteRef.current !== pendingRoute ||
-          terminatingRef.current
-        ) {
-          return;
-        }
-        lastPromptRef.current = prompt;
-      } catch (cause) {
-        if (
-          pendingRouteRef.current !== pendingRoute ||
-          terminatingRef.current
-        ) {
-          return;
-        }
-        abortActivation(cause);
-      }
-    },
-    [
-      activeMaze,
-      abortActivation,
-      canControl,
-      clearRouteWatchdog,
-      releaseControls,
-      setLookHorizontal,
-      setMoveLongitudinal,
-      setPrompt,
-    ],
-  );
-
   const completePhotoCapture = useCallback(
     async (pending: PendingPhoto, completedChunk: number) => {
       appendDebugEvent(
@@ -3635,7 +3183,7 @@ function FashionMazeRuntime({
       !canControl ||
       !revealVideo ||
       photoBusyRef.current ||
-      pendingRouteRef.current ||
+      controls.hasPendingRoute() ||
       pendingPhotoRef.current
     ) {
       return;
@@ -3662,7 +3210,7 @@ function FashionMazeRuntime({
       setError("The shared photo sequence is unavailable.");
       return;
     }
-    setAmbientChunkReady(false);
+    controls.setAmbientChunkReady(false);
     const pending: PendingPhoto = {
       stage: "capture",
       ...firstStep,
@@ -3748,57 +3296,6 @@ function FashionMazeRuntime({
     return () => window.removeEventListener("keydown", keydown);
   }, [takePhoto]);
 
-  // Normal navigation never changes the world prompt: WASD, arrow keys, and
-  // mouse look travel exclusively through the SDK camera-input channels. Only
-  // an explicit route, photo action, or scene transition is allowed to swap
-  // narrative prompts.
-  useEffect(() => {
-    if (
-      !canSyncAmbient ||
-      pendingRouteRef.current ||
-      pendingPhotoRef.current
-    ) {
-      return;
-    }
-    const awaitingAmbientPrompt = awaitingAmbientPromptRef.current;
-    if (
-      awaitingAmbientPrompt &&
-      awaitingAmbientPrompt.trim() !== composedPrompt.trim()
-    ) {
-      abortActivation(
-        new Error(
-          "The route settled to a different ambient prompt than the one awaiting confirmation.",
-        ),
-      );
-      return;
-    }
-    if (
-      !awaitingAmbientPrompt &&
-      lastPromptRef.current.trim() === composedPrompt.trim()
-    ) {
-      return;
-    }
-
-    const previousPrompt = lastPromptRef.current;
-    const requestId = ++promptRequestIdRef.current;
-    lastPromptRef.current = composedPrompt;
-    void setPrompt({ prompt: composedPrompt }).catch((cause) => {
-      if (
-        promptRequestIdRef.current === requestId &&
-        lastPromptRef.current === composedPrompt
-      ) {
-        lastPromptRef.current = previousPrompt;
-        if (
-          awaitingAmbientPromptRef.current?.trim() === composedPrompt.trim()
-        ) {
-          abortActivation(cause);
-        } else {
-          fail(cause);
-        }
-      }
-    });
-  }, [abortActivation, canSyncAmbient, composedPrompt, fail, setPrompt]);
-
   const togglePause = useCallback(async () => {
     if (pendingDoorQuestionRef.current) return;
     try {
@@ -3809,7 +3306,7 @@ function FashionMazeRuntime({
         if (
           terminatingRef.current ||
           pendingPhotoRef.current ||
-          pendingRouteRef.current
+          controls.hasPendingRoute()
         ) {
           return;
         }
@@ -3856,10 +3353,9 @@ function FashionMazeRuntime({
     terminatingRef.current = true;
     activationAttemptIdRef.current += 1;
     clearActivationWatchdog();
-    clearRouteWatchdog();
+    resetControls();
     clearPhotoWatchdog();
     clearSceneTransitionTimers();
-    awaitingAmbientPromptRef.current = null;
     pendingDoorQuestionRef.current = null;
     preparedSceneTransitionRef.current = null;
     setDoorQuestionDialog(null);
@@ -3914,8 +3410,6 @@ function FashionMazeRuntime({
     startIssuedRef.current = false;
     pendingMazeRef.current = null;
     stagingIssuedRef.current = false;
-    pendingRouteRef.current = null;
-    awaitingAmbientPromptRef.current = null;
     pendingPhotoRef.current = null;
     pendingSceneTransitionRef.current = null;
     pendingDoorQuestionRef.current = null;
@@ -3925,13 +3419,11 @@ function FashionMazeRuntime({
     setModelState(null);
     setActiveMazeId(null);
     setActiveRouteId(null);
-    setPendingRouteId(null);
     setPhotoState("idle");
     setPhotoCue(null);
     setPhotoFlash(false);
     setDoorQuestionDialog(null);
     setVideoReady(false);
-    setAmbientChunkReady(false);
     setSceneTransitionStage("idle");
     setTargetSceneChunkReady(false);
     setChunkIndex(0);
@@ -3944,11 +3436,11 @@ function FashionMazeRuntime({
     clearActivationWatchdog,
     clearPhotoWatchdog,
     clearReconnectWatchdog,
-    clearRouteWatchdog,
     clearSceneTransitionTimers,
     disconnect,
     fail,
     releaseControls,
+    resetControls,
     status,
   ]);
 
