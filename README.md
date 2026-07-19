@@ -190,9 +190,9 @@ interface FashionMaze {
 
 ### 部署安全边界
 
-当前 token broker 与 Grand Palais generation route 面向本机或受控的 hackathon operator 网络，没有登录与分布式限流。Scene 8 只有浏览器 single-flight、进程内 single-flight/短 cooldown 与 same-origin 检查，这些都不能替代身份验证。不要直接把应用暴露成公开网站；公开部署前应在 hosting / reverse proxy 层加入 operator authentication、分布式 rate limit 与 quota。根目录的 `reactor.key`、`openai.key` 虽然是 `0600` 且被 `*.key` 忽略，但手工 zip 或上传整个文件夹时仍必须显式排除。正式部署只使用平台 secrets `REACTOR_API_KEY` 与 `OPENAI_API_KEY`。
+Grand Palais generation route 不再校验浏览器 Origin、Host 或代理 header；localhost、IP、tunnel、preview 与正式域名都直接使用服务端的 OpenAI key 生成 Scene 8。key 始终只在服务端读取，不会进入浏览器请求或响应。route 仍保留七张 reference allowlist、文件边界、超时、进程内 single-flight 与短 cooldown。
 
-公网部署还必须把唯一规范来源写入 `FASHION_MAZE_PUBLIC_ORIGIN`（例如 `https://maze.example.com`）；未配置时仅隐式允许 `localhost`、`127.0.0.1` 与 `[::1]`。`FASHION_MAZE_TRUST_PROXY_HEADERS=1` 只能用于会剥离并覆盖客户端 `Forwarded` / `X-Forwarded-*` 的可信反向代理之后，否则保持默认关闭，以免重新开放 Host header / DNS-rebinding 绕过。
+当前 token broker 与 generation route 没有登录或分布式限流。若把应用公开部署，任意调用者都可能消耗 Reactor / OpenAI quota；需要控制费用时，应在 hosting / reverse proxy 层加入 operator authentication、分布式 rate limit 与 quota，而不是重新绑定应用 Origin。根目录的 `reactor.key`、`openai.key` 虽然是 `0600` 且被 `*.key` 忽略，但手工 zip 或上传整个文件夹时仍必须显式排除。正式部署只使用平台 secrets `REACTOR_API_KEY` 与 `OPENAI_API_KEY`。
 
 ## 验证
 

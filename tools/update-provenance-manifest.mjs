@@ -4,7 +4,13 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { lstatSync, readFileSync, readlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  readFileSync,
+  readlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,6 +39,7 @@ function repositoryFiles() {
     .toString("utf8")
     .split("\0")
     .filter((item) => item && item !== manifestPath)
+    .filter((item) => fromIndex || existsSync(path.join(root, item)))
     .sort();
 }
 

@@ -89,6 +89,7 @@ const repositoryFiles = execFileSync(
   .toString("utf8")
   .split("\0")
   .filter((item) => item && item !== manifestPath)
+  .filter((item) => fromIndex || fs.existsSync(path.join(root, item)))
   .sort();
 const manifestFiles = manifest.files.map((entry) => entry.path);
 

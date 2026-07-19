@@ -13,8 +13,8 @@
   "files": [
     {
       "path": ".env.example",
-      "sha256": "8ffb7f5cc361929120a30a78d713d6a5b87b2ff957652d2c1b7da108ebd25a0e",
-      "bytes": 839,
+      "sha256": "6d1bf7c0c37615fdfa91f5d33fbb7e24067fbafccda5fd7829fdbec1eacca79a",
+      "bytes": 452,
       "contentClass": "project-metadata",
       "signaturePolicy": "header-and-manifest"
     },
@@ -41,15 +41,15 @@
     },
     {
       "path": "README.md",
-      "sha256": "5cc73769893bef75d3dc9708ed3adab3b803c352efeab8bddfec6b208dbc9733",
-      "bytes": 22244,
+      "sha256": "f33d69f653c37f744ad5a8349ff14d8f01a941417d9c2008b2fde31832441968",
+      "bytes": 22090,
       "contentClass": "project-documentation",
       "signaturePolicy": "manifest-only"
     },
     {
       "path": "app/api/grand-palais/generate/route.ts",
-      "sha256": "88e626e1c5183d6699404a455f9a9f1e91c24559cf44a56b680eff8c16d34e5c",
-      "bytes": 7132,
+      "sha256": "c705cd609d06964e28200ad6a44f57c4efea93b2c9ae436234b9496c2395f4eb",
+      "bytes": 6517,
       "contentClass": "project-source",
       "signaturePolicy": "header-and-manifest"
     },
@@ -225,13 +225,6 @@
       "path": "lib/reactor-server.ts",
       "sha256": "25cb56c97ae27c34f101204d649f2b97e831b55d7e9772780b8ce954646fed4a",
       "bytes": 1204,
-      "contentClass": "project-source",
-      "signaturePolicy": "header-and-manifest"
-    },
-    {
-      "path": "lib/request-origin.ts",
-      "sha256": "66421d346f990cb1f2ff9c7fc2237f403abef109b6666c1390bc6bddddcee8e4",
-      "bytes": 4345,
       "contentClass": "project-source",
       "signaturePolicy": "header-and-manifest"
     },
@@ -654,8 +647,8 @@
     },
     {
       "path": "tools/update-provenance-manifest.mjs",
-      "sha256": "9fcabbb0480c32fe1af3a0bbdbefd0019362c54ed27c65bffd84366cbf837cdd",
-      "bytes": 2847,
+      "sha256": "665313f20397e8811c0f0d74501cf07a0cf7f22df19bbbd3c79b5e952376d78c",
+      "bytes": 2940,
       "contentClass": "project-source",
       "signaturePolicy": "header-and-manifest"
     },
@@ -668,8 +661,8 @@
     },
     {
       "path": "tools/verify-finale.cjs",
-      "sha256": "9ef42d0067612208932b9a7b97f38f9ee61991b45ee60b598b8ca70967d48f1d",
-      "bytes": 12453,
+      "sha256": "8806d05fe4ef4a15528bba31e4e291da8d74cf6563a09f1e46aa5a4f4e3d67ae",
+      "bytes": 8500,
       "contentClass": "project-source",
       "signaturePolicy": "header-and-manifest"
     },
@@ -689,8 +682,8 @@
     },
     {
       "path": "tools/verify-provenance.cjs",
-      "sha256": "ed615fcf6433e1d6d3ed11aa8d010b50eb3310945272a0ce5eaab00f3bc435e1",
-      "bytes": 11255,
+      "sha256": "3435ec9e89b6ccb29f163ea306073d30aaff74bf04a7e5b8cbbd04bc1b7c7991",
+      "bytes": 11326,
       "contentClass": "project-source",
       "signaturePolicy": "header-and-manifest"
     },

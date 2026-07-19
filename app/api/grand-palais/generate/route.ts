@@ -14,7 +14,6 @@ import {
   type ResolvedGrandPalaisReference,
 } from "@/lib/grand-palais-references";
 import { getOpenAIApiKey } from "@/lib/openai-server";
-import { isAllowedRequestOrigin } from "@/lib/request-origin";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -104,27 +103,8 @@ async function resolveReferenceFiles(
   );
 }
 
+// Deliberately origin-independent; the OpenAI key remains server-side.
 export async function POST(request: Request) {
-  if (
-    !isAllowedRequestOrigin(
-      {
-        requestUrl: request.url,
-        origin: request.headers.get("origin"),
-        host: request.headers.get("host"),
-        forwardedHost: request.headers.get("x-forwarded-host"),
-        forwardedProto: request.headers.get("x-forwarded-proto"),
-        secFetchSite: request.headers.get("sec-fetch-site"),
-      },
-      {
-        publicOrigin: process.env.FASHION_MAZE_PUBLIC_ORIGIN,
-        trustProxyHeaders:
-          process.env.FASHION_MAZE_TRUST_PROXY_HEADERS === "1",
-      },
-    )
-  ) {
-    return jsonError("Cross-origin generation is not allowed.", 403);
-  }
-
   const apiKey = getOpenAIApiKey();
   if (!apiKey) {
     return jsonError("OPENAI_API_KEY is not configured.", 503);
