@@ -13,7 +13,6 @@ import {
   ClipPlayer,
   RecordingError,
   type Clip,
-  type FileRef,
 } from "@reactor-team/js-sdk";
 import NextImage from "next/image";
 import {
@@ -24,7 +23,6 @@ import {
   useState,
 } from "react";
 import {
-  composePortalPrompt,
   composeWorldPrompt,
   explainFashionMazePrompt,
   FASHION_MAZE_PROMPT_BUDGET,
@@ -56,6 +54,10 @@ import {
   type ReactorControlCode,
 } from "./fashion-maze-runtime/useReactorControls";
 import { usePhotoCapture } from "./fashion-maze-runtime/usePhotoCapture";
+import {
+  useSceneTransition,
+  type PendingSceneTransition,
+} from "./fashion-maze-runtime/useSceneTransition";
 
 type ExperiencePhase =
   | "preview"
@@ -68,31 +70,6 @@ type ExperiencePhase =
   | "paused"
   | "ending"
   | "error";
-
-type SceneTransitionStage =
-  | "idle"
-  | "summoning"
-  | "entering"
-  | "zooming"
-  | "covering"
-  | "resetting"
-  | "arming"
-  | "starting"
-  | "waiting"
-  | "revealing"
-  | "failed";
-
-interface PendingSceneTransition {
-  stage: Exclude<SceneTransitionStage, "idle" | "failed">;
-  destination: "scene" | "grand-palais";
-  targetMaze: FashionMaze | null;
-  imageRefPromise: Promise<FileRef> | null;
-  summonPrompt: string;
-  enterPrompt: string;
-  targetPrompt: string | null;
-  summonMatchedChunks: number;
-  enterMatchedChunks: number;
-}
 
 type FinalePhase =
   | "idle"
@@ -164,11 +141,6 @@ const DISCONNECT_CONFIRM_TIMEOUT_MS = 10_000;
 const RECONNECT_CONFIRM_TIMEOUT_MS = 15_000;
 const GRAND_PALAIS_CLIENT_TIMEOUT_MS = 170_000;
 const DOOR_QUESTION_WATCHDOG_MS = 20_000;
-const SCENE_TRANSITION_WATCHDOG_MS = 45_000;
-const PORTAL_COVER_MS = 520;
-const PORTAL_REVEAL_MS = 1_100;
-const PORTAL_SUMMON_HOLD_CHUNKS = PORTAL_CHOREOGRAPHY.summonHoldChunks;
-const PORTAL_APPROACH_HOLD_CHUNKS = PORTAL_CHOREOGRAPHY.approachHoldChunks;
 const PORTAL_VIDEO_ZOOM_MS = PORTAL_CHOREOGRAPHY.clientZoomMs;
 const CONNECTION_DROPPED_WARNING =
   "The Reactor connection dropped. The existing session may still be billing while this app tries to reconnect it.";
@@ -479,9 +451,6 @@ function FashionMazeRuntime({
   const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [videoReady, setVideoReady] = useState(false);
-  const [sceneTransitionStage, setSceneTransitionStage] =
-    useState<SceneTransitionStage>("idle");
-  const [targetSceneChunkReady, setTargetSceneChunkReady] = useState(false);
   const [doorQuestionDialog, setDoorQuestionDialog] =
     useState<DoorQuestionDialogState | null>(null);
   const [doorAnswers, setDoorAnswers] = useState<DoorAnswerRecord[]>([]);
@@ -501,8 +470,6 @@ function FashionMazeRuntime({
   const pendingMazeRef = useRef<FashionMaze | null>(null);
   const stagingIssuedRef = useRef(false);
   const autoAdvanceIssuedRef = useRef(false);
-  const pendingSceneTransitionRef =
-    useRef<PendingSceneTransition | null>(null);
   const pendingDoorQuestionRef = useRef<DoorQuestionDialogState | null>(null);
   const preparedSceneTransitionRef = useRef<PendingSceneTransition | null>(null);
   const activatePreparedSceneTransitionRef = useRef<
@@ -520,12 +487,8 @@ function FashionMazeRuntime({
   const stageMediaRef = useRef<HTMLDivElement>(null);
   const doorQuestionCardRef = useRef<HTMLElement>(null);
   const activationWatchdogRef = useRef<number | null>(null);
-  const sceneTransitionWatchdogRef = useRef<number | null>(null);
   const reconnectWatchdogRef = useRef<number | null>(null);
   const doorQuestionWatchdogRef = useRef<number | null>(null);
-  const portalZoomTimerRef = useRef<number | null>(null);
-  const portalCoverTimerRef = useRef<number | null>(null);
-  const portalRevealTimerRef = useRef<number | null>(null);
   const activationAttemptIdRef = useRef(0);
   const handledLastErrorRef = useRef<unknown>(null);
   const previousStatusRef = useRef(status);
@@ -545,6 +508,15 @@ function FashionMazeRuntime({
     reset: () => void;
   }>({
     hasPending: () => false,
+    reset: () => undefined,
+  });
+  const sceneFlowRef = useRef<{
+    hasPending: () => boolean;
+    passedBlackThreshold: () => boolean;
+    reset: (stage?: "idle" | "failed") => void;
+  }>({
+    hasPending: () => false,
+    passedBlackThreshold: () => false,
     reset: () => undefined,
   });
 
@@ -651,7 +623,7 @@ function FashionMazeRuntime({
     !isPaused &&
     !terminatingRef.current &&
     !photoFlowRef.current.hasPending() &&
-    !pendingSceneTransitionRef.current &&
+    !sceneFlowRef.current.hasPending() &&
     !pendingDoorQuestionRef.current &&
     phase === "live";
   const busy = [
@@ -662,14 +634,6 @@ function FashionMazeRuntime({
     "switching",
     "ending",
   ].includes(phase);
-  const portalChoreographyVisible = ["summoning", "entering", "zooming"].includes(
-    sceneTransitionStage,
-  );
-  const curtainSessionExitVisible =
-    status !== "disconnected" &&
-    ["resetting", "arming", "starting", "waiting", "failed"].includes(
-      sceneTransitionStage,
-    );
   const remainingSeconds = Math.max(
     0,
     SCENE_AUTO_ADVANCE_SECONDS - elapsedSeconds,
@@ -702,26 +666,6 @@ function FashionMazeRuntime({
     window.clearTimeout(doorQuestionWatchdogRef.current);
     doorQuestionWatchdogRef.current = null;
   }, []);
-
-  const clearSceneTransitionTimers = useCallback(() => {
-    if (sceneTransitionWatchdogRef.current !== null) {
-      window.clearTimeout(sceneTransitionWatchdogRef.current);
-      sceneTransitionWatchdogRef.current = null;
-    }
-    clearDoorQuestionWatchdog();
-    if (portalZoomTimerRef.current !== null) {
-      window.clearTimeout(portalZoomTimerRef.current);
-      portalZoomTimerRef.current = null;
-    }
-    if (portalCoverTimerRef.current !== null) {
-      window.clearTimeout(portalCoverTimerRef.current);
-      portalCoverTimerRef.current = null;
-    }
-    if (portalRevealTimerRef.current !== null) {
-      window.clearTimeout(portalRevealTimerRef.current);
-      portalRevealTimerRef.current = null;
-    }
-  }, [clearDoorQuestionWatchdog]);
 
   const markDoorQuestionPaused = useCallback((): boolean => {
     const pending = pendingDoorQuestionRef.current;
@@ -787,7 +731,7 @@ function FashionMazeRuntime({
       controlsResetRef.current();
       photoFlowRef.current.reset();
       clearReconnectWatchdog();
-      clearSceneTransitionTimers();
+      clearDoorQuestionWatchdog();
       reconnectAttemptRef.current += 1;
       reconnectingSessionIdRef.current = null;
       failedReconnectSessionIdRef.current = null;
@@ -795,23 +739,18 @@ function FashionMazeRuntime({
       const activatingFinale =
         finalePhase === "starting" ||
         pendingMazeRef.current?.id === GRAND_PALAIS_SCENE_ID;
-      const transition = pendingSceneTransitionRef.current;
-      const passedBlackThreshold = Boolean(
-        transition &&
-          !["summoning", "entering", "zooming"].includes(transition.stage),
-      );
+      const passedBlackThreshold =
+        sceneFlowRef.current.passedBlackThreshold();
       terminatingRef.current = true;
       activationAttemptIdRef.current += 1;
       pendingStartRef.current = false;
       startIssuedRef.current = false;
       pendingMazeRef.current = null;
       stagingIssuedRef.current = false;
-      pendingSceneTransitionRef.current = null;
       pendingDoorQuestionRef.current = null;
       preparedSceneTransitionRef.current = null;
       setDoorQuestionDialog(null);
-      setTargetSceneChunkReady(false);
-      setSceneTransitionStage(passedBlackThreshold ? "failed" : "idle");
+      sceneFlowRef.current.reset(passedBlackThreshold ? "failed" : "idle");
       setError(
         `${errorMessage(cause)} The live session closed after an unrecoverable Reactor error.`,
       );
@@ -827,8 +766,8 @@ function FashionMazeRuntime({
     [
       appendDebugEvent,
       clearActivationWatchdog,
+      clearDoorQuestionWatchdog,
       clearReconnectWatchdog,
-      clearSceneTransitionTimers,
       disconnect,
       fail,
       finalePhase,
@@ -839,7 +778,7 @@ function FashionMazeRuntime({
   const isAmbientFlowClear = useCallback(
     () =>
       !photoFlowRef.current.hasPending() &&
-      !pendingSceneTransitionRef.current &&
+      !sceneFlowRef.current.hasPending() &&
       !pendingDoorQuestionRef.current,
     [],
   );
@@ -972,6 +911,96 @@ function FashionMazeRuntime({
     hasPending: hasPendingPhoto,
     reset: resetPhoto,
   };
+  const uploadSceneTargetImage = useCallback(
+    async (maze: FashionMaze) => {
+      const imageFile = await seedAssetToFile(maze);
+      return uploadFile(imageFile, { name: imageFile.name });
+    },
+    [uploadFile],
+  );
+  const handleSceneTargetArming = useCallback((maze: FashionMaze) => {
+    setActiveMazeId(maze.id);
+    setActiveRouteId(null);
+    pendingStartRef.current = true;
+    startIssuedRef.current = false;
+  }, []);
+  const handleSceneTransitionComplete = useCallback(() => {
+    autoAdvanceIssuedRef.current = false;
+    setSessionStartedAt(Date.now());
+    setElapsedSeconds(0);
+  }, []);
+  const handleSceneLongitudinalCommand = useCallback(
+    (value: "forward" | "idle") =>
+      noteExternalAxes({ longitudinal: value }),
+    [noteExternalAxes],
+  );
+  const beginGrandPalaisFromScene = useCallback(
+    () => beginGrandPalaisGenerationRef.current(),
+    [],
+  );
+  const scene = useSceneTransition({
+    activeMaze,
+    activeRoute,
+    nextScene,
+    isFinaleDoor,
+    entranceVariantIds,
+    status,
+    revealVideo,
+    videoReady,
+    stageMediaRef,
+    terminatingRef,
+    lastPromptRef,
+    promptRequestIdRef,
+    hasPendingRoute,
+    hasPendingPhoto,
+    releaseControls,
+    uploadTargetImage: uploadSceneTargetImage,
+    setPrompt,
+    setSeed,
+    setImage,
+    setCameraPose,
+    setMoveLongitudinal,
+    resetGeneration: reset,
+    scheduleWatchdog: scheduleCreditProtectionTimeout,
+    abortActivation,
+    clearActivationWatchdog,
+    onPhaseChange: setPhase,
+    onErrorChange: setError,
+    onAmbientReadyChange: setAmbientChunkReady,
+    onTargetArming: handleSceneTargetArming,
+    onLongitudinalCommand: handleSceneLongitudinalCommand,
+    onBeginGrandPalais: beginGrandPalaisFromScene,
+    onTransitionComplete: handleSceneTransitionComplete,
+  });
+  const {
+    stage: sceneTransitionStage,
+    activate: activatePreparedSceneTransition,
+    handleChunk: handleSceneTransitionChunk,
+    handleCommandError: handleSceneTransitionCommandError,
+    handleGenerationReset: handleSceneTransitionGenerationReset,
+    handleGenerationStarted: handleSceneGenerationStarted,
+    handleLastError: handleSceneTransitionLastError,
+    handleStartIssued: handleSceneStartIssued,
+    hasPending: hasPendingSceneTransition,
+    prepare: prepareSceneTransition,
+    reset: resetSceneTransition,
+  } = scene;
+  sceneFlowRef.current = {
+    hasPending: hasPendingSceneTransition,
+    passedBlackThreshold: scene.passedBlackThreshold,
+    reset: resetSceneTransition,
+  };
+  activatePreparedSceneTransitionRef.current = activatePreparedSceneTransition;
+  const portalChoreographyVisible = [
+    "summoning",
+    "entering",
+    "zooming",
+  ].includes(sceneTransitionStage);
+  const curtainSessionExitVisible =
+    status !== "disconnected" &&
+    ["resetting", "arming", "starting", "waiting", "failed"].includes(
+      sceneTransitionStage,
+    );
 
   const repauseDoorQuestion = useCallback((): boolean => {
     const pending = pendingDoorQuestionRef.current;
@@ -1032,24 +1061,6 @@ function FashionMazeRuntime({
     [abortActivation, clearActivationWatchdog],
   );
 
-  const armSceneTransitionWatchdog = useCallback(
-    (pending: PendingSceneTransition, message: string) => {
-      if (sceneTransitionWatchdogRef.current !== null) {
-        window.clearTimeout(sceneTransitionWatchdogRef.current);
-      }
-      sceneTransitionWatchdogRef.current = scheduleCreditProtectionTimeout(() => {
-        sceneTransitionWatchdogRef.current = null;
-        if (
-          pendingSceneTransitionRef.current === pending &&
-          !terminatingRef.current
-        ) {
-          abortActivation(new Error(message));
-        }
-      }, SCENE_TRANSITION_WATCHDOG_MS);
-    },
-    [abortActivation],
-  );
-
   const startWhenConditionsReady = useCallback(
     (hasImage: boolean, hasPrompt: boolean): boolean => {
       const gate = {
@@ -1071,11 +1082,7 @@ function FashionMazeRuntime({
       }
 
       startIssuedRef.current = true;
-      const sceneTransition = pendingSceneTransitionRef.current;
-      if (sceneTransition?.stage === "arming") {
-        sceneTransition.stage = "starting";
-        setSceneTransitionStage("starting");
-      }
+      handleSceneStartIssued();
       setPhase("starting");
       armActivationWatchdog(
         START_WATCHDOG_MS,
@@ -1092,37 +1099,34 @@ function FashionMazeRuntime({
         });
       return true;
     },
-    [abortActivation, appendDebugEvent, armActivationWatchdog, start],
+    [
+      abortActivation,
+      appendDebugEvent,
+      armActivationWatchdog,
+      handleSceneStartIssued,
+      start,
+    ],
   );
 
   const confirmGenerationStarted = useCallback(
     (source: "state" | "generation_started"): boolean => {
-      const sceneTransition = pendingSceneTransitionRef.current;
-      const transitionStarting = Boolean(
-        sceneTransition && ["arming", "starting"].includes(sceneTransition.stage),
-      );
-      if (
-        terminatingRef.current ||
-        (!pendingStartRef.current && !startIssuedRef.current && !transitionStarting)
-      ) {
+      if (terminatingRef.current) {
         return false;
       }
+      const transitionStarted = handleSceneGenerationStarted();
+      if (
+        !pendingStartRef.current &&
+        !startIssuedRef.current &&
+        !transitionStarted
+      ) return false;
 
       pendingStartRef.current = false;
       startIssuedRef.current = false;
-      if (sceneTransition && transitionStarting) {
-        sceneTransition.stage = "waiting";
-        setSceneTransitionStage("waiting");
-        setTargetSceneChunkReady(false);
-        setPhase("switching");
-        armSceneTransitionWatchdog(
-          sceneTransition,
-          "The next scene started but did not produce a confirmed visible chunk in time.",
-        );
+      if (transitionStarted) {
         appendDebugEvent(
           "sdk",
           "generation_confirmed",
-          `source=${source} mode=scene-transition target=${sceneTransition.targetMaze?.id ?? sceneTransition.destination}`,
+          `source=${source} mode=scene-transition target=${activeMaze.id}`,
           "success",
         );
         return true;
@@ -1143,117 +1147,13 @@ function FashionMazeRuntime({
       );
       return true;
     },
-    [appendDebugEvent, armActivationWatchdog, armSceneTransitionWatchdog],
+    [
+      appendDebugEvent,
+      activeMaze.id,
+      armActivationWatchdog,
+      handleSceneGenerationStarted,
+    ],
   );
-
-  const coverPortal = useCallback(() => {
-    const pending = pendingSceneTransitionRef.current;
-    if (
-      !pending ||
-      !["entering", "zooming"].includes(pending.stage) ||
-      terminatingRef.current
-    ) {
-      return;
-    }
-
-    pending.stage = "covering";
-    setSceneTransitionStage("covering");
-    setPhase("switching");
-    if (sceneTransitionWatchdogRef.current !== null) {
-      window.clearTimeout(sceneTransitionWatchdogRef.current);
-      sceneTransitionWatchdogRef.current = null;
-    }
-    if (portalZoomTimerRef.current !== null) {
-      window.clearTimeout(portalZoomTimerRef.current);
-      portalZoomTimerRef.current = null;
-    }
-    noteExternalAxes({ longitudinal: "idle" });
-    void Promise.all([
-      setMoveLongitudinal({ move_longitudinal: "idle" }),
-      setCameraPose({ camera_pose: [] }),
-    ]).catch(() => undefined);
-
-    portalCoverTimerRef.current = window.setTimeout(() => {
-      portalCoverTimerRef.current = null;
-      if (
-        pendingSceneTransitionRef.current !== pending ||
-        pending.stage !== "covering" ||
-        terminatingRef.current
-      ) {
-        return;
-      }
-      if (pending.destination === "grand-palais") {
-        pendingSceneTransitionRef.current = null;
-        setTargetSceneChunkReady(false);
-        beginGrandPalaisGenerationRef.current();
-        return;
-      }
-      if (!pending.targetMaze || !pending.imageRefPromise || !pending.targetPrompt) {
-        abortActivation(
-          new Error("The next authored scene was not staged behind the door."),
-        );
-        return;
-      }
-      pending.stage = "resetting";
-      setSceneTransitionStage("resetting");
-      armSceneTransitionWatchdog(
-        pending,
-        "Reactor did not reset the current scene behind the black door in time.",
-      );
-      void reset().catch(abortActivation);
-    }, PORTAL_COVER_MS);
-  }, [
-    abortActivation,
-    armSceneTransitionWatchdog,
-    noteExternalAxes,
-    reset,
-    setCameraPose,
-    setMoveLongitudinal,
-  ]);
-
-  useEffect(() => {
-    if (sceneTransitionStage !== "zooming") return;
-    const pending = pendingSceneTransitionRef.current;
-    if (!pending || pending.stage !== "zooming" || terminatingRef.current) {
-      return;
-    }
-
-    const videoView = stageMediaRef.current?.querySelector<HTMLElement>(
-      ".reactor-video",
-    );
-    let completed = false;
-    const finishZoom = () => {
-      if (completed) return;
-      completed = true;
-      if (
-        pendingSceneTransitionRef.current === pending &&
-        pending.stage === "zooming" &&
-        !terminatingRef.current
-      ) {
-        coverPortal();
-      }
-    };
-    const handleAnimationEnd = (event: AnimationEvent) => {
-      if (event.animationName === "portal-video-zoom") finishZoom();
-    };
-
-    videoView?.addEventListener("animationend", handleAnimationEnd);
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    portalZoomTimerRef.current = window.setTimeout(
-      finishZoom,
-      reducedMotion ? 50 : PORTAL_VIDEO_ZOOM_MS + 250,
-    );
-
-    return () => {
-      videoView?.removeEventListener("animationend", handleAnimationEnd);
-      if (portalZoomTimerRef.current !== null) {
-        window.clearTimeout(portalZoomTimerRef.current);
-        portalZoomTimerRef.current = null;
-      }
-    };
-  }, [coverPortal, sceneTransitionStage]);
 
   useEffect(() => {
     if (
@@ -1347,7 +1247,8 @@ function FashionMazeRuntime({
     clearActivationWatchdog();
     resetControls();
     resetPhoto();
-    clearSceneTransitionTimers();
+    resetSceneTransition();
+    clearDoorQuestionWatchdog();
     reconnectAttemptRef.current += 1;
     reconnectingSessionIdRef.current = null;
     failedReconnectSessionIdRef.current = null;
@@ -1359,14 +1260,11 @@ function FashionMazeRuntime({
     pendingMazeRef.current = null;
     stagingIssuedRef.current = false;
     autoAdvanceIssuedRef.current = false;
-    pendingSceneTransitionRef.current = null;
     pendingDoorQuestionRef.current = null;
     preparedSceneTransitionRef.current = null;
     setSessionStartedAt(null);
     setElapsedSeconds(0);
     setDoorQuestionDialog(null);
-    setSceneTransitionStage("idle");
-    setTargetSceneChunkReady(false);
     setVideoReady(false);
     setModelState(null);
     setActiveMazeId(null);
@@ -1378,10 +1276,11 @@ function FashionMazeRuntime({
     setPhase("preview");
   }, [
     clearActivationWatchdog,
+    clearDoorQuestionWatchdog,
     clearReconnectWatchdog,
-    clearSceneTransitionTimers,
     resetControls,
     resetPhoto,
+    resetSceneTransition,
   ]);
 
   const failReconnectAttempt = useCallback(
@@ -1516,12 +1415,12 @@ function FashionMazeRuntime({
       reconnectAttemptRef.current += 1;
       reconnectingSessionIdRef.current = null;
       failedReconnectSessionIdRef.current = null;
-      clearSceneTransitionTimers();
+      clearDoorQuestionWatchdog();
     },
     [
       clearActivationWatchdog,
+      clearDoorQuestionWatchdog,
       clearReconnectWatchdog,
-      clearSceneTransitionTimers,
     ],
   );
 
@@ -1825,49 +1724,10 @@ function FashionMazeRuntime({
   }, [appendDebugEvent, generationStarted, mainVideoTrack]);
 
   useEffect(() => {
-    if (revealVideo && !pendingSceneTransitionRef.current) {
+    if (revealVideo && !hasPendingSceneTransition()) {
       clearActivationWatchdog();
     }
-  }, [clearActivationWatchdog, revealVideo, sceneTransitionStage]);
-
-  useEffect(() => {
-    const pending = pendingSceneTransitionRef.current;
-    if (
-      !pending ||
-      pending.stage !== "waiting" ||
-      !videoReady ||
-      !targetSceneChunkReady ||
-      terminatingRef.current
-    ) {
-      return;
-    }
-
-    pending.stage = "revealing";
-    setSceneTransitionStage("revealing");
-    clearActivationWatchdog();
-    if (sceneTransitionWatchdogRef.current !== null) {
-      window.clearTimeout(sceneTransitionWatchdogRef.current);
-      sceneTransitionWatchdogRef.current = null;
-    }
-    portalRevealTimerRef.current = window.setTimeout(() => {
-      portalRevealTimerRef.current = null;
-      if (
-        pendingSceneTransitionRef.current !== pending ||
-        pending.stage !== "revealing" ||
-        terminatingRef.current
-      ) {
-        return;
-      }
-      pendingSceneTransitionRef.current = null;
-      autoAdvanceIssuedRef.current = false;
-      setSessionStartedAt(Date.now());
-      setElapsedSeconds(0);
-      setSceneTransitionStage("idle");
-      setTargetSceneChunkReady(false);
-      setPhase("live");
-      setError(null);
-    }, PORTAL_REVEAL_MS);
-  }, [clearActivationWatchdog, targetSceneChunkReady, videoReady]);
+  }, [clearActivationWatchdog, hasPendingSceneTransition, revealVideo]);
 
   useEffect(() => {
     if (!lastError) {
@@ -1901,10 +1761,7 @@ function FashionMazeRuntime({
       setError(`Door question: ${errorMessage(lastError)}`);
       return;
     }
-    if (pendingSceneTransitionRef.current) {
-      abortActivation(lastError);
-      return;
-    }
+    if (handleSceneTransitionLastError(lastError)) return;
     if (pendingStartRef.current || startIssuedRef.current) {
       abortActivation(lastError);
       return;
@@ -1921,6 +1778,7 @@ function FashionMazeRuntime({
     failReconnectAttempt,
     getAwaitingAmbientPrompt,
     handlePhotoLastError,
+    handleSceneTransitionLastError,
     lastError,
   ]);
 
@@ -1968,7 +1826,7 @@ function FashionMazeRuntime({
         setPhase(
           hasPendingPhoto() ||
             hasPendingRoute() ||
-            pendingSceneTransitionRef.current
+            hasPendingSceneTransition()
             ? "switching"
             : "live",
         );
@@ -1976,91 +1834,7 @@ function FashionMazeRuntime({
       case "chunk_complete": {
         if (terminatingRef.current) break;
         setChunkIndex(message.chunk_index);
-        const pendingSceneTransition = pendingSceneTransitionRef.current;
-        if (pendingSceneTransition) {
-          const activePrompt = message.active_prompt.trim();
-          if (
-            pendingSceneTransition.stage === "summoning" &&
-            activePrompt === pendingSceneTransition.summonPrompt.trim() &&
-            message.active_action === "still"
-          ) {
-            pendingSceneTransition.summonMatchedChunks += 1;
-            if (
-              pendingSceneTransition.summonMatchedChunks <
-              PORTAL_SUMMON_HOLD_CHUNKS
-            ) {
-              armSceneTransitionWatchdog(
-                pendingSceneTransition,
-                "The black door-gate did not remain visible long enough to approach.",
-              );
-            } else {
-              pendingSceneTransition.stage = "entering";
-              pendingSceneTransition.enterMatchedChunks = 0;
-              setSceneTransitionStage("entering");
-              armSceneTransitionWatchdog(
-                pendingSceneTransition,
-                "The observer did not begin the measured approach to the black door-gate in time.",
-              );
-              promptRequestIdRef.current += 1;
-              lastPromptRef.current = pendingSceneTransition.enterPrompt;
-              noteExternalAxes({ longitudinal: "forward" });
-              void Promise.all([
-                setCameraPose({ camera_pose: [] }),
-                setPrompt({ prompt: pendingSceneTransition.enterPrompt }),
-                setMoveLongitudinal({ move_longitudinal: "forward" }),
-              ]).catch(abortActivation);
-            }
-          } else if (
-            pendingSceneTransition.stage === "entering" &&
-            activePrompt === pendingSceneTransition.enterPrompt.trim()
-          ) {
-            const isForwardChunk = message.active_action
-              .split("+")
-              .includes("w");
-            if (!isForwardChunk) {
-              noteExternalAxes({ longitudinal: "forward" });
-              armSceneTransitionWatchdog(
-                pendingSceneTransition,
-                "The camera did not continue its straight approach to the black doorway.",
-              );
-              void setMoveLongitudinal({ move_longitudinal: "forward" }).catch(
-                abortActivation,
-              );
-              break;
-            }
-            pendingSceneTransition.enterMatchedChunks += 1;
-            if (
-              pendingSceneTransition.enterMatchedChunks >=
-              PORTAL_APPROACH_HOLD_CHUNKS
-            ) {
-              pendingSceneTransition.stage = "zooming";
-              setSceneTransitionStage("zooming");
-              if (sceneTransitionWatchdogRef.current !== null) {
-                window.clearTimeout(sceneTransitionWatchdogRef.current);
-                sceneTransitionWatchdogRef.current = null;
-              }
-              noteExternalAxes({ longitudinal: "idle" });
-              void Promise.all([
-                setMoveLongitudinal({ move_longitudinal: "idle" }),
-                setCameraPose({ camera_pose: [] }),
-              ]).catch(() => undefined);
-            } else {
-              armSceneTransitionWatchdog(
-                pendingSceneTransition,
-                "The observer did not continue the measured black-door approach in time.",
-              );
-            }
-          } else if (
-            pendingSceneTransition.stage === "waiting" &&
-            pendingSceneTransition.targetPrompt &&
-            activePrompt === pendingSceneTransition.targetPrompt.trim() &&
-            message.active_action === "still"
-          ) {
-            setAmbientChunkReady(true);
-            setTargetSceneChunkReady(true);
-          }
-          break;
-        }
+        if (handleSceneTransitionChunk(message)) break;
         handlePhotoChunk(message);
         handleControlsChunk(message);
         break;
@@ -2072,53 +1846,7 @@ function FashionMazeRuntime({
         setVideoReady(false);
         setModelState(null);
         setChunkIndex(0);
-        if (pendingSceneTransitionRef.current?.stage === "resetting") {
-          const sceneTransition = pendingSceneTransitionRef.current;
-          if (
-            sceneTransition.destination !== "scene" ||
-            !sceneTransition.targetMaze ||
-            !sceneTransition.imageRefPromise ||
-            !sceneTransition.targetPrompt
-          ) {
-            abortActivation(
-              new Error("The authored scene transition lost its staged target."),
-            );
-            break;
-          }
-          const targetMaze = sceneTransition.targetMaze;
-          const imageRefPromise = sceneTransition.imageRefPromise;
-          const targetPrompt = sceneTransition.targetPrompt;
-          sceneTransition.stage = "arming";
-          setActiveMazeId(targetMaze.id);
-          setActiveRouteId(null);
-          setSceneTransitionStage("arming");
-          setTargetSceneChunkReady(false);
-          pendingStartRef.current = true;
-          startIssuedRef.current = false;
-          setPhase("arming");
-          armSceneTransitionWatchdog(
-            sceneTransition,
-            "Reactor did not accept the next scene image and prompt in time.",
-          );
-          void imageRefPromise
-            .then(async (imageRef) => {
-              if (
-                pendingSceneTransitionRef.current !== sceneTransition ||
-                sceneTransition.stage !== "arming" ||
-                terminatingRef.current
-              ) {
-                return;
-              }
-              await setSeed({ seed: targetMaze.seed });
-              if (pendingSceneTransitionRef.current !== sceneTransition) return;
-              await setImage({ image: imageRef });
-              if (pendingSceneTransitionRef.current !== sceneTransition) return;
-              await setPrompt({ prompt: targetPrompt });
-              if (pendingSceneTransitionRef.current !== sceneTransition) return;
-              lastPromptRef.current = targetPrompt;
-            })
-            .catch(abortActivation);
-        }
+        handleSceneTransitionGenerationReset();
         break;
       case "command_error": {
         if (terminatingRef.current) break;
@@ -2167,12 +1895,7 @@ function FashionMazeRuntime({
           }
           break;
         }
-        if (pendingSceneTransitionRef.current) {
-          abortActivation(
-            new Error(`Scene transition ${message.command}: ${message.reason}`),
-          );
-          break;
-        }
+        if (handleSceneTransitionCommandError(message)) break;
         const wasActivating =
           pendingStartRef.current || startIssuedRef.current;
         pendingStartRef.current = false;
@@ -2404,118 +2127,6 @@ function FashionMazeRuntime({
     status,
   ]);
 
-  const prepareSceneTransition = useCallback(async () => {
-    const transition = activeMaze.sceneTransition;
-    if (
-      !transition ||
-      (!nextScene && !isFinaleDoor) ||
-      status !== "ready" ||
-      !revealVideo ||
-      terminatingRef.current ||
-      pendingSceneTransitionRef.current ||
-      hasPendingRoute() ||
-      hasPendingPhoto()
-    ) {
-      return null;
-    }
-
-    const summonPrompt = composePortalPrompt(activeMaze, activeRoute, "summon");
-    const enterPrompt = composePortalPrompt(activeMaze, activeRoute, "enter");
-    let targetMaze: FashionMaze | null = null;
-    let targetPrompt: string | null = null;
-    let imageRefPromise: Promise<FileRef> | null = null;
-    if (nextScene) {
-      const entranceId =
-        entranceVariantIds[nextScene.id] ??
-        nextScene.entranceVariantId ??
-        nextScene.entranceVariants[0]?.id ??
-        "";
-      targetMaze = resolveMazeEntrance(nextScene, entranceId);
-      targetPrompt = composeWorldPrompt(targetMaze);
-      imageRefPromise = seedAssetToFile(targetMaze).then((imageFile) =>
-        uploadFile(imageFile, { name: imageFile.name }),
-      );
-      void imageRefPromise.catch(() => undefined);
-    }
-    const pending: PendingSceneTransition = {
-      stage: "summoning",
-      destination: nextScene ? "scene" : "grand-palais",
-      targetMaze,
-      imageRefPromise,
-      summonPrompt,
-      enterPrompt,
-      targetPrompt,
-      summonMatchedChunks: 0,
-      enterMatchedChunks: 0,
-    };
-
-    if (document.pointerLockElement === stageMediaRef.current) {
-      document.exitPointerLock();
-    }
-    await releaseControls();
-    if (terminatingRef.current) return null;
-    const previousPrompt = lastPromptRef.current;
-    const requestId = ++promptRequestIdRef.current;
-    lastPromptRef.current = summonPrompt;
-    try {
-      await setPrompt({ prompt: summonPrompt });
-    } catch (cause) {
-      if (
-        promptRequestIdRef.current === requestId &&
-        lastPromptRef.current === summonPrompt
-      ) {
-        lastPromptRef.current = previousPrompt;
-      }
-      throw cause;
-    }
-    return pending;
-  }, [
-    activeMaze,
-    activeRoute,
-    entranceVariantIds,
-    hasPendingPhoto,
-    hasPendingRoute,
-    isFinaleDoor,
-    nextScene,
-    releaseControls,
-    revealVideo,
-    setPrompt,
-    status,
-    uploadFile,
-  ]);
-
-  const activatePreparedSceneTransition = useCallback(
-    (pending: PendingSceneTransition) => {
-      if (terminatingRef.current || pendingSceneTransitionRef.current) return;
-      pendingSceneTransitionRef.current = pending;
-      setSceneTransitionStage("summoning");
-      setTargetSceneChunkReady(false);
-      setPhase("switching");
-      setError(null);
-      armSceneTransitionWatchdog(
-        pending,
-        "The black doorway did not materialize in time.",
-      );
-      void pending.imageRefPromise?.catch((cause) => {
-        if (
-          pendingSceneTransitionRef.current === pending &&
-          !terminatingRef.current
-        ) {
-          abortActivation(
-            new Error(
-              `The next scene image could not be staged: ${errorMessage(cause)}`,
-            ),
-          );
-        }
-      });
-    },
-    [abortActivation, armSceneTransitionWatchdog],
-  );
-
-  useEffect(() => {
-    activatePreparedSceneTransitionRef.current = activatePreparedSceneTransition;
-  }, [activatePreparedSceneTransition]);
-
   const requestDoorTransition = useCallback(
     async (source: DoorQuestionSource = "manual") => {
       const transition = activeMaze.sceneTransition;
@@ -2526,7 +2137,7 @@ function FashionMazeRuntime({
         !canControl ||
         !revealVideo ||
         pendingDoorQuestionRef.current ||
-        pendingSceneTransitionRef.current
+        hasPendingSceneTransition()
       ) {
         return;
       }
@@ -2615,6 +2226,7 @@ function FashionMazeRuntime({
       clearDoorQuestionWatchdog,
       elapsedSeconds,
       hasJourneyExit,
+      hasPendingSceneTransition,
       nextScene,
       pause,
       releaseControls,
@@ -2753,7 +2365,8 @@ function FashionMazeRuntime({
     clearActivationWatchdog();
     resetControls();
     resetPhoto();
-    clearSceneTransitionTimers();
+    resetSceneTransition();
+    clearDoorQuestionWatchdog();
     pendingDoorQuestionRef.current = null;
     preparedSceneTransitionRef.current = null;
     setDoorQuestionDialog(null);
@@ -2808,7 +2421,6 @@ function FashionMazeRuntime({
     startIssuedRef.current = false;
     pendingMazeRef.current = null;
     stagingIssuedRef.current = false;
-    pendingSceneTransitionRef.current = null;
     pendingDoorQuestionRef.current = null;
     preparedSceneTransitionRef.current = null;
     setModelState(null);
@@ -2816,8 +2428,6 @@ function FashionMazeRuntime({
     setActiveRouteId(null);
     setDoorQuestionDialog(null);
     setVideoReady(false);
-    setSceneTransitionStage("idle");
-    setTargetSceneChunkReady(false);
     setChunkIndex(0);
     setClip(null);
     setClipError(null);
@@ -2826,13 +2436,14 @@ function FashionMazeRuntime({
     return true;
   }, [
     clearActivationWatchdog,
+    clearDoorQuestionWatchdog,
     clearReconnectWatchdog,
-    clearSceneTransitionTimers,
     disconnect,
     fail,
     releaseControls,
     resetControls,
     resetPhoto,
+    resetSceneTransition,
     status,
   ]);
 

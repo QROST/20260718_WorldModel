@@ -5,7 +5,7 @@
   "packageManager": "pnpm@11.14.0",
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node tools/verify-prompts.cjs && node tools/verify-startup.cjs && node tools/verify-reconnect.cjs && node tools/verify-finale.cjs && node tools/verify-reactor-controls.cjs && node tools/verify-photo-capture.cjs",
+    "prebuild": "node tools/verify-prompts.cjs && node tools/verify-startup.cjs && node tools/verify-reconnect.cjs && node tools/verify-finale.cjs && node tools/verify-reactor-controls.cjs && node tools/verify-photo-capture.cjs && node tools/verify-scene-transition.cjs",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
@@ -15,6 +15,7 @@
     "verify:finale": "node tools/verify-finale.cjs",
     "verify:controls": "node tools/verify-reactor-controls.cjs",
     "verify:photo": "node tools/verify-photo-capture.cjs",
+    "verify:scene": "node tools/verify-scene-transition.cjs",
     "optimize:images": "node tools/convert-dataset-images.mjs"
   },
   "dependencies": {
