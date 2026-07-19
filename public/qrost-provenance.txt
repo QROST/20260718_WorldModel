@@ -1,0 +1,10 @@
+QROST project provenance
+schema=qrost.provenance/v1
+creator=QROST
+work=qrost.fashion-maze
+claim=declared-authorship
+canonical=https://github.com/QROST/20260718_WorldModel
+
+This is a transparent attribution declaration, not a cryptographic signature
+or a grant of reuse rights. See PROVENANCE.md and PROVENANCE.json in the
+canonical repository.

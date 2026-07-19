@@ -1,0 +1,710 @@
+{
+  "schema": "qrost.provenance-manifest/v1",
+  "creator": "QROST",
+  "workId": "qrost.fashion-maze",
+  "claim": "declared-authorship-and-repository-curation",
+  "canonicalRepository": "https://github.com/QROST/20260718_WorldModel",
+  "hashAlgorithm": "sha256",
+  "manifestPath": "PROVENANCE.json",
+  "manifestSelfExcluded": true,
+  "rightsBoundary": "QROST attribution does not replace upstream authorship, asset rights, or third-party licenses.",
+  "files": [
+    {
+      "path": ".env.example",
+      "sha256": "49ad703c11de2ac00cea9bf53fee1af75f834a72c62ac0a1dbb3e55cd40ea323",
+      "bytes": 365,
+      "contentClass": "project-metadata",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": ".gitattributes",
+      "sha256": "1a1dbe176bc233b499d35a57db7513f2941c99ab9759f177830c9149be99005b",
+      "bytes": 66,
+      "contentClass": "project-metadata",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "a21214485862d030fd5d4d1508aad224203b310593d881d8b65603f17f655b61",
+      "bytes": 113,
+      "contentClass": "project-metadata",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "PROVENANCE.md",
+      "sha256": "7ae3c4c7f6f8719d8128c5a355f2c888fb02ad7163610ecfaea415ac2cc5ec0f",
+      "bytes": 2464,
+      "contentClass": "project-documentation",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "README.md",
+      "sha256": "2e105a7e6523a86a71796e500e89a1312b95d27d6411d7450e2661d110b55a1e",
+      "bytes": 21579,
+      "contentClass": "project-documentation",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "app/api/grand-palais/generate/route.ts",
+      "sha256": "6cb74281c1b12ba56bc73d4b6ec7d738f8f5a0f7994eb2bbceb24e4c512524be",
+      "bytes": 6189,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "app/api/reactor/token/route.ts",
+      "sha256": "94c1e6e21f85fe94a8ce48db5e7ba6d9e992ba64f257e74f4edf87b9ba35224e",
+      "bytes": 1611,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "app/globals.css",
+      "sha256": "b96d1c6748cd0ff68d5d763b8ff8526c61fc1d425a8d3d17a7df63d585c74081",
+      "bytes": 46828,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "app/layout.tsx",
+      "sha256": "ea92b49ece424b7fc813aaaa3cbe15935848e93eeef897d1fb8e6021d6cca08d",
+      "bytes": 440,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "app/page.tsx",
+      "sha256": "f53de7bd80b568e01f4060b429734149b35a31d312eb173752e9ea48ff9fb5c8",
+      "bytes": 933,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "build-demo.sh",
+      "sha256": "ba90f3b44082cb92d391c8e89bf695938e6e9661ee9099f03b9f7cb2832fa3bc",
+      "bytes": 775,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "check-demo-keys.sh",
+      "sha256": "9e6beb5b57268b8831e3b42397230851c59c611cc04bee3d4789657983302df0",
+      "bytes": 3280,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "components/AmbientSoundtrack.module.css",
+      "sha256": "c594c3157f464f0c37e6a63009c2d22f6ad19a43018ad6f43dbbf47598918d07",
+      "bytes": 2342,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "components/AmbientSoundtrack.tsx",
+      "sha256": "cec3990600702529b2447332b2208c67a60b7528e95209c6f99d685e41605bca",
+      "bytes": 6202,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "components/FashionMazeExperience.tsx",
+      "sha256": "02d474be18c85d08fc655f856610b3d0b93df9015836d6aac1d67d032898b957",
+      "bytes": 107042,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "components/fashion-maze-runtime/useDoorQuestion.ts",
+      "sha256": "e87d57f923f7f037e2bf37ea5a4b727e9e9290e7c12c3e81afce3e80fc26bb24",
+      "bytes": 22271,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "components/fashion-maze-runtime/usePhotoCapture.ts",
+      "sha256": "2aff8ef5d63d45e2de5085430aa847ce1ebcfd736de8f1db816e95cef065126b",
+      "bytes": 30800,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "components/fashion-maze-runtime/useReactorControls.ts",
+      "sha256": "cd5e8ac40cb72cb71d48424095c47ff2c360b00997563dd210bca59c4a019c07",
+      "bytes": 26483,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "components/fashion-maze-runtime/useSceneTransition.ts",
+      "sha256": "6946c4422d8bfce244cfdf22d6d63aef0b8a17cd48303889a0bbcefcb2daa4b4",
+      "bytes": 27970,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "content/README.md",
+      "sha256": "8bbd193d0c4376de092c6b63382453d74725550fb5938cbb5e464be63fe2039e",
+      "bytes": 1745,
+      "contentClass": "project-documentation",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "content/authoring/360-fashion-maze-game-spec.md",
+      "sha256": "b99dfa179bc74ec4c2393bebf06442441616183d4505abd9d7c2e3c27123483c",
+      "bytes": 23425,
+      "contentClass": "imported-authoring-reference",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "content/authoring/fashion-maze-lingbot-scenes.json",
+      "sha256": "bf3a6c1a1b32107112965e59a455956fcc3dd9e174271aa53e036f884b9bedae",
+      "bytes": 45513,
+      "contentClass": "imported-authoring-reference",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "content/plan-montage-seed-receipt.md",
+      "sha256": "9900abdc75fba7b80e44e049419faec8171d6041ca43dcccf29f0c35d3df5d4c",
+      "bytes": 2498,
+      "contentClass": "project-documentation",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "lib/fashion-maze-prompt-policy.ts",
+      "sha256": "41bbac27a7cd3da850aefc3717cb14418cd873955febbc899e291e5e43139b5b",
+      "bytes": 4167,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "lib/fashion-maze.ts",
+      "sha256": "4d1c7d29f58f541adc7010087d3c48e4eec3cb268be70bff7b42941d9ec3f53e",
+      "bytes": 45524,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "lib/grand-palais-references.ts",
+      "sha256": "399c6dce5df93058ef25f8e80935107dde59746dd15b0c1e588887bdbe9339f5",
+      "bytes": 1617,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "lib/grand-palais.ts",
+      "sha256": "bc9019f75ad1c4e2a2b19dccbef39189138165da10a19e1e70914269b99bded7",
+      "bytes": 4517,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "lib/openai-server.ts",
+      "sha256": "dc4bc1e14d1d222c2a233b8385fc432ef41cd67c38368ed9e8c57f26064aba97",
+      "bytes": 917,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "lib/qrost-provenance.ts",
+      "sha256": "b017e22448bbcce5b1eb0b1f0d87c038933483a6a76f9c044ab4d65a4526b2be",
+      "bytes": 2159,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "lib/reactor-lifecycle.ts",
+      "sha256": "ca3a1f6e31de69038730c7637f94dc2511e4369f3752e7a7e10ba01c7bc8ec1b",
+      "bytes": 4392,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "lib/reactor-server.ts",
+      "sha256": "3c8c8c8e3082d87ca5f7b78f3c42a8774f93f078e3d935170dc45545d466603f",
+      "bytes": 1115,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "next-env.d.ts",
+      "sha256": "85ae5aee75f011967cf2d25cbc342f62d69314e9d925f7f4aa3456fc2cffcca6",
+      "bytes": 262,
+      "contentClass": "generated-project-metadata",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "next.config.ts",
+      "sha256": "6bf85ab4084ec541c5cb9b5027d13f8375b6af980f341c52525dbffef73eb6bd",
+      "bytes": 297,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "package.json",
+      "sha256": "835124be11f37dd3c8ab9fa09ad121c73855bfdb081f6fe01ab5a486f94431ce",
+      "bytes": 1859,
+      "contentClass": "project-metadata",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "98bbab18916e48c5de3550e6ec0fc5b0ecaa46501ea2d2b8e36c6dcb162ec882",
+      "bytes": 22862,
+      "contentClass": "generated-project-metadata",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "ac32da4674879516506d9c173bab34d7009615abb546713d01901e967e4d6bf5",
+      "bytes": 27,
+      "contentClass": "project-metadata",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/audio/README.md",
+      "sha256": "ec5aac8b17a3afb9d93aa464b0cf60aec76d11d450878012eaafa1b6a5c012bd",
+      "bytes": 869,
+      "contentClass": "project-documentation",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/audio/the-fashion-maze-loop.m4a",
+      "sha256": "4383f24836505dee8b6dbd59516c7469867a785de2c97edf19be8a7120dbdaef",
+      "bytes": 1171731,
+      "contentClass": "project-audio-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/audio/the-fashion-maze-loop.ogg",
+      "sha256": "fde5de0c33515c163b9cba60abbee094bd37e5a493f97b25a34cb1edbb0dc994",
+      "bytes": 1026944,
+      "contentClass": "project-audio-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/afro-futurism/scene-01.webp",
+      "sha256": "b2dec31e35344e4150d1e8a2298caad02a7c0c9fc60e6fb7cdeb34f82222d754",
+      "bytes": 228224,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/afro-futurism/scene-02.webp",
+      "sha256": "9cee5e20ed606a962b413ed1126f7ad12e2e92aca4d11eb001823d308b5282a1",
+      "bytes": 204036,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/afro-futurism/scene-03.webp",
+      "sha256": "d76c3f7e310e5fb8e5488fe0fc695426fa1d38035e79991b5ca8a9f5fb977579",
+      "bytes": 203914,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/asian-sculpture-garden/grand-finale.webp",
+      "sha256": "92dffb407c02c1f69b5a0b8ba1a35de31f0a92653d62360d9a7d0c414f284742",
+      "bytes": 211170,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/cyberpunk-couture-woman-full-body.webp",
+      "sha256": "d6d12e7921ed7a165e1f1d715e1fbc3525405996eb15c2eec8a7a343561d0d85",
+      "bytes": 429386,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/cyberpunk-garden/scene2.webp",
+      "sha256": "b6c723a3a894e7a11ec408909548bc2762cbdc3a4b04cb63cacc57c860611c0a",
+      "bytes": 315020,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/cyberpunk-garden/scene3b.webp",
+      "sha256": "41cff6ae69785a6237cdcafcda93bed2c5167a778b3da8e97b29177899583192",
+      "bytes": 312544,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/cyberpunk-garden/scene5.webp",
+      "sha256": "80f2ae0e5557a65617740c408fd0f8b0106711b1ad8463deaa63422251907a35",
+      "bytes": 316214,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/fashion-blogger-character-sheet.webp",
+      "sha256": "4dc0b65e65ac02521262face14893508df9e6653da6a3f3cb8463e6fbcca3e03",
+      "bytes": 152946,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/hedge-threshold-plan-montage-v4.webp",
+      "sha256": "6b0ed6c7c04187e044fa64026a978a6bc7e5fcb0ceabc5f23d7d5c96518d4d70",
+      "bytes": 423830,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/hedge-threshold.webp",
+      "sha256": "b57a29e069dbfc000495b7e874962b5035e4c7906799fd6e3da86caf0e7dfc7b",
+      "bytes": 370644,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/models/amber-brocade-character-sheet.webp",
+      "sha256": "453a1ba2c8274ed0d4954a4c6c67c9947b498cf41431e209b993999b6df139b9",
+      "bytes": 233306,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/models/forest-tailoring-character-sheet.webp",
+      "sha256": "5c9bb21e803d03acc2c951fa918a901219f2dc1dd8dbe625c719f6e2884cd2dd",
+      "bytes": 170250,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/models/silver-sculptural-character-sheet.webp",
+      "sha256": "865515c841ded7941b15fca7c77806a471d4c152a9f42e6913e0835b4f80d95c",
+      "bytes": 195296,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/rose-garden/entrance-01.webp",
+      "sha256": "54abcdf44b64ec6f272d98ed2ea2539547bb63aa85914975424451308dc77a9d",
+      "bytes": 299884,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/rose-garden/entrance-02.webp",
+      "sha256": "2e52ba451c56f6e7a225bbdf05b169a92f71b9a6bd62939f664d15b168e2b777",
+      "bytes": 345094,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/rose-garden/entrance-03.webp",
+      "sha256": "271f890144c910cdbf15b29ef87ecc893cfe4d5ce96c303c127a3295462e1789",
+      "bytes": 328688,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/scenes/chapter-05/scene-01.webp",
+      "sha256": "b2dec31e35344e4150d1e8a2298caad02a7c0c9fc60e6fb7cdeb34f82222d754",
+      "bytes": 228224,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only",
+      "aliasOf": "public/dataset/afro-futurism/scene-01.webp"
+    },
+    {
+      "path": "public/dataset/scenes/chapter-05/scene-02.webp",
+      "sha256": "9cee5e20ed606a962b413ed1126f7ad12e2e92aca4d11eb001823d308b5282a1",
+      "bytes": 204036,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only",
+      "aliasOf": "public/dataset/afro-futurism/scene-02.webp"
+    },
+    {
+      "path": "public/dataset/scenes/chapter-05/scene-03.webp",
+      "sha256": "d76c3f7e310e5fb8e5488fe0fc695426fa1d38035e79991b5ca8a9f5fb977579",
+      "bytes": 203914,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only",
+      "aliasOf": "public/dataset/afro-futurism/scene-03.webp"
+    },
+    {
+      "path": "public/dataset/scenes/chapter-06/scene-01.webp",
+      "sha256": "92dffb407c02c1f69b5a0b8ba1a35de31f0a92653d62360d9a7d0c414f284742",
+      "bytes": 211170,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only",
+      "aliasOf": "public/dataset/asian-sculpture-garden/grand-finale.webp"
+    },
+    {
+      "path": "public/dataset/scenes/chapter-06/scene-02.webp",
+      "sha256": "44c9aa4ffa5fb333fa386946a03aca1371060839c2a29ef5e63a833576469328",
+      "bytes": 336980,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/scenes/chapter-06/scene-03.webp",
+      "sha256": "7e02e6b05aab2dffd5335efe8731c82626ebeec16bb438355109eec90f1ea096",
+      "bytes": 351326,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/scenes/chapter-06/scene-04.webp",
+      "sha256": "f2f7b0c580566ab4ee67453a2297c1b23dc6b02554787ff54e54e5fa1b6d567f",
+      "bytes": 340512,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/scenes/chapter-06/scene-05.webp",
+      "sha256": "6520c29aceda3cf2390e653156dee6c6aa6e1dd9d27e347d6dad5530ada3958f",
+      "bytes": 348330,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/scenes/chapter-06/scene-06.webp",
+      "sha256": "0d5d3a6be7cb7ad23848e6a978b6e07de3cf8963df5ad4458f55a5e3bebf553a",
+      "bytes": 326396,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/scenes/chapter-07/scene-01.webp",
+      "sha256": "5205d22a5519b40eb98a716038b460b0a07c3a30b92d366c7600fff04dfbf612",
+      "bytes": 229096,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/scenes/chapter-07/scene-02.webp",
+      "sha256": "680a0bc075c7ec56b498eb79bdfb7431ba46d61c176e47639d76aeef89998475",
+      "bytes": 220906,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/scenes/chapter-07/scene-03.webp",
+      "sha256": "09f210d5aae2fbc4f3aadc28e2716c31f1880f424a7cd65855da6466289734d9",
+      "bytes": 303938,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/scenes/chapter-07/scene-04.webp",
+      "sha256": "321c44444708b671403639807607523f99eb30fdfb91174658cb659039744ad4",
+      "bytes": 217860,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/dataset/scenes/chapter-07/scene-05.webp",
+      "sha256": "04b4947502f8df70247a286c52efe3905bc899039803fb75c5366cdd5c528adc",
+      "bytes": 209352,
+      "contentClass": "curated-source-asset",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "public/qrost-provenance.txt",
+      "sha256": "e6293801293e49369a85ce8060ecc1abd155e43893516694bb0f20724a0e7a20",
+      "bytes": 344,
+      "contentClass": "project-documentation",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "setup-demo.sh",
+      "sha256": "3bd51511c4146ac06114c6176319f9daa510075e88da6021b573080185501517",
+      "bytes": 1175,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "start-demo.sh",
+      "sha256": "c04c6f1d79f18a6d1b5fb11abf685938c00b9b7625f222e821539eef6ff9e9f1",
+      "bytes": 1239,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "start-dev.sh",
+      "sha256": "ea8cc874e5d858a5b593759a9b2ac9495ee2070be580f45e3d331c836ed6252c",
+      "bytes": 1074,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "submission/oneshot/QA_RECEIPT.md",
+      "sha256": "1640a4b5e88fa15ad758eb093274afb8cdc0caf0893fbcf7cf173d6a67b1ae31",
+      "bytes": 4396,
+      "contentClass": "independent-submission-artifact",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "submission/oneshot/README.md",
+      "sha256": "a531320595fa16dea4d335fc2e71db73624a84255572d80068d2809c8ac2a8fa",
+      "bytes": 2863,
+      "contentClass": "independent-submission-artifact",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "submission/oneshot/TERRA_QA_RECEIPT.md",
+      "sha256": "ed2d8017b636373617931b386d5786fbf60dc5e37d97e2c5d06a99ee5e0613dd",
+      "bytes": 3422,
+      "contentClass": "independent-submission-artifact",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "submission/oneshot/dry-run-terra-v2.html",
+      "sha256": "d45af881f447fa53da3b314e83e9dceae70bfbee5c8d3418452d5a64afe71401",
+      "bytes": 17917,
+      "contentClass": "independent-submission-artifact",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "submission/oneshot/dry-run-terra-v3.html",
+      "sha256": "ff5b514ef6b73be3ac908f384f2121281365aae052ca5ead23d2ae49b86acb6a",
+      "bytes": 20440,
+      "contentClass": "independent-submission-artifact",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "submission/oneshot/dry-run-terra.html",
+      "sha256": "121c3665bb63f7c017e398020f1453e4d88f29337169b5e63e088108f1a3927e",
+      "bytes": 17916,
+      "contentClass": "independent-submission-artifact",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "submission/oneshot/dry-run-v2.html",
+      "sha256": "0ef2a233b3645cc77b06195106c7a493bfe7fb3ed44af3950cf9b7129de5fbd9",
+      "bytes": 66598,
+      "contentClass": "independent-submission-artifact",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "submission/oneshot/dry-run.html",
+      "sha256": "838241bf6d23dfda3de8614ba63d6a6aa6efdc8db0ac09f437e6930828ddb050",
+      "bytes": 50784,
+      "contentClass": "independent-submission-artifact",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "submission/oneshot/fork-the-block.prompt.txt",
+      "sha256": "3ff0b35e9af9482285f18f20bef5e1efe5b3b95746aa28fa6031785a2bc18cc2",
+      "bytes": 9227,
+      "contentClass": "independent-submission-artifact",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "submission/oneshot/fork-the-block.terra.prompt.txt",
+      "sha256": "29c2b5f934749ee789fb63cef6c32753b85869e34351fa2a9fca6cc7962e9a78",
+      "bytes": 7588,
+      "contentClass": "independent-submission-artifact",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "submission/oneshot/verify-terra.mjs",
+      "sha256": "2f6bc59f770aed273f6172165459e9b9ea34d430b4631b97ae35312a728bc124",
+      "bytes": 3646,
+      "contentClass": "independent-submission-artifact",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "submission/oneshot/verify.mjs",
+      "sha256": "c4cf05fd0df48d9832a4ae2893479f0141e21f5f9485506912d00979f2c09ef6",
+      "bytes": 2257,
+      "contentClass": "independent-submission-artifact",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "tools/convert-dataset-images.mjs",
+      "sha256": "4e573a7be1f3da6457bb2f49f8035ea7040caa66827c1440558a019f3180182c",
+      "bytes": 2500,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "tools/generate-background-music.mjs",
+      "sha256": "16d892767f65ac838b311daa379c67e3f872cb0ccc6a98201a1b27db5a4d6c4c",
+      "bytes": 10085,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "tools/update-provenance-manifest.mjs",
+      "sha256": "7efb1112b1d273bf0e918cb2e3b9c4a0d63225489b5156091ba4cf97be1fdb0e",
+      "bytes": 3378,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "tools/verify-door-question.cjs",
+      "sha256": "2dcaf06bf8f993fb317503a58b9be0aea6f11b679bfc1a6aee368768c60ac4ff",
+      "bytes": 5246,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "tools/verify-finale.cjs",
+      "sha256": "1dbdd2d5db46ea96ac4a922a25a04f7e31e3f74a19408f7d38da84bcb47f0988",
+      "bytes": 7493,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "tools/verify-photo-capture.cjs",
+      "sha256": "3df6bb96621af42befc9f71757c59244930d7a2ed79a2eb08964b56712e55a07",
+      "bytes": 10981,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "tools/verify-prompts.cjs",
+      "sha256": "80e865b5595d10f7b5fa786f5ce2ac73f265216d4895c36c8ff23295be11a88c",
+      "bytes": 23966,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "tools/verify-provenance.cjs",
+      "sha256": "d006336344815357ec027cec5437d4839a49afe637511cd667145451e0224603",
+      "bytes": 5403,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "tools/verify-reactor-controls.cjs",
+      "sha256": "73cafe715e29bf430ae95ee3cd7acfad0695554f47a3e770e24e64e8238b69c1",
+      "bytes": 3742,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "tools/verify-reconnect.cjs",
+      "sha256": "55304d3862515d73560a4ab089fb4a3cd4dbc8b77b24ad47a4c3465b88898d07",
+      "bytes": 4608,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "tools/verify-scene-transition.cjs",
+      "sha256": "a073427291b6de425e09da7f7824b2af751a2978ad240097501c8f0b712b921d",
+      "bytes": 4943,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "tools/verify-startup.cjs",
+      "sha256": "e618265083d86a212ee8803f306c12e2df9e2b9d2d6c9931acd1edfa4ffe8d7e",
+      "bytes": 5220,
+      "contentClass": "project-source",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "48e4625ac1176344981867a3d1936cb1cc5fd00c6a3092efccb4429e85d6a969",
+      "bytes": 801,
+      "contentClass": "project-metadata",
+      "signaturePolicy": "manifest-only"
+    }
+  ]
+}

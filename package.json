@@ -2,13 +2,24 @@
   "name": "thefashionmaze",
   "version": "0.1.0",
   "private": true,
+  "author": {
+    "name": "QROST",
+    "url": "https://qrost.github.io/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/QROST/20260718_WorldModel.git"
+  },
+  "homepage": "https://github.com/QROST/20260718_WorldModel#readme",
   "packageManager": "pnpm@11.14.0",
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node tools/verify-prompts.cjs && node tools/verify-startup.cjs && node tools/verify-reconnect.cjs && node tools/verify-finale.cjs && node tools/verify-reactor-controls.cjs && node tools/verify-photo-capture.cjs && node tools/verify-scene-transition.cjs && node tools/verify-door-question.cjs",
+    "prebuild": "node tools/verify-provenance.cjs && node tools/verify-prompts.cjs && node tools/verify-startup.cjs && node tools/verify-reconnect.cjs && node tools/verify-finale.cjs && node tools/verify-reactor-controls.cjs && node tools/verify-photo-capture.cjs && node tools/verify-scene-transition.cjs && node tools/verify-door-question.cjs",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "provenance:update": "node tools/update-provenance-manifest.mjs",
+    "verify:provenance": "node tools/verify-provenance.cjs",
     "verify:prompts": "node tools/verify-prompts.cjs",
     "verify:startup": "node tools/verify-startup.cjs",
     "verify:reconnect": "node tools/verify-reconnect.cjs",
