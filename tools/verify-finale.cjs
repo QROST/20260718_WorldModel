@@ -146,6 +146,31 @@ check(
   "client must guard duplicate finale requests",
 );
 check(
+  experienceSource.includes("GRAND_PALAIS_CLIENT_TIMEOUT_MS = 170_000") &&
+    experienceSource.includes("new AbortController()") &&
+    experienceSource.includes("signal: requestController.signal") &&
+    experienceSource.includes("finaleGenerationAbortRef.current?.abort()"),
+  "client finale generation must be abortable, time bounded, and canceled on unmount",
+);
+check(
+  experienceSource.includes("const cancelGrandPalais = useCallback") &&
+    experienceSource.includes('finalePhase === "starting" ||') &&
+    experienceSource.includes("Boolean(sessionId)"),
+  "finale cancellation must terminate connecting or retained Reactor sessions",
+);
+check(
+  experienceSource.includes('"Cancel finale generation"') &&
+    experienceSource.includes('"Retry end session"') &&
+    experienceSource.includes('phase === "ending" ? "Ending session…" : "End session"'),
+  "generating, starting, and failed finale overlays must expose bounded escape controls",
+);
+check(
+  experienceSource.includes(
+    "activationAttemptIdRef.current !== activationAttemptId",
+  ) && experienceSource.includes("void disconnect().catch(fail)"),
+  "canceled Scene 8 activation must not revive a stale paid session",
+);
+check(
   experienceSource.includes("DISCONNECT_CONFIRM_TIMEOUT_MS"),
   "finale handoff must bound disconnect confirmation",
 );

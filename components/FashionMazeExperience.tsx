@@ -222,6 +222,7 @@ const VIDEO_FRAME_PROBE_TIMEOUT_MS = 1_000;
 const CONTROL_RELEASE_TIMEOUT_MS = 750;
 const DISCONNECT_CONFIRM_TIMEOUT_MS = 10_000;
 const RECONNECT_CONFIRM_TIMEOUT_MS = 15_000;
+const GRAND_PALAIS_CLIENT_TIMEOUT_MS = 170_000;
 const DOOR_QUESTION_WATCHDOG_MS = 20_000;
 const SCENE_TRANSITION_WATCHDOG_MS = 45_000;
 const PORTAL_COVER_MS = 520;
@@ -696,6 +697,9 @@ function FashionMazeRuntime({
   const generatedFinaleUrlRef = useRef<string | null>(null);
   const finaleGenerationAttemptRef = useRef(0);
   const finaleGenerationInFlightRef = useRef(false);
+  const finaleGenerationAbortRef = useRef<AbortController | null>(null);
+  const finaleGenerationTimeoutRef = useRef<number | null>(null);
+  const finaleCancelInFlightRef = useRef(false);
   const photoBusyRef = useRef(false);
   const chunkSerialRef = useRef(0);
   const heldControlsRef = useRef<ControlCode[]>([]);
@@ -1769,6 +1773,12 @@ function FashionMazeRuntime({
   useEffect(
     () => () => {
       finaleGenerationAttemptRef.current += 1;
+      finaleGenerationAbortRef.current?.abort();
+      finaleGenerationAbortRef.current = null;
+      if (finaleGenerationTimeoutRef.current !== null) {
+        window.clearTimeout(finaleGenerationTimeoutRef.current);
+        finaleGenerationTimeoutRef.current = null;
+      }
       if (generatedFinaleUrlRef.current) {
         URL.revokeObjectURL(generatedFinaleUrlRef.current);
         generatedFinaleUrlRef.current = null;
@@ -3850,13 +3860,15 @@ function FashionMazeRuntime({
   const beginGrandPalaisGeneration = useCallback(async () => {
     if (finaleGenerationInFlightRef.current) return;
     finaleGenerationInFlightRef.current = true;
+    let requestController: AbortController | null = null;
+    let requestTimedOut = false;
     try {
       const attempt = ++finaleGenerationAttemptRef.current;
       setFinalePhase("generating");
       setFinaleStoryIndex(0);
       setFinaleError(null);
 
-      if (status !== "disconnected") {
+      if (status !== "disconnected" || Boolean(sessionId)) {
         const ended = await endSession();
         if (!ended || finaleGenerationAttemptRef.current !== attempt) {
           if (finaleGenerationAttemptRef.current === attempt) {
@@ -3879,12 +3891,22 @@ function FashionMazeRuntime({
         })),
       };
 
+      requestController = new AbortController();
+      finaleGenerationAbortRef.current = requestController;
+      finaleGenerationTimeoutRef.current = window.setTimeout(() => {
+        if (finaleGenerationAbortRef.current !== requestController) return;
+        requestTimedOut = true;
+        finaleGenerationTimeoutRef.current = null;
+        requestController?.abort();
+      }, GRAND_PALAIS_CLIENT_TIMEOUT_MS);
+
       try {
         const response = await fetch("/api/grand-palais/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
           cache: "no-store",
+          signal: requestController.signal,
         });
         if (!response.ok) {
           const payload = (await response.json().catch(() => ({}))) as {
@@ -3921,10 +3943,24 @@ function FashionMazeRuntime({
         setFinalePhase("ready");
       } catch (cause) {
         if (finaleGenerationAttemptRef.current !== attempt) return;
-        setFinaleError(errorMessage(cause));
+        setFinaleError(
+          requestTimedOut
+            ? "The finale image did not arrive within 170 seconds. Check the network and try again."
+            : errorMessage(cause),
+        );
         setFinalePhase("error");
       }
     } finally {
+      if (
+        requestController &&
+        finaleGenerationAbortRef.current === requestController
+      ) {
+        finaleGenerationAbortRef.current = null;
+        if (finaleGenerationTimeoutRef.current !== null) {
+          window.clearTimeout(finaleGenerationTimeoutRef.current);
+          finaleGenerationTimeoutRef.current = null;
+        }
+      }
       finaleGenerationInFlightRef.current = false;
     }
   }, [
@@ -3932,8 +3968,46 @@ function FashionMazeRuntime({
     entranceVariantIds,
     openaiConfigured,
     sceneOrderIds,
+    sessionId,
     status,
   ]);
+
+  const cancelGrandPalais = useCallback(async () => {
+    if (finaleCancelInFlightRef.current) return;
+    finaleCancelInFlightRef.current = true;
+    const attempt = ++finaleGenerationAttemptRef.current;
+    const requestController = finaleGenerationAbortRef.current;
+    finaleGenerationAbortRef.current = null;
+    if (finaleGenerationTimeoutRef.current !== null) {
+      window.clearTimeout(finaleGenerationTimeoutRef.current);
+      finaleGenerationTimeoutRef.current = null;
+    }
+    requestController?.abort();
+    setFinaleError(null);
+
+    try {
+      const mustEndSession =
+        finalePhase === "starting" ||
+        status !== "disconnected" ||
+        Boolean(sessionId);
+      if (mustEndSession) {
+        const ended = await endSession();
+        if (finaleGenerationAttemptRef.current !== attempt) return;
+        if (!ended) {
+          setFinaleError(
+            "Reactor did not confirm that the session ended. The old session may still be billing; retry End session.",
+          );
+          setFinalePhase("error");
+          return;
+        }
+      }
+      if (finaleGenerationAttemptRef.current !== attempt) return;
+      setFinaleError(null);
+      setFinalePhase("idle");
+    } finally {
+      finaleCancelInFlightRef.current = false;
+    }
+  }, [endSession, finalePhase, sessionId, status]);
 
   useEffect(() => {
     beginGrandPalaisGenerationRef.current = () => {
@@ -3956,7 +4030,7 @@ function FashionMazeRuntime({
     setFinaleError(null);
     setError(null);
     terminatingRef.current = false;
-    activationAttemptIdRef.current += 1;
+    const activationAttemptId = ++activationAttemptIdRef.current;
     clearActivationWatchdog();
     autoAdvanceIssuedRef.current = true;
     pendingMazeRef.current = finaleMaze;
@@ -3972,7 +4046,13 @@ function FashionMazeRuntime({
       } else {
         await connect();
       }
+      if (activationAttemptIdRef.current !== activationAttemptId) {
+        intentionalDisconnectRef.current = true;
+        terminatingRef.current = true;
+        void disconnect().catch(fail);
+      }
     } catch (cause) {
+      if (activationAttemptIdRef.current !== activationAttemptId) return;
       clearActivationWatchdog();
       pendingMazeRef.current = null;
       stagingIssuedRef.current = false;
@@ -3983,6 +4063,8 @@ function FashionMazeRuntime({
     armActivationWatchdog,
     clearActivationWatchdog,
     connect,
+    disconnect,
+    fail,
     finaleMaze,
     finalePhase,
     reactorConfigured,
@@ -4586,6 +4668,14 @@ function FashionMazeRuntime({
                   {GRAND_PALAIS_STORY_LINES[finaleStoryIndex]}
                 </p>
                 <small>Seven worlds are becoming one new show.</small>
+                <button
+                  onClick={() => void cancelGrandPalais()}
+                  disabled={phase === "ending"}
+                >
+                  {phase === "ending"
+                    ? "Ending live session…"
+                    : "Cancel finale generation"}
+                </button>
               </>
             )}
 
@@ -4605,6 +4695,12 @@ function FashionMazeRuntime({
                 <span className="grand-palais-mark" aria-hidden="true" />
                 <p className="grand-palais-kicker">YOUR SEAT IS OPENING</p>
                 <h2>Entering the show…</h2>
+                <button
+                  onClick={() => void cancelGrandPalais()}
+                  disabled={phase === "ending"}
+                >
+                  {phase === "ending" ? "Ending session…" : "End session"}
+                </button>
               </>
             )}
 
@@ -4613,7 +4709,16 @@ function FashionMazeRuntime({
                 <p className="grand-palais-kicker">THE FINAL ATELIER PAUSED</p>
                 <h2>{finaleMaze ? "Your show is still waiting." : "The image did not arrive."}</h2>
                 <p role="alert">{finaleError ?? "Please try again."}</p>
-                {finaleMaze ? (
+                {status !== "disconnected" || Boolean(sessionId) ? (
+                  <button
+                    onClick={() => void cancelGrandPalais()}
+                    disabled={phase === "ending"}
+                  >
+                    {phase === "ending"
+                      ? "Ending session…"
+                      : "Retry end session"}
+                  </button>
+                ) : finaleMaze ? (
                   <button onClick={() => void attendGrandPalais()}>
                     Attend the show
                   </button>
