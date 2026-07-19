@@ -8,10 +8,10 @@
 - 同一组五位从首帧就存在的 white-and-cobalt couture performers；所有人物保持各自 opening mark，以及 seed 中每条腿与脚原有的位置、高度、角度和接触状态，以长时间 runway hold、低频眨眼、几乎不可见的呼吸与极小目光变化维持稳重的 fashion-show tableau；不换脚、不转移重心、不原地踏步，也不被镜头移动驱动；
 - 入口只保留 `THE INVITATION`、小字 narrative 和单一 `Start live maze` 主操作，不显示抢占画面的 entrance 大标题；
 - Neon Canopy、Living Runway、Golden Circuit 的 route / Prompt 定义继续保留为内部素材，但公共体验不再显示 `Worlds Ahead` 三按钮；
-- 第一幕提供 `ENTER THE BLACK DOOR`：模型先在当前镜头正前方的中远距离生成带微弱冷色轮廓光的实体黑色 door-gate，并用两个完整 chunks 让门稳定保持；镜头不再转向，而是沿当前 forward axis 用三个已确认的真实 `forward` chunks 缓慢直走。随后网页用 2.6 秒居中推进把同一扇门的黑色内部扩展到全屏，固定黑幕完全覆盖后才 reset；
+- 第一幕提供 `ENTER THE BLACK DOOR`：模型优先把中远处已有的拱或门洞原位变成与本幕材料、支撑和轮廓一致的单一 `ornamental` 哑黑门；没有合适开口时才从相邻建筑一体延伸，绝不生成游离的工业门框。门用 3 个完整 chunks 稳定后，镜头沿 forward axis 用 8 个已确认的真实 `forward` chunks 直走并在最后 2 个 chunks 穿过门槛、完整进入黑色内部。网页只补一个 1.8 秒、最大 1.1× 的轻微推进，随后由固定黑幕完全覆盖再 reset；
 - 每次点击 Start 都抽取一个 32 位 run-order seed：rose garden 始终是 Scene 1，其余六个 authored scene 使用无重复 Fisher–Yates 顺序固定本局 Scene 2–7；断线重开才会重新抽取；
 - authored scene 包括 Cyberpunk Garden、两组 Asian Sculpture Garden、两组 Afro-Futurism 与 Asian Fusion；各 scene 仍从自己的入口素材中随机锁定一张，并以 per-image `ensembleCount` 指挥 seed-visible performers；
-- 本局七个 authored scene 各使用一道与目标场景无关、互不重复的位置型门问答，因此随机顺序不会把问题文案与下一张图错误绑定；所有场景复用同一套正前方远门、缓慢直行、完整入门与黑场 reset 流程；
+- 本局七个 authored scene 各使用一道与目标场景无关、互不重复的位置型门问答，因此随机顺序不会把问题文案与下一张图错误绑定；所有场景复用同一套环境开口优先的 ornamental 黑门、分段直行、完整入门与黑场 reset 流程；
 - 第七个 authored scene 的黑门完成后先释放 Reactor session，再把本局实际使用的七张 allowlisted seed 图提交给服务端；服务端以 `gpt-image-2` Images Edit 生成 runtime-only `SCENE 08 · The Grand Palais`，等待期间轮播故事文案；
 - Scene 8 显示生成图与 `Attend the show`，点击后用该图重新启动 Reactor，并继续共享通用拍照、WASD、视角、倒计时与 session tools；
 - 静态预览不再承担 world selector 功能，用户从邀请故事直接进入 live maze；
@@ -111,7 +111,7 @@ interface FashionMaze {
 
 新增图片时放进 `public/dataset/`。第一幕位于 `rose-garden/`，第二幕位于 `cyberpunk-garden/`，第三幕位于 `asian-sculpture-garden/`，第四幕位于 `afro-futurism/`；第五至七幕使用稳定接口 `scenes/chapter-XX/scene-YY.png`。前三个可替换 Chapter 的单图 metadata 只包含 `id / label / seedImage / seed / ensembleCount`，通用工厂补齐共享 Prompt。正式 seed 建议使用 16:9 PNG、JPEG 或 WebP。随机选择发生在动态 Server Component，它会一次性为七个 Chapter 分别选定 variant id 并传给客户端，因此不会产生 hydration mismatch，也不会在黑门转场中再次换 seed；即使第四、第五幕当前图像相同，两幕也会独立抽签。
 
-每条 `route` 同时包含观众看到的 narrative 和模型看到的 `promptDelta.transition / settled`。选择变体时，首个 forward chunk 使用一次性 transition；chunk 完成后立即换成没有生长、出现或攀爬过程动词的 settled Prompt。普通 WASD、方向键与鼠标只发送 SDK 原生 camera input；普通探索的 camera segment 同时明确“idle 时静止、held input 时才运动”，避免 `setPrompt()` 的 next-chunk 延迟与实时输入竞态。`composeWorldPromptSegments()` / `composePortalPromptSegments()` 是唯一的分层真源，字符串 composer 只负责单空格拼接。黑门使用 compact layer version：Reactor 用 2 个 chunks 固定黑门，再用 3 个已验证为 forward 的 chunks 稳步接近；随后网页对当前视频执行 2.6 秒居中推进，并在固定黑幕下 reset 到下一幕。opening anchor 始终作为 world-space mark 携带；route、photo 与 portal action 互斥。拍照状态机使用本地单调 chunk serial，即使 Reactor run 内的 `chunk_index` 归零也不会提前推进。
+每条 `route` 同时包含观众看到的 narrative 和模型看到的 `promptDelta.transition / settled`。选择变体时，首个 forward chunk 使用一次性 transition；chunk 完成后立即换成没有生长、出现或攀爬过程动词的 settled Prompt。普通 WASD、方向键与鼠标只发送 SDK 原生 camera input；普通探索的 camera segment 同时明确“idle 时静止、held input 时才运动”，避免 `setPrompt()` 的 next-chunk 延迟与实时输入竞态。`composeWorldPromptSegments()` / `composePortalPromptSegments()` 是唯一的分层真源，字符串 composer 只负责单空格拼接。黑门使用 compact layer version：Reactor 用 3 个 chunks 让环境既有拱或门洞完成 ornamental 黑化并稳定，再用 8 个同时匹配 `forward` action 与 portal Prompt 的 chunks 走近、越过门槛并完整进入；客户端末段只做最大 1.1× 的轻微推进，真正黑场由门内画面与固定 curtain 完成。opening anchor 始终作为 world-space mark 携带；route、photo 与 portal action 互斥。拍照状态机使用本地单调 chunk serial，即使 Reactor run 内的 `chunk_index` 归零也不会提前推进。
 
 六道黑门分别围绕相邻两幕的视觉边界提问：玫瑰与电光、信号与纪念碑、雕塑与未来、棱镜与延续、霓虹与花园、自然与锻造终章。六个问题、十二个选项文案和十二个 choice ID 全局唯一。手动点击黑门或 30 秒自动到点都会进入同一个 `pausing → choosing → preparing → resuming` 决策状态机：立即释放镜头输入并冻结本幕倒计时，收到 Reactor pause 确认后才开放两个答案；选择后在暂停状态预设黑门 Prompt，resume 的第一个生成 chunk 直接进入原有黑门流程。问答期间不会发送环境 Prompt，普通暂停按钮也会锁定；弹窗明确提示 session 暂停期间仍在计费，并始终提供 End Session。
 
@@ -123,11 +123,12 @@ interface FashionMaze {
 
 ## Prompt 设计准则
 
-本项目按 Reactor 的 [LingBot World 2 Prompt Guide](https://docs.reactor.inc/model-api-reference/lingbot-world-2/prompt-guide) 与 [`reactor-team/js-sdk` 官方 layered composer](https://github.com/reactor-team/js-sdk/blob/c67c276ec61f8d5221797dde36eea24b494b04fe/examples/lingbot-world-2/lib/lingbot-world-prompts.ts) 重构：
+本项目按 Reactor 的 [LingBot World 2 Prompt Guide](https://docs.reactor.inc/model-api-reference/lingbot-world-2/prompt-guide)、[`reactor-team/js-sdk` 官方 layered composer](https://github.com/reactor-team/js-sdk/blob/c67c276ec61f8d5221797dde36eea24b494b04fe/examples/lingbot-world-2/lib/lingbot-world-prompts.ts) 与 [LingBot World 2 extension skill](https://github.com/reactor-team/js-sdk/blob/c67c276ec61f8d5221797dde36eea24b494b04fe/examples/lingbot-world-2/skill/SKILL.md) 重构：
 
 - `base` 限于 1–3 句 subject + environment + style；人物只完整 casting 一次，不含 POV、输入、镜头或动作纠正句；
 - `anchor` 忠实描述当前 seed 的已完成姿势。图片与文字冲突时 image 会占优并产生伪影，因此改变姿势目标必须先改变 seed，而不是追加否定句；
 - camera、movement、destination 与 event 各自只拥有一个轴；大型 photo / portal event 选择 compact layer version，为事件细节留预算；
+- portal event 保持为一条描述环境的现在进行时句子；镜头 framing、chunk 数与无 lens zoom 的穿门动作只属于 camera layer，使文字始终与真实 `forward` 状态同步；
 - 默认描述画面中存在的正面事实；camera contract 和一个具体歧义 guard 才使用必要的否定语言；
 - action 必须短暂、可构图并落在稳定状态；fresh session 至少确认一个 `active_prompt` 匹配且 `active_action === "still"` 的完整 ambient chunk，才开放控制与拍照；
 - 总 Prompt 以 1800 characters 为安全目标、2000 为 hard cap；`base ≤ 600`、`camera ≤ 300`、`movement ≤ 350`、单个 `event ≤ 500`。Operator 会展示每个 segment 的来源与长度。

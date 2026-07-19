@@ -208,16 +208,16 @@ export function resolvePhotoAction(
 }
 
 export const PORTAL_CHOREOGRAPHY = {
-  summonHoldChunks: 2,
-  approachHoldChunks: 3,
-  clientZoomMs: 2_600,
+  summonHoldChunks: 3,
+  approachHoldChunks: 8,
+  clientZoomMs: 1_800,
 } as const;
 
 const forwardBlackDoorPortal: FashionMazeSceneTransition["portal"] = {
   summon:
-    `The original scene keeps its settled arrangement while exactly one human-scale black door-gate stands medium-far on the camera-forward axis. Its complete silhouette occupies about one sixth of frame height: two thick dark-metal jambs, one solid lintel, shallow footings and a faint cool outer rim. Its matte-black interior conceals the destination. This fixed gate holds for ${PORTAL_CHOREOGRAPHY.summonHoldChunks} beats.`,
+    `One existing arch or doorway medium-far ahead is becoming the scene's single ornamental matte-black door in place, keeping its silhouette, supports and local detail while the opening deepens to lightless black; if none exists, one integrated frame is extending from nearby architecture, never freestanding, and the door is holding near centre at one sixth of frame height for ${PORTAL_CHOREOGRAPHY.summonHoldChunks} beats.`,
   enter:
-    `The same single black gate stays anchored and grows gradually larger through forward parallax across ${PORTAL_CHOREOGRAPHY.approachHoldChunks} beats. Its matte-black interior conceals the destination while the original scene remains settled behind it.`,
+    `The same ornamental matte-black doorway is holding its anchored place in existing architecture, its scene-native frame and supports staying coherent while the lightless interior conceals the destination.`,
 };
 
 /**
@@ -1011,7 +1011,7 @@ const lockedCameraContract =
   "Strict first-person observer view locked at the current viewpoint with zero translation, rotation, cut or zoom.";
 
 const forwardCameraContract =
-  "Strict first-person observer view moving steadily forward only while held forward input is active. The heading stays centred on the gate with zero yaw, pitch, roll, strafe or sideways drift.";
+  `First-person view moves straight through the centred ornamental black doorway for ${PORTAL_CHOREOGRAPHY.approachHoldChunks} chunks, with no lens zoom, yaw, roll, strafe or drift. Natural parallax enlarges it; the final 2 chunks cross the threshold and end fully inside its lightless interior.`;
 
 const physicalContinuityContract =
   "Gravity, geometry, identities and materials stay coherent in one continuous world; reflections remain optical on visible surfaces.";

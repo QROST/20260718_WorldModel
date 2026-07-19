@@ -563,7 +563,7 @@ summary:focus-visible {
 
 .reactor-video.portal-video-zoom {
   transform-origin: 50% 50%;
-  animation: portal-video-zoom var(--portal-video-zoom-duration, 2600ms) cubic-bezier(0.45, 0, 0.55, 1) forwards;
+  animation: portal-video-zoom var(--portal-video-zoom-duration, 1800ms) cubic-bezier(0.45, 0, 0.55, 1) forwards;
   will-change: transform, filter;
 }
 
@@ -573,19 +573,14 @@ summary:focus-visible {
     filter: brightness(1);
   }
 
-  28% {
-    transform: scale(1.12);
-    filter: brightness(0.96);
-  }
-
-  62% {
-    transform: scale(2.6);
-    filter: brightness(0.72);
+  50% {
+    transform: scale(1.035);
+    filter: brightness(0.99);
   }
 
   100% {
-    transform: scale(12);
-    filter: brightness(0.18);
+    transform: scale(1.1);
+    filter: brightness(0.94);
   }
 }
 

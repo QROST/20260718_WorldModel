@@ -33,6 +33,7 @@ require.extensions[".ts"] = (module, filename) => {
 const promptModule = require(path.join(__dirname, "../lib/fashion-maze.ts"));
 const {
   FASHION_MAZE_PROMPT_BUDGET: budget,
+  PORTAL_CHOREOGRAPHY: portalChoreography,
   composePortalPrompt,
   composePortalPromptSegments,
   composeWorldPrompt,
@@ -51,6 +52,48 @@ const errors = [];
 const warnings = [];
 const cases = [];
 let entranceCount = 0;
+
+positiveInteger("portal summon hold", portalChoreography.summonHoldChunks);
+positiveInteger("portal approach hold", portalChoreography.approachHoldChunks);
+positiveInteger("portal client zoom duration", portalChoreography.clientZoomMs);
+if (portalChoreography.summonHoldChunks < 3) {
+  fail("portal choreography", "ornamental doorway must settle for at least 3 chunks");
+}
+if (portalChoreography.approachHoldChunks < 6) {
+  fail("portal choreography", "doorway passage must use at least 6 forward chunks");
+}
+if (portalChoreography.clientZoomMs > 2_000) {
+  fail("portal choreography", "client zoom must remain a short, subtle finish");
+}
+
+const globalsCss = fs.readFileSync(
+  path.join(__dirname, "../app/globals.css"),
+  "utf8",
+);
+const portalZoomStart = globalsCss.indexOf("@keyframes portal-video-zoom");
+const portalZoomEnd = globalsCss.indexOf("\n.media-vignette", portalZoomStart);
+const portalZoomCss = globalsCss.slice(portalZoomStart, portalZoomEnd);
+const portalZoomScales = [...portalZoomCss.matchAll(/scale\(([\d.]+)\)/g)].map(
+  (match) => Number(match[1]),
+);
+const portalZoomBrightness = [
+  ...portalZoomCss.matchAll(/brightness\(([\d.]+)\)/g),
+].map((match) => Number(match[1]));
+if (
+  portalZoomStart < 0 ||
+  portalZoomEnd < 0 ||
+  portalZoomScales.length < 2 ||
+  portalZoomBrightness.length < 2
+) {
+  fail("portal client zoom", "missing complete portal-video-zoom keyframes");
+} else {
+  if (Math.max(...portalZoomScales) > 1.2) {
+    fail("portal client zoom", "scale exceeds the subtle 1.2x ceiling");
+  }
+  if (Math.min(...portalZoomBrightness) < 0.9) {
+    fail("portal client zoom", "brightness drop exceeds the subtle 10% ceiling");
+  }
+}
 
 function fail(label, message) {
   errors.push(`${label}: ${message}`);
@@ -511,6 +554,61 @@ for (const maze of fashionMazes) {
             joinFashionMazePromptSegments(portalSegments)
           ) {
             fail(`${prefix} / portal-${stage}`, "portal composer diverges from segments");
+          }
+          const portalEvent = portalSegments.find(
+            (item) => item.id === `portal:${stage}`,
+          );
+          if (!portalEvent) {
+            fail(`${prefix} / portal-${stage}`, "missing portal event segment");
+            continue;
+          }
+          if (sentenceCount(portalEvent.text) !== 1) {
+            fail(
+              `${prefix} / portal-${stage}`,
+              "SDK-style portal event must remain one composable sentence",
+            );
+          }
+          if (stage === "summon") {
+            if (
+              !/\bexisting arch or doorway\b/i.test(portalEvent.text) ||
+              !/\bornamental matte-black door\b/i.test(portalEvent.text) ||
+              !/\bnever freestanding\b/i.test(portalEvent.text)
+            ) {
+              fail(
+                `${prefix} / portal-summon`,
+                "must reuse existing architecture as one integrated ornamental black door",
+              );
+            }
+            if (!/\bis becoming\b.*\bis extending\b.*\bis holding\b/i.test(portalEvent.text)) {
+              fail(
+                `${prefix} / portal-summon`,
+                "environment event must stay present-continuous",
+              );
+            }
+          } else {
+            const camera = portalSegments.find(
+              (item) => item.id === "camera:forward",
+            );
+            if (
+              !camera ||
+              !camera.text.includes(
+                `${portalChoreography.approachHoldChunks} chunks`,
+              ) ||
+              !/\bno lens zoom\b/i.test(camera.text) ||
+              !/\bfinal 2 chunks cross the threshold\b/i.test(camera.text) ||
+              !/\bend fully inside\b/i.test(camera.text)
+            ) {
+              fail(
+                `${prefix} / portal-enter`,
+                "camera must complete the chunk-counted passage through the threshold",
+              );
+            }
+            if (!/\bis holding\b.*\bstaying coherent\b/i.test(portalEvent.text)) {
+              fail(
+                `${prefix} / portal-enter`,
+                "doorway event must remain continuous and anchored",
+              );
+            }
           }
         }
       }
