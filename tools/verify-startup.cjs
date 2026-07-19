@@ -51,6 +51,25 @@ const stageGateGuardIndex = stagePendingMazeSource.indexOf(
 const stageGateLogIndex = stagePendingMazeSource.indexOf(
   'appendDebugEvent(\n      "sdk",\n      "stage_gate"',
 );
+const mediaProbeStartIndex = experienceSource.indexOf(
+  "let frameWatchdogTimer: number | null = null;",
+);
+const mediaProbeEndIndex = experienceSource.indexOf(
+  "}, [appendDebugEvent, generationStarted, mainVideoTrack]);",
+  mediaProbeStartIndex,
+);
+const mediaProbeSource = experienceSource.slice(
+  mediaProbeStartIndex,
+  mediaProbeEndIndex,
+);
+const stalledFrameProbeSource = mediaProbeSource.slice(
+  mediaProbeSource.indexOf("frameWatchdogTimer = window.setTimeout"),
+  mediaProbeSource.indexOf("}, VIDEO_FRAME_PROBE_TIMEOUT_MS)"),
+);
+const unavailableStreamSource = mediaProbeSource.slice(
+  mediaProbeSource.indexOf("const hideUnavailableStream"),
+  mediaProbeSource.indexOf('video.addEventListener("loadeddata"'),
+);
 
 const assertions = [
   [
@@ -86,6 +105,18 @@ const assertions = [
     stageGateGuardIndex >= 0 &&
       stageGateLogIndex >= 0 &&
       stageGateGuardIndex < stageGateLogIndex,
+  ],
+  [
+    "a stalled video frame callback is canceled before the next probe",
+    stalledFrameProbeSource.indexOf("cancelPendingFrameProbe();") >= 0 &&
+      stalledFrameProbeSource.indexOf("frame_callback_stalled") >
+        stalledFrameProbeSource.indexOf("cancelPendingFrameProbe();") &&
+      stalledFrameProbeSource.indexOf("scheduleFrameRetry();") >
+        stalledFrameProbeSource.indexOf("frame_callback_stalled"),
+  ],
+  [
+    "a muted or ended track releases its pending frame callback",
+    unavailableStreamSource.includes("cancelPendingFrameProbe();"),
   ],
   [
     "generation waits for both image and prompt",

@@ -218,6 +218,7 @@ const ROUTE_WATCHDOG_MS = 15_000;
 const PHOTO_WATCHDOG_MS = 30_000;
 const PHOTO_FRAME_TIMEOUT_MS = 2_000;
 const PHOTO_ENCODE_TIMEOUT_MS = 2_000;
+const VIDEO_FRAME_PROBE_TIMEOUT_MS = 1_000;
 const CONTROL_RELEASE_TIMEOUT_MS = 750;
 const DISCONNECT_CONFIRM_TIMEOUT_MS = 10_000;
 const DOOR_QUESTION_WATCHDOG_MS = 20_000;
@@ -1664,6 +1665,7 @@ function FashionMazeRuntime({
 
     let cancelled = false;
     let frameRequest: number | null = null;
+    let frameWatchdogTimer: number | null = null;
     let frameRetryTimer: number | null = null;
     let visibleFrameCount = 0;
     let lastProbeReport = "";
@@ -1740,6 +1742,18 @@ function FashionMazeRuntime({
       }, 250);
     };
 
+    const cancelPendingFrameProbe = () => {
+      if (frameWatchdogTimer !== null) {
+        window.clearTimeout(frameWatchdogTimer);
+        frameWatchdogTimer = null;
+      }
+      if (frameRequest === null) return;
+      if (typeof video.cancelVideoFrameCallback === "function") {
+        video.cancelVideoFrameCallback(frameRequest);
+      }
+      frameRequest = null;
+    };
+
     const requestFrameCheck = () => {
       if (cancelled || frameRequest !== null) {
         return;
@@ -1755,7 +1769,12 @@ function FashionMazeRuntime({
         return;
       }
       if (typeof video.requestVideoFrameCallback === "function") {
-        frameRequest = video.requestVideoFrameCallback(() => {
+        const requestedFrame = video.requestVideoFrameCallback(() => {
+          if (frameRequest !== requestedFrame) return;
+          if (frameWatchdogTimer !== null) {
+            window.clearTimeout(frameWatchdogTimer);
+            frameWatchdogTimer = null;
+          }
           frameRequest = null;
           const callbackBlockers = frameProbeBlockers();
           if (callbackBlockers.length > 0) {
@@ -1787,6 +1806,18 @@ function FashionMazeRuntime({
             requestFrameCheck();
           }
         });
+        frameRequest = requestedFrame;
+        frameWatchdogTimer = window.setTimeout(() => {
+          if (frameRequest !== requestedFrame) return;
+          cancelPendingFrameProbe();
+          visibleFrameCount = 0;
+          reportProbe(
+            "frame_callback_stalled",
+            `timeoutMs=${VIDEO_FRAME_PROBE_TIMEOUT_MS}`,
+            "warning",
+          );
+          scheduleFrameRetry();
+        }, VIDEO_FRAME_PROBE_TIMEOUT_MS);
       } else if (hasVisiblePixels()) {
         appendDebugEvent(
           "media",
@@ -1825,6 +1856,7 @@ function FashionMazeRuntime({
     }
 
     const hideUnavailableStream = (event: Event) => {
+      cancelPendingFrameProbe();
       visibleFrameCount = 0;
       appendDebugEvent(
         "media",
@@ -1854,12 +1886,7 @@ function FashionMazeRuntime({
       if (frameRetryTimer !== null) {
         window.clearTimeout(frameRetryTimer);
       }
-      if (
-        frameRequest !== null &&
-        typeof video.cancelVideoFrameCallback === "function"
-      ) {
-        video.cancelVideoFrameCallback(frameRequest);
-      }
+      cancelPendingFrameProbe();
     };
   }, [appendDebugEvent, generationStarted, mainVideoTrack]);
 
