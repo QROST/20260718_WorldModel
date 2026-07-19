@@ -47,6 +47,10 @@ const {
   resolveMazeEntrance,
   resolvePhotoAction,
 } = promptModule;
+const {
+  findPromptLayerBudgetViolations,
+  findPromptLayerOwnershipViolations,
+} = require(path.join(__dirname, "../lib/fashion-maze-prompt-policy.ts"));
 
 const errors = [];
 const warnings = [];
@@ -163,53 +167,14 @@ function expectThrow(label, operation) {
 }
 
 function verifyLayerBudgets(label, segments) {
-  for (const item of segments) {
-    const limit =
-      item.kind === "base"
-        ? budget.base
-        : item.kind === "camera"
-          ? budget.camera
-          : item.kind === "movement"
-            ? budget.movement
-            : item.kind === "event"
-              ? budget.event
-              : null;
-    if (limit !== null && item.text.length > limit) {
-      fail(
-        label,
-        `${item.label} is ${item.text.length} chars; layer limit is ${limit}`,
-      );
-    }
+  for (const violation of findPromptLayerBudgetViolations(segments)) {
+    fail(label, violation.message);
   }
 }
 
 function verifyLayerOwnership(label, segments) {
-  for (const item of segments) {
-    if (
-      item.kind === "base" &&
-      /\b(first-person|camera|observer|input|pan|zoom|dolly|blink|gesture|pose|hold)\b/i.test(
-        item.text,
-      )
-    ) {
-      fail(label, `${item.label} contains camera, input, or behavior language`);
-    }
-    if (
-      item.kind === "camera" &&
-      /\b[MCSA]\d{2}\b|\b(blink|breath|gesture|pose|couture)\b/i.test(
-        item.text,
-      )
-    ) {
-      fail(label, `${item.label} contains cast identity or choreography`);
-    }
-    if (
-      item.kind === "movement" &&
-      /\b(camera|observer|viewpoint|input|pan|zoom|dolly)\b/i.test(item.text)
-    ) {
-      fail(label, `${item.label} contains camera or input language`);
-    }
-    if (/\b(try to|please|make sure|attempt to)\b/i.test(item.text)) {
-      fail(label, `${item.label} contains an intent qualifier`);
-    }
+  for (const violation of findPromptLayerOwnershipViolations(segments)) {
+    fail(label, violation.message);
   }
 }
 
@@ -262,6 +227,58 @@ function verifyPacket(label, resolvedMaze, segments, expectedCameraId) {
 
   verifyLayerBudgets(label, segments);
   verifyLayerOwnership(label, segments);
+}
+
+const policyFixture = (kind, text) => ({
+  kind,
+  id: "fixture:" + kind,
+  label: "fixture · " + kind,
+  text,
+});
+for (const [kind, limit] of Object.entries({
+  base: budget.base,
+  anchor: budget.anchor,
+  camera: budget.camera,
+  movement: budget.movement,
+  destination: budget.destination,
+  event: budget.event,
+  continuity: budget.continuity,
+})) {
+  const violations = findPromptLayerBudgetViolations([
+    policyFixture(kind, "x".repeat(limit + 1)),
+  ]);
+  if (!violations.some((violation) => violation.code === "over-budget")) {
+    fail(
+      "prompt policy fixture " + kind,
+      "must reject a layer above its budget",
+    );
+  }
+}
+for (const [kind, value] of [
+  ["anchor", "The camera pans while the seed grows into place."],
+  ["destination", "Please move the observer camera as the garden appears."],
+  ["continuity", "M01 holds a pose beside the portal route."],
+]) {
+  const violations = findPromptLayerOwnershipViolations([
+    policyFixture(kind, value),
+  ]);
+  if (violations.length === 0) {
+    fail(
+      "prompt policy fixture " + kind,
+      "must reject cross-layer language",
+    );
+  }
+}
+const unknownLayer = policyFixture("__unknown__", "synthetic layer");
+if (
+  !findPromptLayerBudgetViolations([unknownLayer]).some(
+    (violation) => violation.code === "missing-budget",
+  ) ||
+  !findPromptLayerOwnershipViolations([unknownLayer]).some(
+    (violation) => violation.code === "missing-policy",
+  )
+) {
+  fail("prompt policy fixture unknown", "unknown layers must fail closed");
 }
 
 uniqueIds("scenes", fashionMazes.map((maze) => maze.id));

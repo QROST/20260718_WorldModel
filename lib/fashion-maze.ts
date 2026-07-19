@@ -996,13 +996,16 @@ export const FASHION_MAZE_PROMPT_BUDGET = {
   hard: 2_000,
   target: 1_800,
   base: 600,
+  anchor: 450,
   camera: 300,
   movement: 350,
+  destination: 300,
   event: 500,
+  continuity: 180,
 } as const;
 
 const seedSpaceContract =
-  "Seed directions are fixed world-space marks from the starting image; observer movement changes only their screen projection.";
+  "Seed directions are fixed world-space marks; screen projection shifts do not move them in world space.";
 
 const interactiveCameraContract =
   "Strict first-person observer view, stationary while movement input is idle and moving only while held input is active. Look input changes only observer heading; natural parallax reveals a visible world anchored in world space.";
