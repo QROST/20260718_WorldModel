@@ -9,7 +9,7 @@ Imported on 2026-07-18 without modifying the source repository.
 
 - `public/dataset/rose-garden/` — three Chapter 01 seeds.
 - `public/dataset/cyberpunk-garden/` — three independently selectable Chapter 02 seeds.
-- `public/dataset/asian-sculpture-garden/grand-finale.png` — the Chapter 03 seed.
+- `public/dataset/asian-sculpture-garden/grand-finale.webp` — the Chapter 03 seed.
 - `public/dataset/afro-futurism/` — three Chapter 04 seeds with 5 / 7 / 5 seed-visible performers. The selected variant overrides `ensemble.count` so the shared photo choreography addresses the correct cast.
 - `public/dataset/scenes/chapter-05/` — three independently replaceable Chapter 05 seeds, currently copied from the Afro-futurism set, with 5 / 7 / 5 performers.
 - `public/dataset/scenes/chapter-06/` — six Chapter 06 silver-garden seeds with 6 / 6 / 5 / 6 / 6 / 6 performers.

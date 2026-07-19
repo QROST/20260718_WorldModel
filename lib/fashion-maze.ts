@@ -271,7 +271,7 @@ const roseGardenEntrances: FashionMazeEntranceVariant[] = [
   {
     id: "rose-tableau-01",
     label: "Finale Portrait",
-    seedImage: "/dataset/rose-garden/entrance-01.png",
+    seedImage: "/dataset/rose-garden/entrance-01.webp",
     seed: 260721,
     openingPrompt:
       "Seed marks: M01 elevated centre, M02 left, M03 seated right-centre, M04 far right, M05 front-centre among blush blocks. Preserve every seed limb arrangement; each foot keeps its seed-space position, height, angle, and contact state.",
@@ -279,7 +279,7 @@ const roseGardenEntrances: FashionMazeEntranceVariant[] = [
   {
     id: "rose-tableau-02",
     label: "Garden Procession",
-    seedImage: "/dataset/rose-garden/entrance-02.png",
+    seedImage: "/dataset/rose-garden/entrance-02.webp",
     seed: 260722,
     openingPrompt:
       "Seed marks: M01 high left, M02 left-centre, M03 in a static open-leg pose at centre, M04 leaning right-centre, M05 leaning far right. Preserve every seed limb arrangement; each foot keeps its seed-space position, height, angle, and contact state.",
@@ -287,7 +287,7 @@ const roseGardenEntrances: FashionMazeEntranceVariant[] = [
   {
     id: "rose-tableau-03",
     label: "Relaxed Montage",
-    seedImage: "/dataset/rose-garden/entrance-03.png",
+    seedImage: "/dataset/rose-garden/entrance-03.webp",
     seed: 260723,
     openingPrompt:
       "Seed marks: M01 reclining far left, M02 left-centre, M03 leaning at centre, M04 turned away right-centre, M05 low far right. Preserve every seed limb arrangement; each foot keeps its seed-space position, height, angle, and contact state.",
@@ -397,7 +397,7 @@ const authoredFashionMazes: FashionMaze[] = [
     title: "The Cyberpunk Garden",
     subtitle: "Five silhouettes hold the portal atrium.",
     location: "Cyberpunk garden / Portal atrium / Electric midnight",
-    seedImage: "/dataset/cyberpunk-garden/scene2.png",
+    seedImage: "/dataset/cyberpunk-garden/scene2.webp",
     seed: 260724,
     openingPrompt:
       "Seed-space marks: C01 is low at far left; C02 leans left-centre with an arm extended diagonally; C03 stands centre with both arms raised; C04 kneels right-centre holding the helmet low; C05 stands far right with one arm extended. These are completed held silhouettes with their seed roots, depth, supports and spacing.",
@@ -405,7 +405,7 @@ const authoredFashionMazes: FashionMaze[] = [
       {
         id: "cyberpunk-scene-02",
         label: "Portal Formation",
-        seedImage: "/dataset/cyberpunk-garden/scene2.png",
+        seedImage: "/dataset/cyberpunk-garden/scene2.webp",
         seed: 260724,
         openingPrompt:
           "Seed-space marks: C01 is low at far left; C02 leans left-centre with an arm extended diagonally; C03 stands centre with both arms raised; C04 kneels right-centre holding the helmet low; C05 stands far right with one arm extended. These are completed held silhouettes with their seed roots, depth, supports and spacing.",
@@ -413,7 +413,7 @@ const authoredFashionMazes: FashionMaze[] = [
       {
         id: "cyberpunk-scene-03b",
         label: "Signal Chorus",
-        seedImage: "/dataset/cyberpunk-garden/scene3b.png",
+        seedImage: "/dataset/cyberpunk-garden/scene3b.webp",
         seed: 260725,
         openingPrompt:
           "Seed-space marks: C01 stands far left with one arm extended; C02 is left-centre with both arms raised near her headpiece; C03 holds the comparatively low-arm centre pose; C04 is behind right-centre with forearms behind his head; C05 kneels front-right with both arms overhead. These are completed held silhouettes with their seed roots, depth, supports and spacing.",
@@ -421,7 +421,7 @@ const authoredFashionMazes: FashionMaze[] = [
       {
         id: "cyberpunk-scene-05",
         label: "Electric Tableau",
-        seedImage: "/dataset/cyberpunk-garden/scene5.png",
+        seedImage: "/dataset/cyberpunk-garden/scene5.webp",
         seed: 260726,
         openingPrompt:
           "Seed-space marks: C01 is far left with one lower leg lifted and arms low; C02 is left-centre with both arms overhead at her headpiece; C03 holds a deep back arch at centre with arms hanging low; C04 is right-centre holding the helmet overhead; C05 kneels far right with one hand at his face. These are completed held silhouettes with their seed roots, depth, supports and spacing.",
@@ -464,7 +464,7 @@ const asianSculptureGardenEntrances: FashionMazeEntranceVariant[] = [
   {
     id: "asian-sculpture-grand-finale",
     label: "Grand Finale",
-    seedImage: "/dataset/asian-sculpture-garden/grand-finale.png",
+    seedImage: "/dataset/asian-sculpture-garden/grand-finale.webp",
     seed: 260727,
     openingPrompt:
       "Seed-space marks: S01 sits at the far-left foreground in the folded headdress; S02 is left-centre; S03 stands high at back-centre; S04 is centre-right with one raised forearm; S05 is right-centre in the white cape with forearms outward; S06 is far right. All six positions are completed held silhouettes with their seed roots, depth, supports and spacing.",
@@ -510,7 +510,7 @@ const afroFuturismEntrances: FashionMazeEntranceVariant[] = [
   {
     id: "afro-prism-01",
     label: "Cyber-Pink Platforms",
-    seedImage: "/dataset/afro-futurism/scene-01.png",
+    seedImage: "/dataset/afro-futurism/scene-01.webp",
     seed: 260728,
     ensembleCount: 5,
     openingPrompt:
@@ -519,7 +519,7 @@ const afroFuturismEntrances: FashionMazeEntranceVariant[] = [
   {
     id: "afro-prism-02",
     label: "Seven-figure Prism Court",
-    seedImage: "/dataset/afro-futurism/scene-02.png",
+    seedImage: "/dataset/afro-futurism/scene-02.webp",
     seed: 260729,
     ensembleCount: 7,
     openingPrompt:
@@ -528,7 +528,7 @@ const afroFuturismEntrances: FashionMazeEntranceVariant[] = [
   {
     id: "afro-prism-03",
     label: "Five-figure Voyage",
-    seedImage: "/dataset/afro-futurism/scene-03.png",
+    seedImage: "/dataset/afro-futurism/scene-03.webp",
     seed: 260730,
     ensembleCount: 5,
     openingPrompt:
@@ -658,21 +658,21 @@ const chapterFiveAfroFuturism = createReplaceableChapter({
     {
       id: "chapter-05-scene-01",
       label: "Scene 01",
-      seedImage: "/dataset/scenes/chapter-05/scene-01.png",
+      seedImage: "/dataset/scenes/chapter-05/scene-01.webp",
       seed: 260731,
       ensembleCount: 5,
     },
     {
       id: "chapter-05-scene-02",
       label: "Scene 02",
-      seedImage: "/dataset/scenes/chapter-05/scene-02.png",
+      seedImage: "/dataset/scenes/chapter-05/scene-02.webp",
       seed: 260732,
       ensembleCount: 7,
     },
     {
       id: "chapter-05-scene-03",
       label: "Scene 03",
-      seedImage: "/dataset/scenes/chapter-05/scene-03.png",
+      seedImage: "/dataset/scenes/chapter-05/scene-03.webp",
       seed: 260733,
       ensembleCount: 5,
     },
@@ -696,42 +696,42 @@ const chapterSixAsianSculptureGarden = createReplaceableChapter({
     {
       id: "chapter-06-scene-01",
       label: "Scene 01",
-      seedImage: "/dataset/scenes/chapter-06/scene-01.png",
+      seedImage: "/dataset/scenes/chapter-06/scene-01.webp",
       seed: 260734,
       ensembleCount: 6,
     },
     {
       id: "chapter-06-scene-02",
       label: "Scene 02",
-      seedImage: "/dataset/scenes/chapter-06/scene-02.png",
+      seedImage: "/dataset/scenes/chapter-06/scene-02.webp",
       seed: 260735,
       ensembleCount: 6,
     },
     {
       id: "chapter-06-scene-03",
       label: "Scene 03",
-      seedImage: "/dataset/scenes/chapter-06/scene-03.png",
+      seedImage: "/dataset/scenes/chapter-06/scene-03.webp",
       seed: 260736,
       ensembleCount: 5,
     },
     {
       id: "chapter-06-scene-04",
       label: "Scene 04",
-      seedImage: "/dataset/scenes/chapter-06/scene-04.png",
+      seedImage: "/dataset/scenes/chapter-06/scene-04.webp",
       seed: 260737,
       ensembleCount: 6,
     },
     {
       id: "chapter-06-scene-05",
       label: "Scene 05",
-      seedImage: "/dataset/scenes/chapter-06/scene-05.png",
+      seedImage: "/dataset/scenes/chapter-06/scene-05.webp",
       seed: 260738,
       ensembleCount: 6,
     },
     {
       id: "chapter-06-scene-06",
       label: "Scene 06",
-      seedImage: "/dataset/scenes/chapter-06/scene-06.png",
+      seedImage: "/dataset/scenes/chapter-06/scene-06.webp",
       seed: 260739,
       ensembleCount: 6,
     },
@@ -755,35 +755,35 @@ const chapterSevenAsianFusion = createReplaceableChapter({
     {
       id: "chapter-07-scene-01",
       label: "Scene 01",
-      seedImage: "/dataset/scenes/chapter-07/scene-01.png",
+      seedImage: "/dataset/scenes/chapter-07/scene-01.webp",
       seed: 260740,
       ensembleCount: 6,
     },
     {
       id: "chapter-07-scene-02",
       label: "Scene 02",
-      seedImage: "/dataset/scenes/chapter-07/scene-02.png",
+      seedImage: "/dataset/scenes/chapter-07/scene-02.webp",
       seed: 260741,
       ensembleCount: 6,
     },
     {
       id: "chapter-07-scene-03",
       label: "Scene 03",
-      seedImage: "/dataset/scenes/chapter-07/scene-03.png",
+      seedImage: "/dataset/scenes/chapter-07/scene-03.webp",
       seed: 260742,
       ensembleCount: 5,
     },
     {
       id: "chapter-07-scene-04",
       label: "Scene 04",
-      seedImage: "/dataset/scenes/chapter-07/scene-04.png",
+      seedImage: "/dataset/scenes/chapter-07/scene-04.webp",
       seed: 260743,
       ensembleCount: 5,
     },
     {
       id: "chapter-07-scene-05",
       label: "Scene 05",
-      seedImage: "/dataset/scenes/chapter-07/scene-05.png",
+      seedImage: "/dataset/scenes/chapter-07/scene-05.webp",
       seed: 260744,
       ensembleCount: 6,
     },

@@ -1,6 +1,6 @@
 # Plan Montage seed receipt
 
-Active asset: `public/dataset/hedge-threshold-plan-montage-v4.png`
+Active asset: `public/dataset/hedge-threshold-plan-montage-v4.webp`
 
 Generated on 2026-07-18 from the original hedge-maze frame, the blogger sheet,
 and the three team-supplied model sheets. A rigid authored-cast intermediate was
@@ -9,10 +9,10 @@ dataset.
 
 ## Identity sources
 
-- `public/dataset/fashion-blogger-character-sheet.png`
-- `public/dataset/models/amber-brocade-character-sheet.png`
-- `public/dataset/models/forest-tailoring-character-sheet.png`
-- `public/dataset/models/silver-sculptural-character-sheet.png`
+- `public/dataset/fashion-blogger-character-sheet.webp`
+- `public/dataset/models/amber-brocade-character-sheet.webp`
+- `public/dataset/models/forest-tailoring-character-sheet.webp`
+- `public/dataset/models/silver-sculptural-character-sheet.webp`
 
 ## Final refinement prompt
 

@@ -102,7 +102,7 @@ interface FashionMaze {
 }
 ```
 
-新增图片时放进 `public/dataset/`。第一幕位于 `rose-garden/`，第二幕位于 `cyberpunk-garden/`，第三幕位于 `asian-sculpture-garden/`，第四幕位于 `afro-futurism/`；第五至七幕使用稳定接口 `scenes/chapter-XX/scene-YY.png`。前三个可替换 Chapter 的单图 metadata 只包含 `id / label / seedImage / seed / ensembleCount`，通用工厂补齐共享 Prompt。正式 seed 建议使用 16:9 PNG、JPEG 或 WebP。随机选择发生在动态 Server Component，它会一次性为七个 Chapter 分别选定 variant id 并传给客户端，因此不会产生 hydration mismatch，也不会在黑门转场中再次换 seed；即使第四、第五幕当前图像相同，两幕也会独立抽签。
+新增图片时放进 `public/dataset/` 并运行 `pnpm optimize:images`。第一幕位于 `rose-garden/`，第二幕位于 `cyberpunk-garden/`，第三幕位于 `asian-sculpture-garden/`，第四幕位于 `afro-futurism/`；第五至七幕使用稳定接口 `scenes/chapter-XX/scene-YY.webp`。前三个可替换 Chapter 的单图 metadata 只包含 `id / label / seedImage / seed / ensembleCount`，通用工厂补齐共享 Prompt。源图可使用 16:9 PNG，提交前统一转换为 WebP q90。随机选择发生在动态 Server Component，它会一次性为七个 Chapter 分别选定 variant id 并传给客户端，因此不会产生 hydration mismatch，也不会在黑门转场中再次换 seed；即使第四、第五幕当前图像相同，两幕也会独立抽签。
 
 每条 `route` 同时包含观众看到的 narrative 和模型看到的 `promptDelta.transition / settled`。选择变体时，首个 forward chunk 使用一次性 transition；chunk 完成后立即换成没有生长、出现或攀爬过程动词的 settled Prompt。普通 WASD、方向键与鼠标只发送 SDK 原生 camera input；普通探索的 camera segment 同时明确“idle 时静止、held input 时才运动”，避免 `setPrompt()` 的 next-chunk 延迟与实时输入竞态。`composeWorldPromptSegments()` / `composePortalPromptSegments()` 是唯一的分层真源，字符串 composer 只负责单空格拼接。黑门使用 compact layer version：Reactor 用 3 个 chunks 让环境既有拱或门洞完成 ornamental 黑化并稳定，再用 8 个同时匹配 `forward` action 与 portal Prompt 的 chunks 走近、越过门槛并完整进入；客户端末段只做最大 1.1× 的轻微推进，真正黑场由门内画面与固定 curtain 完成。opening anchor 始终作为 world-space mark 携带；route、photo 与 portal action 互斥。拍照状态机使用本地单调 chunk serial，即使 Reactor run 内的 `chunk_index` 归零也不会提前推进。
 

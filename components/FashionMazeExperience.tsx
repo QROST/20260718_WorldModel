@@ -333,7 +333,16 @@ async function seedAssetToFile(maze: FashionMaze): Promise<File> {
     ? `${maze.id}-${maze.entranceVariantId}`
     : maze.id;
   if (!source.type.includes("svg")) {
-    const extension = source.type.includes("png") ? "png" : "jpg";
+    const extension = source.type.includes("webp")
+      ? "webp"
+      : source.type.includes("png")
+        ? "png"
+        : source.type.includes("jpeg")
+          ? "jpg"
+          : null;
+    if (!extension) {
+      throw new Error(`Unsupported seed image type: ${source.type || "unknown"}`);
+    }
     return new File([source], `${seedName}.${extension}`, { type: source.type });
   }
 
