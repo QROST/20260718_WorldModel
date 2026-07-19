@@ -1,5 +1,6 @@
 import { FashionMazeExperience } from "@/components/FashionMazeExperience";
 import { fashionMazes } from "@/lib/fashion-maze";
+import { hasOpenAIApiKey } from "@/lib/openai-server";
 import { hasReactorApiKey } from "@/lib/reactor-server";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,7 @@ export default function Page() {
   return (
     <FashionMazeExperience
       reactorConfigured={hasReactorApiKey()}
+      openaiConfigured={hasOpenAIApiKey()}
       initialEntranceVariantIds={initialEntranceVariantIds}
     />
   );

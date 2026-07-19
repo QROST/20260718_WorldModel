@@ -56,17 +56,19 @@ export interface FashionMazeEnsembleMember {
   identityPrompt: string;
 }
 
+export type FashionMazeEnsembleCount = number | "all";
+
 export interface FashionMazeEntranceVariant {
   id: string;
   label: string;
   seedImage: string;
   seed: number;
   openingPrompt: string;
-  ensembleCount?: number;
+  ensembleCount?: FashionMazeEnsembleCount;
 }
 
 export interface FashionMazeEnsemble {
-  count: number;
+  count: FashionMazeEnsembleCount;
   /** Reusable identity archetypes; variants may contain more instances. */
   members: FashionMazeEnsembleMember[];
 }
@@ -95,9 +97,7 @@ export interface FashionMazeDoorQuestion {
 }
 
 export interface FashionMazeSceneTransition {
-  targetSceneId: string;
   buttonLabel: string;
-  question: FashionMazeDoorQuestion;
   portal: {
     summon: string;
     enter: string;
@@ -171,7 +171,9 @@ export function resolvePhotoAction(
   }
 
   const performers =
-    performerCount === 1
+    performerCount === "all"
+      ? "all seed-visible performers"
+      : performerCount === 1
       ? "the one seed-visible performer"
       : `all ${performerCount} seed-visible performers`;
 
@@ -217,6 +219,64 @@ const forwardBlackDoorPortal: FashionMazeSceneTransition["portal"] = {
   enter:
     `The same single black gate stays anchored and grows gradually larger through forward parallax across ${PORTAL_CHOREOGRAPHY.approachHoldChunks} beats. Its matte-black interior conceals the destination while the original scene remains settled behind it.`,
 };
+
+/**
+ * One unique editorial decision for every authored scene, including the last
+ * black door into the generated Grand Palais finale. These questions are tied
+ * to journey position instead of a source/target pair because Scenes 2–7 are
+ * shuffled at the start of each run.
+ */
+export const fashionDoorQuestions: FashionMazeDoorQuestion[] = [
+  {
+    prompt: "What should lead the next frame?",
+    choices: [
+      { id: "decisive_silhouette", label: "A decisive silhouette" },
+      { id: "immersive_atmosphere", label: "An immersive atmosphere" },
+    ],
+  },
+  {
+    prompt: "How should the collection gather momentum?",
+    choices: [
+      { id: "precise_stillness", label: "Through precise stillness" },
+      { id: "unfolding_motion", label: "Through unfolding motion" },
+    ],
+  },
+  {
+    prompt: "Where should the future find its shape?",
+    choices: [
+      { id: "inherited_craft", label: "Within inherited craft" },
+      { id: "radical_invention", label: "Through radical invention" },
+    ],
+  },
+  {
+    prompt: "What should survive a change of world?",
+    choices: [
+      { id: "material_language", label: "The material language" },
+      { id: "human_gesture", label: "The human gesture" },
+    ],
+  },
+  {
+    prompt: "How should contrast become continuity?",
+    choices: [
+      { id: "shared_rhythm", label: "By sharing a rhythm" },
+      { id: "preserved_tension", label: "By preserving tension" },
+    ],
+  },
+  {
+    prompt: "What makes an arrival feel inevitable?",
+    choices: [
+      { id: "echoed_detail", label: "One echoed detail" },
+      { id: "sudden_reveal", label: "One sudden reveal" },
+    ],
+  },
+  {
+    prompt: "What carries the journey into its finale?",
+    choices: [
+      { id: "memory_every_look", label: "The memory of every look" },
+      { id: "promise_unknown", label: "The promise of the unknown" },
+    ],
+  },
+];
 
 const roseGardenEntrances: FashionMazeEntranceVariant[] = [
   {
@@ -310,15 +370,7 @@ const authoredFashionMazes: FashionMaze[] = [
       ],
     },
     sceneTransition: {
-      targetSceneId: "cyberpunk-garden",
       buttonLabel: "ENTER THE BLACK DOOR",
-      question: {
-        prompt: "What should lead the rose garden into electric night?",
-        choices: [
-          { id: "living_silhouette", label: "A living silhouette" },
-          { id: "charged_atmosphere", label: "A charged atmosphere" },
-        ],
-      },
       portal: forwardBlackDoorPortal,
     },
     routes: [
@@ -473,15 +525,7 @@ const authoredFashionMazes: FashionMaze[] = [
       ],
     },
     sceneTransition: {
-      targetSceneId: "chapter-03",
       buttonLabel: "ENTER THE NEXT BLACK DOOR",
-      question: {
-        prompt: "When does an electric signal become a monument?",
-        choices: [
-          { id: "perfect_stillness", label: "In perfect stillness" },
-          { id: "unfolding_motion", label: "Through unfolding motion" },
-        ],
-      },
       portal: forwardBlackDoorPortal,
     },
     routes: [],
@@ -576,15 +620,7 @@ const chapterThreeAsianSculptureGarden: FashionMaze = {
     ],
   },
   sceneTransition: {
-    targetSceneId: "chapter-04",
     buttonLabel: "ENTER THE NEXT BLACK DOOR",
-    question: {
-      prompt: "Where should the future find its shape?",
-      choices: [
-        { id: "inherited_forms", label: "Within inherited forms" },
-        { id: "radical_invention", label: "Through radical invention" },
-      ],
-    },
     portal: forwardBlackDoorPortal,
   },
   routes: [],
@@ -677,15 +713,7 @@ const chapterFourAfroFuturism: FashionMaze = {
     ],
   },
   sceneTransition: {
-    targetSceneId: "chapter-05",
     buttonLabel: "ENTER THE NEXT BLACK DOOR",
-    question: {
-      prompt: "Which thread continues through the next prism?",
-      choices: [
-        { id: "metallic_rhythm", label: "The metallic rhythm" },
-        { id: "changing_formation", label: "The changing formation" },
-      ],
-    },
     portal: forwardBlackDoorPortal,
   },
   routes: [],
@@ -708,8 +736,6 @@ interface ReplaceableChapterSpec {
   accent: string;
   entrance: NarrativeBeat;
   assets: ReplaceableSeedAsset[];
-  nextSceneId?: string;
-  doorQuestion?: FashionMazeDoorQuestion;
 }
 
 const replaceableSeedBasePrompt =
@@ -737,12 +763,6 @@ function createReplaceableChapter(
   if (!first) {
     throw new Error(`Scene "${spec.id}" requires at least one seed asset.`);
   }
-  if (spec.nextSceneId && !spec.doorQuestion) {
-    throw new Error(
-      `Scene "${spec.id}" requires a unique door question before "${spec.nextSceneId}".`,
-    );
-  }
-
   return {
     id: spec.id,
     entrySelectable: false,
@@ -764,14 +784,10 @@ function createReplaceableChapter(
       count: first.ensembleCount ?? 0,
       members: [],
     },
-    sceneTransition: spec.nextSceneId
-      ? {
-          targetSceneId: spec.nextSceneId,
-          buttonLabel: "ENTER THE NEXT BLACK DOOR",
-          question: spec.doorQuestion!,
-          portal: forwardBlackDoorPortal,
-        }
-      : undefined,
+    sceneTransition: {
+      buttonLabel: "ENTER THE NEXT BLACK DOOR",
+      portal: forwardBlackDoorPortal,
+    },
     routes: [],
   };
 }
@@ -812,14 +828,6 @@ const chapterFiveAfroFuturism = createReplaceableChapter({
       ensembleCount: 5,
     },
   ],
-  nextSceneId: "chapter-06",
-  doorQuestion: {
-    prompt: "What leads neon geometry back into the garden?",
-    choices: [
-      { id: "chromatic_pulse", label: "A chromatic pulse" },
-      { id: "sculpted_order", label: "A sculpted order" },
-    ],
-  },
 });
 
 const chapterSixAsianSculptureGarden = createReplaceableChapter({
@@ -879,14 +887,6 @@ const chapterSixAsianSculptureGarden = createReplaceableChapter({
       ensembleCount: 6,
     },
   ],
-  nextSceneId: "chapter-07",
-  doorQuestion: {
-    prompt: "What carries clipped nature into the forged finale?",
-    choices: [
-      { id: "organic_balance", label: "Organic balance" },
-      { id: "industrial_force", label: "Industrial force" },
-    ],
-  },
 });
 
 const chapterSevenAsianFusion = createReplaceableChapter({
@@ -949,6 +949,48 @@ export const fashionMazes: FashionMaze[] = [
   chapterSixAsianSculptureGarden,
   chapterSevenAsianFusion,
 ];
+
+/** Build one deterministic run order from the random number drawn at Start. */
+export function createFashionMazeSceneOrder(seed: number): string[] {
+  if (!Number.isSafeInteger(seed) || seed < 0) {
+    throw new Error("The scene-order seed must be a non-negative integer.");
+  }
+  const first = fashionMazes[0];
+  if (!first) throw new Error("At least one Fashion Maze scene is required.");
+
+  let state = (seed >>> 0) || 0x6d2b79f5;
+  const randomUnit = () => {
+    state += 0x6d2b79f5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4_294_967_296;
+  };
+
+  const tail = fashionMazes.slice(1).map((maze) => maze.id);
+  for (let index = tail.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(randomUnit() * (index + 1));
+    [tail[index], tail[swapIndex]] = [tail[swapIndex], tail[index]];
+  }
+  return [first.id, ...tail];
+}
+
+/** Fail closed when a client-supplied journey is incomplete or reordered at Scene 1. */
+export function assertFashionMazeSceneOrder(
+  sceneOrderIds: readonly string[],
+): void {
+  const expectedIds = fashionMazes.map((maze) => maze.id);
+  if (
+    sceneOrderIds.length !== expectedIds.length ||
+    sceneOrderIds[0] !== expectedIds[0] ||
+    new Set(sceneOrderIds).size !== expectedIds.length ||
+    expectedIds.some((id) => !sceneOrderIds.includes(id))
+  ) {
+    throw new Error(
+      "The journey must contain Scene 1 first and every authored scene exactly once.",
+    );
+  }
+}
 
 export const FASHION_MAZE_PROMPT_BUDGET = {
   hard: 2_000,

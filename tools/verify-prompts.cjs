@@ -37,6 +37,9 @@ const {
   composePortalPromptSegments,
   composeWorldPrompt,
   composeWorldPromptSegments,
+  createFashionMazeSceneOrder,
+  assertFashionMazeSceneOrder,
+  fashionDoorQuestions,
   fashionMazes,
   findMaze,
   joinFashionMazePromptSegments,
@@ -219,45 +222,43 @@ function verifyPacket(label, resolvedMaze, segments, expectedCameraId) {
 }
 
 uniqueIds("scenes", fashionMazes.map((maze) => maze.id));
-const sceneById = new Map(fashionMazes.map((maze) => [maze.id, maze]));
-const terminalScenes = fashionMazes.filter((maze) => !maze.sceneTransition);
-if (terminalScenes.length !== 1) {
+const orderA = createFashionMazeSceneOrder(1_234_567);
+const orderARepeat = createFashionMazeSceneOrder(1_234_567);
+const orderB = createFashionMazeSceneOrder(7_654_321);
+for (const [label, order] of [
+  ["scene order A", orderA],
+  ["scene order A repeat", orderARepeat],
+  ["scene order B", orderB],
+]) {
+  try {
+    assertFashionMazeSceneOrder(order);
+  } catch (cause) {
+    fail(label, cause instanceof Error ? cause.message : String(cause));
+  }
+}
+if (orderA.join("|") !== orderARepeat.join("|")) {
+  fail("scene order", "the same random seed must reproduce the same order");
+}
+if (orderA.join("|") === orderB.join("|")) {
+  fail("scene order", "the deterministic canary seeds must produce different orders");
+}
+expectThrow("scene order missing a scene", () =>
+  assertFashionMazeSceneOrder(orderA.slice(0, -1)),
+);
+expectThrow("scene order moves Scene 1", () =>
+  assertFashionMazeSceneOrder([...orderA.slice(1), orderA[0]]),
+);
+expectThrow("scene order repeats a scene", () =>
+  assertFashionMazeSceneOrder([...orderA.slice(0, -1), orderA[1]]),
+);
+
+const doorQuestions = fashionDoorQuestions;
+if (doorQuestions.length !== fashionMazes.length) {
   fail(
-    "scene graph",
-    `expected exactly one terminal scene, received ${terminalScenes.length}`,
+    "door questions",
+    `expected one question per authored scene, received ${doorQuestions.length}`,
   );
 }
-
-const reachableScenes = new Set();
-let graphCursor = fashionMazes[0];
-while (graphCursor) {
-  if (reachableScenes.has(graphCursor.id)) {
-    fail("scene graph", `cycle reaches scene "${graphCursor.id}"`);
-    break;
-  }
-  reachableScenes.add(graphCursor.id);
-  const targetId = graphCursor.sceneTransition?.targetSceneId;
-  if (!targetId) break;
-  graphCursor = sceneById.get(targetId);
-  if (!graphCursor) break;
-}
-if (reachableScenes.size !== fashionMazes.length) {
-  const unreachable = fashionMazes
-    .filter((maze) => !reachableScenes.has(maze.id))
-    .map((maze) => maze.id)
-    .join(", ");
-  fail("scene graph", `unreachable scenes: ${unreachable || "unknown"}`);
-}
-if (
-  terminalScenes.length === 1 &&
-  terminalScenes[0] !== fashionMazes[fashionMazes.length - 1]
-) {
-  fail("scene graph", "the terminal scene must be the final registered scene");
-}
-
-const doorQuestions = fashionMazes.flatMap((maze) =>
-  maze.sceneTransition ? [maze.sceneTransition.question] : [],
-);
 uniqueCopy(
   "door question prompts across all scenes",
   doorQuestions.map((question) => question.prompt),
@@ -274,6 +275,17 @@ uniqueIds(
     question.choices.map((choice) => choice.id),
   ),
 );
+for (const [index, question] of doorQuestions.entries()) {
+  if (!question.prompt.trim()) {
+    fail(`door question ${index + 1}`, "prompt must not be empty");
+  }
+  if (question.choices.length !== 2) {
+    fail(`door question ${index + 1}`, "must define exactly two choices");
+  }
+  if (question.choices.some((choice) => !choice.label.trim())) {
+    fail(`door question ${index + 1}`, "choice labels must not be empty");
+  }
+}
 
 for (const maze of fashionMazes) {
   const sceneLabel = `scene ${maze.id}`;
@@ -302,40 +314,10 @@ for (const maze of fashionMazes) {
     );
   }
 
-  if (maze.sceneTransition) {
-    if (!sceneById.has(maze.sceneTransition.targetSceneId)) {
-      fail(
-        sceneLabel,
-        `transition target "${maze.sceneTransition.targetSceneId}" does not exist`,
-      );
-    }
-    if (maze.sceneTransition.targetSceneId === maze.id) {
-      fail(sceneLabel, "transition target must differ from source scene");
-    }
-    const question = maze.sceneTransition.question;
-    if (!question.prompt.trim()) {
-      fail(sceneLabel, "door question prompt must not be empty");
-    }
-    if (question.choices.length !== 2) {
-      fail(sceneLabel, "door question must define exactly two choices");
-    }
-    uniqueIds(
-      `${sceneLabel} door choices`,
-      question.choices.map((choice) => choice.id),
-    );
-    if (question.choices.some((choice) => !choice.label.trim())) {
-      fail(sceneLabel, "door choice labels must not be empty");
-    }
-    if (question.choices[0]?.label === question.choices[1]?.label) {
-      fail(sceneLabel, "door choice labels must be distinct");
-    }
-  } else {
-    try {
-      composePortalPrompt(maze, undefined, "summon");
-      fail(sceneLabel, "portal composer must fail closed without a transition");
-    } catch {
-      // Expected: terminal scenes cannot silently fall back to ambient prose.
-    }
+  if (!maze.sceneTransition) {
+    fail(sceneLabel, "every authored scene must support the journey black door");
+  } else if (!maze.sceneTransition.buttonLabel.trim()) {
+    fail(sceneLabel, "door button label must not be empty");
   }
 
   for (const route of maze.routes) {
