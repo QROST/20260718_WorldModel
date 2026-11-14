@@ -14,11 +14,12 @@ movement, and camera controls.
 ./start-demo.sh       # Start the loopback-only production demo
 ```
 
-**Authored and maintained by [QROST](https://qrost.github.io/).** Repository
-files are covered by the SHA-256 manifest in
-[`PROVENANCE.json`](./PROVENANCE.json). See
-[`PROVENANCE.md`](./PROVENANCE.md) for authorship, team assets, and third-party
-rights boundaries.
+**Authored and maintained by [QROST](https://qrost.github.io/).** Original
+application code and project documentation are under the
+[Apache License 2.0](./LICENSE). Team imagery, AninaNet's concept and
+storyline, and third-party packages are outside that grant; see
+[`NOTICE`](./NOTICE) and [`PROVENANCE.md`](./PROVENANCE.md). Repository files
+are covered by the SHA-256 manifest in [`PROVENANCE.json`](./PROVENANCE.json).
 
 ## Credits
 

@@ -1,0 +1,21 @@
+Fashion Maze
+Copyright 2026 QROST
+
+This project is licensed under the Apache License, Version 2.0.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+The license covers original application code, system design, integration
+work, and project-specific documentation by QROST.
+
+It does not apply to:
+
+- content/authoring/ — earlier team authoring source
+- public/dataset/ — team-supplied and generated imagery; visual authorship
+  and direction by AninaNet; images generated with OpenAI GPT Image 2
+- the creative concept and original storyline by AninaNet
+- third-party packages, which keep their own licenses
+- submission/oneshot/ — a separately verified submission artifact
+
+See PROVENANCE.md for the repository rights boundary.

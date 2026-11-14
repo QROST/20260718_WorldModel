@@ -40,10 +40,11 @@ does **not** rewrite the authorship or rights of other material:
 - `submission/oneshot/` is a separately verified submission artifact whose
   prompt and dry-run hashes are pinned against accidental change.
 
-This provenance notice is not an open-source license and does not choose one on
-the owner's behalf. Public visibility, attribution, and permission to reuse are
-separate questions. Add a deliberate `LICENSE` only after the intended reuse
-terms have been selected.
+Original application code, system design, integration work, and
+project-specific documentation by QROST are released under the Apache License,
+Version 2.0. See [`LICENSE`](./LICENSE) and [`NOTICE`](./NOTICE). That grant
+does not cover `content/authoring/`, `public/dataset/`, AninaNet's creative
+concept and storyline, third-party packages, or `submission/oneshot/`.
 
 ## Evidence strength
 

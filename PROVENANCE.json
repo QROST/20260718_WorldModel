@@ -33,23 +33,37 @@
       "signaturePolicy": "header-and-manifest"
     },
     {
+      "path": "LICENSE",
+      "sha256": "6a4b6ee66046b7306fdc8859e9d89e1d6000f7ac91d3c2e7683299fb6ac40baa",
+      "bytes": 11335,
+      "contentClass": "project-metadata",
+      "signaturePolicy": "manifest-only"
+    },
+    {
+      "path": "NOTICE",
+      "sha256": "34c2cdd22feb5b81c702bf2086bdcc190d9a745005c01e2244052ec01988986b",
+      "bytes": 773,
+      "contentClass": "project-metadata",
+      "signaturePolicy": "manifest-only"
+    },
+    {
       "path": "PROVENANCE.md",
-      "sha256": "8a460d0a17eee840a85b80796c8683100be4145e8eaa11a1ab96c2074f7242e2",
-      "bytes": 2946,
+      "sha256": "9a2d1fd3d843cfe748cfef44f2b9ce3a707e82be85abf6f58e5bd4fadf69c10b",
+      "bytes": 3050,
       "contentClass": "project-documentation",
       "signaturePolicy": "manifest-only"
     },
     {
       "path": "README.md",
-      "sha256": "55b95e391a6340834ee314ae48b629da2a2bee27a3a20a3ae9286523fd41ee1e",
-      "bytes": 17522,
+      "sha256": "86c6ffcd730ee1467cf6882957d9c01764e184281ff0957cb507fb0faad97b1c",
+      "bytes": 17680,
       "contentClass": "project-documentation",
       "signaturePolicy": "manifest-only"
     },
     {
       "path": "README.zh-CN.md",
-      "sha256": "e74d29e5468773fbf9f632a9bdfa7d862a6b897782e9c3587ea714f8d3da438b",
-      "bytes": 22324,
+      "sha256": "9d3cd060a1cd11459a895564649e676d9a7ed801c4fc6d4a83a9381f536c73be",
+      "bytes": 22475,
       "contentClass": "project-documentation",
       "signaturePolicy": "manifest-only"
     },

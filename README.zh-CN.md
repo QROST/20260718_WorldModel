@@ -4,9 +4,11 @@
 
 一个面向 SIGGRAPH hackathon 的 HTML/React 实时世界体验：用户从真实团队 rose-garden 入口图进入由 Reactor LingBot World 2 生成的连续视频世界，并通过世界变体选择、WASD 与视角控制探索会实时变化的 fashion maze。
 
-**Authored and maintained by [QROST](https://qrost.github.io/).** 全仓文件由
-[`PROVENANCE.json`](./PROVENANCE.json) 的 SHA-256 清单覆盖；署名、团队素材与
-第三方权利边界见 [`PROVENANCE.md`](./PROVENANCE.md)。
+**Authored and maintained by [QROST](https://qrost.github.io/).** QROST 的原创
+程序与项目文档采用 [Apache License 2.0](./LICENSE)。团队图像、AninaNet 的构思
+与故事线，以及第三方软件包不在该许可内，见 [`NOTICE`](./NOTICE) 与
+[`PROVENANCE.md`](./PROVENANCE.md)。全仓文件由
+[`PROVENANCE.json`](./PROVENANCE.json) 的 SHA-256 清单覆盖。
 
 ## 创作署名
 
